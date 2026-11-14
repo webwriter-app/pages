@@ -146,19 +146,19 @@
   "dependencies": {
     "@lit/localize": "^0.12.2",
     "@shoelace-style/shoelace": "^2.12.0",
-    "@webwriter/lit": "^2.1.8",
-    "@zumer/snapdom": "^2.12.9",
-    "bootstrap-icons": "^1.11.3",
+    "@webwriter/lit": "^3.0.0",
+    "@zumer/snapdom": "^3.7.5",
+    "bootstrap-icons": "^1.13.2",
     "lit": "^3.2.0"
   },
   "devDependencies": {
     "@types/chai": "^5.2.2",
     "@types/mocha": "^10.0.10",
-    "@webwriter/build": "^1.5.0",
-    "axe-core": "^4.10.3",
-    "chai": "^6.2.2",
-    "mocha": "^11.2.2",
-    "web-vitals": "^5.0.1"
+    "@webwriter/build": "^1.13.1",
+    "axe-core": "^4.14.0",
+    "chai": "^6.3.0",
+    "mocha": "^12.0.3",
+    "web-vitals": "^6.2.3"
   },
   "exports": {
     "./widgets/webwriter-slides.*": {
