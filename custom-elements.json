@@ -35,7 +35,7 @@
                 "text": "string"
               },
               "default": "\"\"",
-              "description": "Data URI string for the slide thumbnail (e.g., \"data:image/png;base64,...\").\r\nUsed to display a preview image for the slide.",
+              "description": "Data URI string for the slide thumbnail (e.g., \"data:image/png;base64,...\").\nUsed to display a preview image for the slide.",
               "attribute": "thumbnail",
               "reflects": true
             }
@@ -56,7 +56,7 @@
                 "text": "string"
               },
               "default": "\"\"",
-              "description": "Data URI string for the slide thumbnail (e.g., \"data:image/png;base64,...\").\r\nUsed to display a preview image for the slide.",
+              "description": "Data URI string for the slide thumbnail (e.g., \"data:image/png;base64,...\").\nUsed to display a preview image for the slide.",
               "fieldName": "thumbnail"
             }
           ],
@@ -95,7 +95,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "Container for displaying a slideshow of content sequentially.",
+          "description": "Container for displaying a slideshow of content sequentially.\n\nAuthors add `webwriter-slide` children; the `type` attribute switches between a thumbnail strip (\"slides\")\nand a tab strip (\"tabs\"). Thumbnails are drawn in the editor with a capture library that loads on first use.\nIn use mode the arrow keys, the controls and swipes in fullscreen move between slides.",
           "name": "WebwriterSlides",
           "slots": [
             {
@@ -106,121 +106,74 @@
           "members": [
             {
               "kind": "field",
-              "name": "localize",
-              "privacy": "protected",
-              "default": "LOCALIZE"
-            },
-            {
-              "kind": "field",
-              "name": "_boundKeyHandler",
-              "type": {
-                "text": "(e: KeyboardEvent) => void"
-              },
-              "privacy": "private"
-            },
-            {
-              "kind": "field",
-              "name": "_boundTouchStartHandler",
-              "type": {
-                "text": "(e: TouchEvent) => void"
-              },
-              "privacy": "private"
-            },
-            {
-              "kind": "field",
-              "name": "_boundTouchEndHandler",
-              "type": {
-                "text": "(e: TouchEvent) => void"
-              },
-              "privacy": "private"
-            },
-            {
-              "kind": "field",
-              "name": "_touchStartX",
-              "type": {
-                "text": "number | null"
-              },
-              "privacy": "private",
-              "default": "null"
-            },
-            {
-              "kind": "field",
-              "name": "_touchTarget",
-              "type": {
-                "text": "Element | null"
-              },
-              "privacy": "private",
-              "default": "null"
-            },
-            {
-              "kind": "method",
-              "name": "_handleKeyDown",
-              "parameters": [
-                {
-                  "name": "e",
-                  "type": {
-                    "text": "KeyboardEvent"
-                  }
-                }
-              ],
-              "description": "Handles keyboard navigation for the slideshow.\r\nArrowRight advances to the next slide, ArrowLeft goes back.\r\nOnly possible in preview mode."
-            },
-            {
-              "kind": "method",
-              "name": "_handleTouchStart",
-              "privacy": "private",
-              "parameters": [
-                {
-                  "name": "e",
-                  "type": {
-                    "text": "TouchEvent"
-                  }
-                }
-              ],
-              "description": "Handles the start of a touch event for swipe navigation.\r\nRecords the initial touch position and target element.\r\nOnly active in fullscreen mode."
-            },
-            {
-              "kind": "method",
-              "name": "_isInteractiveTarget",
-              "privacy": "private",
-              "return": {
-                "type": {
-                  "text": "boolean"
-                }
-              },
-              "parameters": [
-                {
-                  "name": "el",
-                  "type": {
-                    "text": "Element | null"
-                  }
-                }
-              ],
-              "description": "Determines if the given element or any of its ancestors (up to the slideshow container) is an interactive element.\r\nUsed to prevent swipe navigation when interacting with widgets or interactive elements."
-            },
-            {
-              "kind": "method",
-              "name": "_handleTouchEnd",
-              "privacy": "private",
-              "parameters": [
-                {
-                  "name": "e",
-                  "type": {
-                    "text": "TouchEvent"
-                  }
-                }
-              ],
-              "description": "Handles the end of a touch event for swipe navigation.\r\nDetermines the swipe direction and navigates to the next or previous slide accordingly.\r\nIgnores swipes on interactive elements or if the swipe distance is too small."
-            },
-            {
-              "kind": "field",
               "name": "scopedElements",
               "type": {
                 "text": "object"
               },
-              "privacy": "protected",
               "static": true,
-              "default": "{ \"sl-button\": SlButton, \"sl-icon-button\": SlIconButton, \"sl-tooltip\": SlTooltip, \"sl-select\": SlSelect, \"sl-option\": SlOption, }"
+              "default": "{ \"sl-icon-button\": SlIconButton, \"sl-tooltip\": SlTooltip, }"
+            },
+            {
+              "kind": "field",
+              "name": "options",
+              "static": true,
+              "default": "{ type: { type: \"select\", group: \"presentation\", label: (widget: Labelled) => widget.msg(\"View\"), options: [ { value: \"tabs\", label: (widget: Labelled) => widget.msg(\"Tabs\") }, { value: \"slides\", label: (widget: Labelled) => widget.msg(\"Slides\") }, ], }, } satisfies Record<string, Declared<OptionDeclaration>>"
+            },
+            {
+              "kind": "field",
+              "name": "optionGroups",
+              "static": true,
+              "default": "{ presentation: { label: (widget: Labelled) => widget.msg(\"Presentation\"), collapsible: true, advanced: false }, } satisfies Record<string, Declared<OptionGroupDeclaration>>"
+            },
+            {
+              "kind": "field",
+              "name": "actions",
+              "static": true,
+              "default": "{ addSlide: { label: (widget: Labelled) => widget.msg(\"Add slide\"), group: \"presentation\", icon: \"Add\", intent: \"default\" }, duplicateActiveSlide: { label: (widget: Labelled) => widget.msg(\"Duplicate current slide\"), group: \"presentation\", icon: \"Copy\", intent: \"default\", disabled: true }, removeActiveSlide: { label: (widget: Labelled) => widget.msg(\"Remove current slide\"), group: \"presentation\", icon: \"Delete\", intent: \"danger\", disabled: true }, } satisfies Record<string, Declared<ActionDeclaration>>"
+            },
+            {
+              "kind": "field",
+              "name": "localize"
+            },
+            {
+              "kind": "field",
+              "name": "msg",
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "#permissions",
+              "privacy": "private",
+              "default": "new Permissions(this)"
+            },
+            {
+              "kind": "field",
+              "name": "#drag",
+              "privacy": "private",
+              "default": "new Drag(this, { can: () => this.#permissions.editing })",
+              "description": "Reordering by pointer or keyboard is for authors only."
+            },
+            {
+              "kind": "field",
+              "name": "type",
+              "type": {
+                "text": "\"tabs\" | \"slides\""
+              },
+              "privacy": "public",
+              "default": "\"slides\"",
+              "description": "Defines the type of view for the slideshow.\n- \"slides\": Show content as sequential slides.\n- \"tabs\": Show content using tabs.",
+              "attribute": "type",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "slides",
+              "type": {
+                "text": "WebwriterSlide[]"
+              },
+              "privacy": "protected",
+              "description": "All `webwriter-slide` elements.\nRepresents the individual slides in the slideshow."
             },
             {
               "kind": "field",
@@ -233,6 +186,47 @@
             },
             {
               "kind": "field",
+              "name": "#actionsDisabled",
+              "privacy": "private",
+              "type": {
+                "text": "object"
+              },
+              "default": "{ duplicateActiveSlide: true, removeActiveSlide: true }"
+            },
+            {
+              "kind": "field",
+              "name": "#lifecycle",
+              "privacy": "private",
+              "type": {
+                "text": "AbortController | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#touchStartX",
+              "privacy": "private",
+              "type": {
+                "text": "number | null"
+              },
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "#touchTarget",
+              "privacy": "private",
+              "type": {
+                "text": "Element | null"
+              },
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "actions",
+              "description": "The drawer declarations with the availability of the slide actions, which follows the slides.",
+              "readonly": true
+            },
+            {
+              "kind": "field",
               "name": "activeSlide",
               "type": {
                 "text": "WebwriterSlide"
@@ -242,22 +236,21 @@
             },
             {
               "kind": "field",
-              "name": "draggingIndex",
+              "name": "hasNextSlide",
               "type": {
-                "text": "number | null"
+                "text": "boolean"
               },
-              "privacy": "private",
-              "default": "null"
+              "description": "False if slideshow is on the last slide.",
+              "readonly": true
             },
             {
               "kind": "field",
-              "name": "lastDraggedOver",
+              "name": "hasPreviousSlide",
               "type": {
-                "text": "number"
+                "text": "boolean"
               },
-              "privacy": "private",
-              "default": "-1",
-              "description": "Index of the slide currently being dragged over (for drag-and-drop functionality)."
+              "description": "False if slideshow is on the first slide.",
+              "readonly": true
             },
             {
               "kind": "field",
@@ -267,32 +260,8 @@
               "readonly": true
             },
             {
-              "kind": "field",
-              "name": "iconSrc",
-              "privacy": "protected",
-              "description": "Icon source URL depending on fullscreen state (enter/exit).",
-              "readonly": true
-            },
-            {
-              "kind": "field",
-              "name": "slides",
-              "type": {
-                "text": "WebwriterSlide[]"
-              },
-              "privacy": "protected",
-              "description": "All `webwriter-slide` elements.\r\nRepresents the individual slides in the slideshow."
-            },
-            {
-              "kind": "field",
-              "name": "type",
-              "type": {
-                "text": "\"tabs\" | \"slides\""
-              },
-              "privacy": "public",
-              "default": "\"slides\"",
-              "description": "Defines the type of view for the slideshow.\r\n- \"slides\": Show content as sequential slides.\r\n- \"tabs\": Show content using tabs.",
-              "attribute": "type",
-              "reflects": true
+              "kind": "method",
+              "name": "duplicateActiveSlide"
             },
             {
               "kind": "method",
@@ -310,6 +279,20 @@
             },
             {
               "kind": "method",
+              "name": "#addSlide",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "index",
+                  "optional": true,
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
               "name": "duplicateSlide",
               "parameters": [
                 {
@@ -320,6 +303,19 @@
                 }
               ],
               "description": "Duplicate an existing slide at given index."
+            },
+            {
+              "kind": "method",
+              "name": "#duplicateSlide",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "index",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ]
             },
             {
               "kind": "method",
@@ -355,22 +351,71 @@
               "description": "Activate the next slide element."
             },
             {
-              "kind": "field",
-              "name": "hasNextSlide",
-              "type": {
-                "text": "boolean"
-              },
-              "description": "False if slideshow is on the last slide.",
-              "readonly": true
+              "kind": "method",
+              "name": "#handleSelectionChange",
+              "privacy": "private",
+              "description": "Follows the selection to the slide that contains it."
             },
             {
-              "kind": "field",
-              "name": "hasPreviousSlide",
-              "type": {
-                "text": "boolean"
+              "kind": "method",
+              "name": "#handleKeyDown",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "e",
+                  "type": {
+                    "text": "KeyboardEvent"
+                  }
+                }
+              ],
+              "description": "Handles keyboard navigation for the slideshow.\nArrowRight advances to the next slide, ArrowLeft goes back.\nOnly possible in preview mode."
+            },
+            {
+              "kind": "method",
+              "name": "#handleTouchStart",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "e",
+                  "type": {
+                    "text": "TouchEvent"
+                  }
+                }
+              ],
+              "description": "Handles the start of a touch event for swipe navigation.\nRecords the initial touch position and target element.\nOnly active in fullscreen mode."
+            },
+            {
+              "kind": "method",
+              "name": "#isInteractiveTarget",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
               },
-              "description": "False if slideshow is on the first slide.",
-              "readonly": true
+              "parameters": [
+                {
+                  "name": "el",
+                  "type": {
+                    "text": "Element | null"
+                  }
+                }
+              ],
+              "description": "Determines if the given element or any of its ancestors (up to the slideshow container) is an interactive element.\nUsed to prevent swipe navigation when interacting with widgets or interactive elements."
+            },
+            {
+              "kind": "method",
+              "name": "#handleTouchEnd",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "e",
+                  "type": {
+                    "text": "TouchEvent"
+                  }
+                }
+              ],
+              "description": "Handles the end of a touch event for swipe navigation.\nDetermines the swipe direction and navigates to the next or previous slide accordingly.\nIgnores swipes on interactive elements or if the swipe distance is too small."
             },
             {
               "kind": "method",
@@ -390,13 +435,13 @@
                   "description": "Whether to navigate backward (default is false)."
                 }
               ],
-              "description": "Handles navigation to the next or previous slide based on user input.\r\n- Shift key: jump by the total number of slides.\r\n- Ctrl key: jump by 10 slides.\r\n- Otherwise: move by one slide."
+              "description": "Handles navigation to the next or previous slide based on user input.\n- Shift key: jump by the total number of slides.\n- Ctrl key: jump by 10 slides.\n- Otherwise: move by one slide."
             },
             {
               "kind": "field",
               "name": "changeSlide",
               "privacy": "protected",
-              "description": "Changes the active slide to the specified index.\r\nWaits for rendering to finish, scrolls the active slide into view,\r\nand generates a thumbnail preview using snapdom.",
+              "description": "Changes the active slide to the specified index.\nWaits for rendering to finish, scrolls the active slide into view,\nand generates a thumbnail preview.",
               "parameters": [
                 {
                   "description": "The index of the slide to activate.",
@@ -406,62 +451,36 @@
             },
             {
               "kind": "method",
-              "name": "onDragStart",
+              "name": "onDragCommit",
               "privacy": "private",
               "parameters": [
                 {
                   "name": "e",
                   "type": {
-                    "text": "DragEvent"
-                  },
-                  "description": "The dragstart event."
-                },
-                {
-                  "name": "index",
-                  "type": {
-                    "text": "number"
-                  },
-                  "description": "Index of the slide being dragged."
+                    "text": "CustomEvent<DragCommitDetail>"
+                  }
                 }
               ],
-              "description": "Starts dragging a slide element.\r\nAdds the 'dragging' CSS class and sets drag data."
+              "description": "Moves the dragged slide to the place the drop resolved to.\nThe thumbnails and tabs stand for the authored `webwriter-slide` children,\nso the commit moves the slide itself and the lifted item settles at the new layout."
             },
             {
               "kind": "method",
-              "name": "onDragEnd",
+              "name": "#view",
               "privacy": "private",
-              "parameters": [
-                {
-                  "name": "e",
-                  "type": {
-                    "text": "DragEvent"
-                  },
-                  "description": "The dragend event."
+              "return": {
+                "type": {
+                  "text": "SlidesView"
                 }
-              ],
-              "description": "Ends dragging a slide.\r\nMoves the dragged slide to its new position if it was moved,\r\nupdates the active slide index, and cleans up drag state."
-            },
+              },
+              "description": "The slideshow as seen by the strip and control components."
+            }
+          ],
+          "events": [
             {
-              "kind": "method",
-              "name": "onDragOver",
-              "privacy": "private",
-              "parameters": [
-                {
-                  "name": "e",
-                  "type": {
-                    "text": "DragEvent"
-                  },
-                  "description": "The dragover event."
-                },
-                {
-                  "name": "index",
-                  "type": {
-                    "text": "number"
-                  },
-                  "description": "Index of the slide being dragged over."
-                }
-              ],
-              "description": "Handles dragging over a slide element.\r\nPrevents default to allow dropping and records the slide index being hovered."
+              "name": "optionschange",
+              "type": {
+                "text": "Event"
+              }
             }
           ],
           "attributes": [
@@ -471,7 +490,7 @@
                 "text": "\"tabs\" | \"slides\""
               },
               "default": "\"slides\"",
-              "description": "Defines the type of view for the slideshow.\r\n- \"slides\": Show content as sequential slides.\r\n- \"tabs\": Show content using tabs.",
+              "description": "Defines the type of view for the slideshow.\n- \"slides\": Show content as sequential slides.\n- \"tabs\": Show content using tabs.",
               "fieldName": "type"
             }
           ],

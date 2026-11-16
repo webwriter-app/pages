@@ -1,12 +1,9 @@
 /** Module imports */
 import { html, css } from "lit";
 import { LitElementWw } from "@webwriter/lit";
-import { effectiveLanguage, nativeLanguageAttributes } from "../../localization/localizer";
 import { customElement, property } from "lit/decorators.js";
 
-// @ts-ignore
 import "@shoelace-style/shoelace/dist/themes/light.css";
-import { snapdom } from "@zumer/snapdom";
 
 /**
  * Represents a single slide in the `webwriter-slides` widget.
@@ -15,10 +12,6 @@ import { snapdom } from "@zumer/snapdom";
  */
 @customElement("webwriter-slide")
 export class WebwriterSlide extends LitElementWw {
-    static override get observedAttributes() { return nativeLanguageAttributes(this, super.observedAttributes); }
-    override get lang(): string { return effectiveLanguage(this); }
-    override set lang(value: string) { this.setAttribute("lang", value); }
-
     /** Indicates whether the slide is currently active/visible. */
     @property({ type: Boolean, attribute: true, reflect: true })
     accessor active = false;

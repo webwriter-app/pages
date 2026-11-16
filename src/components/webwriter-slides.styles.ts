@@ -32,11 +32,6 @@ export const slides_styles = css`
         height: auto;
     }
 
-    :host(:not([contenteditable="true"]):not([contenteditable=""]))
-        .author-only {
-        display: none;
-    }
-
     [part="actions"], [part="tabs"] {
         display: flex;
         flex-direction: row;
@@ -125,7 +120,7 @@ export const slides_styles = css`
         overflow: hidden;
     }
 
-    .slide-thumb.dragging, .slide-tab.dragging {
+    .slide-thumb[data-ww-dragging], .slide-tab[data-ww-dragging] {
         opacity: 0.5;
     }
 

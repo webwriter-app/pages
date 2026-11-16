@@ -1,247 +1,85 @@
-/** Module imports */
-import { html, css, PropertyValueMap, PropertyValues } from "lit";
-import { LitElementWw } from "@webwriter/lit";
+import { html, type PropertyValues } from "lit";
+import { LitElementWw, resolveDeclarations } from "@webwriter/lit";
 import {
     customElement,
     property,
-    queryAll,
     queryAssignedElements,
     state,
 } from "lit/decorators.js";
 import type { MsgFn } from "@lit/localize";
-import SlButton from "@shoelace-style/shoelace/dist/components/button/button.component.js";
+import { localizer } from "@webwriter/lit/localize";
+import { Permissions } from "@webwriter/lit/permissions";
+import { Drag, type DragCommitDetail } from "@webwriter/lit/drag";
+import { transaction } from "@webwriter/widget/transaction";
+import type { ActionDeclaration, OptionDeclaration, OptionGroupDeclaration, Declared } from "@webwriter/widget";
 import SlIconButton from "@shoelace-style/shoelace/dist/components/icon-button/icon-button.component.js";
-import { effectiveLanguage, localizeElement, nativeLanguageAttributes, sourceMsg} from "../../localization/localizer";
-
-// @ts-ignore
+import SlTooltip from "@shoelace-style/shoelace/dist/components/tooltip/tooltip.component.js";
 import "@shoelace-style/shoelace/dist/themes/light.css";
+// @ts-ignore The Lit localization CLI generates this JavaScript module.
+import { sourceLocale, targetLocales } from "../../localization/generated/locale-codes.js";
 
-import fullscreenIcon from "bootstrap-icons/icons/fullscreen.svg";
-import fullscreenExitIcon from "bootstrap-icons/icons/fullscreen-exit.svg";
-import plusSquareIcon from "bootstrap-icons/icons/plus-square.svg";
-import minusSquareIcon from "bootstrap-icons/icons/dash-square.svg";
-import chevronLeftIcon from "bootstrap-icons/icons/chevron-left.svg";
-import chevronRightIcon from "bootstrap-icons/icons/chevron-right.svg";
 import { WebwriterSlide } from "./webwriter-slide";
+import { slides_styles } from "../components/webwriter-slides.styles";
+import { renderControls } from "../components/slides-controls";
+import { renderThumbs, renderTabs } from "../components/slides-strip";
+import { captureThumbnail } from "../components/slide-thumbnail";
+import type { SlidesView } from "../model/slides-view";
 
-import IconRemove from "bootstrap-icons/icons/x-circle.svg";
-import IconAdd from "bootstrap-icons/icons/plus-circle.svg";
-import IconDuplicate from "bootstrap-icons/icons/copy.svg";
-import {
-    SlOption,
-    SlSelect,
-    SlTooltip,
-} from "@shoelace-style/shoelace";
-
-import { snapdom } from "@zumer/snapdom";
-import { slides_styles } from "../styles/styles";
+type Labelled = { msg: MsgFn };
 
 /**
  * Container for displaying a slideshow of content sequentially.
+ *
+ * Authors add `webwriter-slide` children; the `type` attribute switches between a thumbnail strip ("slides")
+ * and a tab strip ("tabs"). Thumbnails are drawn in the editor with a capture library that loads on first use.
+ * In use mode the arrow keys, the controls and swipes in fullscreen move between slides.
  *
  * @slot default - Slide elements to be displayed (should be `webwriter-slide` components only).
  */
 @customElement("webwriter-slides")
 export class WebwriterSlides extends LitElementWw {
-    static override get observedAttributes() { return nativeLanguageAttributes(this, super.observedAttributes); }
-
-    override get lang(): string { return effectiveLanguage(this); }
-    override set lang(value: string) { this.setAttribute("lang", value); }
-    private readonly msg = localizeElement(this, true);
-    readonly options = WebwriterSlides.buildOptions(this.msg);
-    readonly actions = WebwriterSlides.buildActions(this.msg);
-
-    static get options(): Record<string, any> { return this.buildOptions(sourceMsg); }
-
-    private static buildOptions(msg: MsgFn): Record<string, any> {
-        return {
-            type: {
-                type: "select",
-                group: "presentation",
-                label: { get _() { return msg("View"); } },
-                options: [
-                    { value: "tabs", label: { get _() { return msg("Tabs"); } } },
-                    { value: "slides", label: { get _() { return msg("Slides"); } } },
-                ],
-            },
-        };
-    }
-
-    readonly optionGroups = WebwriterSlides.buildOptionGroups(this.msg);
-
-    static get optionGroups(): Record<string, any> { return this.buildOptionGroups(sourceMsg); }
-
-    private static buildOptionGroups(msg: MsgFn): Record<string, any> {
-        return {
-            presentation: { label: { get _() { return msg("Presentation"); } }, collapsible: true, advanced: false },
-        };
-    }
-
-    static get actions(): Record<string, any> { return this.buildActions(sourceMsg); }
-
-    private static buildActions(msg: MsgFn): Record<string, any> {
-        return {
-            addSlide: { label: { get _() { return msg("Add slide"); } }, group: "presentation", icon: "Add", intent: "default" },
-            duplicateActiveSlide: { label: { get _() { return msg("Duplicate current slide"); } }, group: "presentation", icon: "Copy", intent: "default", disabled: true },
-            removeActiveSlide: { label: { get _() { return msg("Remove current slide"); } }, group: "presentation", icon: "Delete", intent: "danger", disabled: true },
-        };
-    }
-
-    duplicateActiveSlide() { this.duplicateSlide(this.activeSlideIndex); }
-
-    constructor() {
-        super();
-
-        this.addEventListener("fullscreenchange", () => this.requestUpdate());
-
-        document.addEventListener(
-            "selectionchange",
-            (e) => {
-                const selectedSlideIndex = this.slides?.findIndex((slide) =>
-                    document.getSelection().containsNode(slide, true)
-                );
-                if (selectedSlideIndex !== -1) {
-                    this.changeSlide(selectedSlideIndex);
-                    this.requestUpdate();
-                }
-            },
-            { passive: true }
-        );
-    }
-
-    private _boundKeyHandler!: (e: KeyboardEvent) => void;
-    private _boundTouchStartHandler!: (e: TouchEvent) => void;
-    private _boundTouchEndHandler!: (e: TouchEvent) => void;
-    private _touchStartX: number | null = null;
-    private _touchTarget: Element | null = null;
-
-    connectedCallback() {
-        super.connectedCallback?.();
-
-        // Register keydown listener for slide navigation
-        this._boundKeyHandler = this._handleKeyDown.bind(this);
-        window.addEventListener("keydown", this._boundKeyHandler);
-
-        // Register touch event listeners for swipe navigation
-        this._boundTouchStartHandler = this._handleTouchStart.bind(this);
-        this._boundTouchEndHandler = this._handleTouchEnd.bind(this);
-        this.addEventListener("touchstart", this._boundTouchStartHandler, { passive: true });
-        this.addEventListener("touchend", this._boundTouchEndHandler, { passive: true });
-    }
-
-    disconnectedCallback() {
-        super.disconnectedCallback?.();
-
-        // Cleanup keydown and touch listeners on disconnect
-        window.removeEventListener("keydown", this._boundKeyHandler);
-        this.removeEventListener("touchstart", this._boundTouchStartHandler);
-        this.removeEventListener("touchend", this._boundTouchEndHandler);
-    }
-
-    /**
-     * Handles keyboard navigation for the slideshow.
-     * ArrowRight advances to the next slide, ArrowLeft goes back.
-     * Only possible in preview mode.
-     */
-    _handleKeyDown(e: KeyboardEvent) {
-        if (this.hasAttribute("contenteditable")) return;
-
-        switch (e.key) {
-            case "ArrowRight":
-                this.handleNextSlideClick(e);
-                break;
-            case "ArrowLeft":
-                this.handleNextSlideClick(e, true);
-                break;
-        }
-    }
-
-    /**
-     * Handles the start of a touch event for swipe navigation.
-     * Records the initial touch position and target element.
-     * Only active in fullscreen mode.
-     */
-    private _handleTouchStart(e: TouchEvent) {
-        if (!this.isFullscreen) return;
-        this._touchStartX = e.touches[0].clientX;
-        this._touchTarget = e.target as Element;
-    }
-
-    /**
-     * Determines if the given element or any of its ancestors (up to the slideshow container) is an interactive element.
-     * Used to prevent swipe navigation when interacting with widgets or interactive elements.
-     */
-    private _isInteractiveTarget(el: Element | null): boolean {
-        const interactiveTags = new Set(["BUTTON", "INPUT", "SELECT", "TEXTAREA", "A", "VIDEO", "AUDIO", "CANVAS", "DETAILS", "SUMMARY"]);
-        let node = el;
-        while (node && node.tagName !== "WEBWRITER-SLIDE") {
-            if (interactiveTags.has(node.tagName)) return true;
-            if (node.hasAttribute("contenteditable") && node.getAttribute("contenteditable") !== "false") return true;
-            if (node.tagName.includes("-")) return true;
-            node = node.parentElement;
-        }
-        return false;
-    }
-
-    /**
-     * Handles the end of a touch event for swipe navigation.
-     * Determines the swipe direction and navigates to the next or previous slide accordingly.
-     * Ignores swipes on interactive elements or if the swipe distance is too small.
-     */
-    private _handleTouchEnd(e: TouchEvent) {
-        if (!this.isFullscreen || this._touchStartX === null) return;
-        const deltaX = e.changedTouches[0].clientX - this._touchStartX;
-        const target = this._touchTarget;
-        this._touchStartX = null;
-        this._touchTarget = null;
-        if (this._isInteractiveTarget(target) || Math.abs(deltaX) < 50) return;
-        deltaX < 0 ? this.nextSlide(false) : this.nextSlide(true);
-    }
-
-    protected firstUpdated(): void {
-        this.requestUpdate();
-    }
-
-    protected static scopedElements = {
-        "sl-button": SlButton,
-        "sl-icon-button": SlIconButton,
-        "sl-tooltip": SlTooltip,
-        "sl-select": SlSelect,
-        "sl-option": SlOption,
-    };
-
-    /** Index of the currently active slide. */
-    @property({ attribute: false, state: true })
-    accessor activeSlideIndex = 0;
-
-    /** The active slide element based on the activeSlideIndex. */
-    get activeSlide(): WebwriterSlide {
-        return this.slides[this.activeSlideIndex];
-    }
-
-    private draggingIndex: number | null = null;
-
-    /** Index of the slide currently being dragged over (for drag-and-drop functionality). */
-    private lastDraggedOver = -1;
-
     static styles = slides_styles;
 
-    /** Whether the slideshow is currently displayed in fullscreen mode. */
-    protected get isFullscreen() {
-        return this.ownerDocument.fullscreenElement === this;
-    }
+    static scopedElements = {
+        "sl-icon-button": SlIconButton,
+        "sl-tooltip": SlTooltip,
+    };
 
-    /** Icon source URL depending on fullscreen state (enter/exit). */
-    protected get iconSrc() {
-        return this.isFullscreen ? fullscreenExitIcon : fullscreenIcon;
-    }
+    static options = {
+        type: {
+            type: "select",
+            group: "presentation",
+            label: (widget: Labelled) => widget.msg("View"),
+            options: [
+                { value: "tabs", label: (widget: Labelled) => widget.msg("Tabs") },
+                { value: "slides", label: (widget: Labelled) => widget.msg("Slides") },
+            ],
+        },
+    } satisfies Record<string, Declared<OptionDeclaration>>;
 
-    /**
-     * All `webwriter-slide` elements.
-     * Represents the individual slides in the slideshow.
-     */
-    @queryAssignedElements()
-    protected accessor slides: WebwriterSlide[];
+    static optionGroups = {
+        presentation: { label: (widget: Labelled) => widget.msg("Presentation"), collapsible: true, advanced: false },
+    } satisfies Record<string, Declared<OptionGroupDeclaration>>;
+
+    static actions = {
+        addSlide: { label: (widget: Labelled) => widget.msg("Add slide"), group: "presentation", icon: "Add", intent: "default" },
+        duplicateActiveSlide: { label: (widget: Labelled) => widget.msg("Duplicate current slide"), group: "presentation", icon: "Copy", intent: "default", disabled: true },
+        removeActiveSlide: { label: (widget: Labelled) => widget.msg("Remove current slide"), group: "presentation", icon: "Delete", intent: "danger", disabled: true },
+    } satisfies Record<string, Declared<ActionDeclaration>>;
+
+    // The drawer labels are computed with `msg`, so the editor reads them again after a language change.
+    localize = localizer(this, {
+        sourceLocale,
+        targetLocales,
+        load: (locale) => import(`../../localization/generated/${locale}.ts`),
+        drawer: true,
+    });
+    private readonly msg = this.localize.msg;
+
+    #permissions = new Permissions(this);
+
+    /** Reordering by pointer or keyboard is for authors only. */
+    #drag = new Drag(this, { can: () => this.#permissions.editing });
 
     /**
      * Defines the type of view for the slideshow.
@@ -251,8 +89,104 @@ export class WebwriterSlides extends LitElementWw {
     @property({ type: String, attribute: true, reflect: true })
     public accessor type: "tabs" | "slides" = "slides";
 
+    /**
+     * All `webwriter-slide` elements.
+     * Represents the individual slides in the slideshow.
+     */
+    @queryAssignedElements()
+    protected accessor slides!: WebwriterSlide[];
+
+    /** Index of the currently active slide. */
+    @state()
+    accessor activeSlideIndex = 0;
+
+    #actionsDisabled = { duplicateActiveSlide: true, removeActiveSlide: true };
+    #lifecycle?: AbortController;
+    #touchStartX: number | null = null;
+    #touchTarget: Element | null = null;
+
+    /** The drawer declarations with the availability of the slide actions, which follows the slides. */
+    get actions() {
+        const actions = resolveDeclarations<ActionDeclaration>(this, WebwriterSlides.actions)!;
+        return {
+            ...actions,
+            duplicateActiveSlide: { ...actions.duplicateActiveSlide, disabled: this.#actionsDisabled.duplicateActiveSlide },
+            removeActiveSlide: { ...actions.removeActiveSlide, disabled: this.#actionsDisabled.removeActiveSlide },
+        };
+    }
+
+    /** The active slide element based on the activeSlideIndex. */
+    get activeSlide(): WebwriterSlide {
+        return this.slides[this.activeSlideIndex];
+    }
+
+    /** False if slideshow is on the last slide. */
+    get hasNextSlide(): boolean {
+        return this.activeSlideIndex < this.slides?.length - 1;
+    }
+
+    /** False if slideshow is on the first slide. */
+    get hasPreviousSlide(): boolean {
+        return this.activeSlideIndex > 0;
+    }
+
+    /** Whether the slideshow is currently displayed in fullscreen mode. */
+    protected get isFullscreen() {
+        return this.ownerDocument.fullscreenElement === this;
+    }
+
+    constructor() {
+        super();
+        this.addEventListener("fullscreenchange", () => this.requestUpdate());
+    }
+
+    connectedCallback() {
+        super.connectedCallback?.();
+        this.#lifecycle = new AbortController();
+        const { signal } = this.#lifecycle;
+
+        window.addEventListener("keydown", (e) => this.#handleKeyDown(e), { signal });
+        document.addEventListener("selectionchange", () => this.#handleSelectionChange(), { passive: true, signal });
+        this.addEventListener("touchstart", (e) => this.#handleTouchStart(e), { passive: true, signal });
+        this.addEventListener("touchend", (e) => this.#handleTouchEnd(e), { passive: true, signal });
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback?.();
+        this.#lifecycle?.abort();
+        this.#lifecycle = undefined;
+    }
+
+    protected firstUpdated(): void {
+        this.requestUpdate();
+    }
+
+    /**
+     * Lifecycle method called whenever the component is updated.
+     * Updates each slide's `active` property based on the current activeSlideIndex.
+     */
+    protected updated(changed: PropertyValues<this>) {
+        super.updated(changed);
+        this.slides?.forEach(
+            (slide, i) => (slide.active = i === this.activeSlideIndex)
+        );
+        const duplicateDisabled = !this.activeSlide;
+        const removeDisabled = duplicateDisabled || this.slides.length <= 1;
+        if (this.#actionsDisabled.duplicateActiveSlide !== duplicateDisabled ||
+            this.#actionsDisabled.removeActiveSlide !== removeDisabled) {
+            this.#actionsDisabled = { duplicateActiveSlide: duplicateDisabled, removeActiveSlide: removeDisabled };
+            this.dispatchEvent(new Event("optionschange", { bubbles: true }));
+        }
+    }
+
+    duplicateActiveSlide() { this.duplicateSlide(this.activeSlideIndex); }
+
     /** Add a new empty slide element. Optionally insert after given index. */
     addSlide(index?: number) {
+        transaction(this, () => this.#addSlide(index));
+    }
+
+    #addSlide(index?: number) {
         const slide = this.ownerDocument.createElement(
             "webwriter-slide"
         ) as WebwriterSlide;
@@ -273,10 +207,15 @@ export class WebwriterSlides extends LitElementWw {
         if (selection) {
             selection.setBaseAndExtent(p, 0, p, 0);
         }
+        return this.updateComplete;
     }
 
     /** Duplicate an existing slide at given index. */
     duplicateSlide(index: number) {
+        transaction(this, () => this.#duplicateSlide(index));
+    }
+
+    #duplicateSlide(index: number) {
         const original = this.slides[index];
         if (!original) return;
 
@@ -284,6 +223,7 @@ export class WebwriterSlides extends LitElementWw {
         original.insertAdjacentElement("afterend", clone);
 
         this.changeSlide(this.slides.indexOf(clone));
+        return this.updateComplete;
     }
 
     /** Remove the currently active slide element. */
@@ -295,11 +235,14 @@ export class WebwriterSlides extends LitElementWw {
 
     /** Remove the currently active slide element. */
     removeSlide(slideIndex: number) {
-        this.slides[slideIndex].remove();
-        if (this.activeSlideIndex > this.slides.length - 1) {
-            this.changeSlide(this.slides.length - 1);
-        }
-        this.requestUpdate();
+        transaction(this, () => {
+            this.slides[slideIndex].remove();
+            if (this.activeSlideIndex > this.slides.length - 1) {
+                this.changeSlide(this.slides.length - 1);
+            }
+            this.requestUpdate();
+            return this.updateComplete;
+        });
     }
 
     /** Activate the next slide element. */
@@ -311,33 +254,75 @@ export class WebwriterSlides extends LitElementWw {
         );
     }
 
-    /**
-     * Lifecycle method called whenever the component is updated.
-     * Updates each slide's `active` property based on the current activeSlideIndex.
-     */
-    updated(changed: any) {
-        super.updated(changed);
-        this.slides?.forEach(
-            (slide, i) => (slide.active = i === this.activeSlideIndex)
+    /** Follows the selection to the slide that contains it. */
+    #handleSelectionChange() {
+        const selectedSlideIndex = this.slides?.findIndex((slide) =>
+            document.getSelection()?.containsNode(slide, true)
         );
-        const duplicateDisabled = !this.activeSlide;
-        const removeDisabled = duplicateDisabled || this.slides.length <= 1;
-        if (this.actions.duplicateActiveSlide.disabled !== duplicateDisabled ||
-            this.actions.removeActiveSlide.disabled !== removeDisabled) {
-            this.actions.duplicateActiveSlide.disabled = duplicateDisabled;
-            this.actions.removeActiveSlide.disabled = removeDisabled;
-            this.dispatchEvent(new Event("optionschange", { bubbles: true }));
+        if (selectedSlideIndex !== undefined && selectedSlideIndex !== -1) {
+            this.changeSlide(selectedSlideIndex);
+            this.requestUpdate();
         }
     }
 
-    /** False if slideshow is on the last slide. */
-    get hasNextSlide(): boolean {
-        return this.activeSlideIndex < this.slides?.length - 1;
+    /**
+     * Handles keyboard navigation for the slideshow.
+     * ArrowRight advances to the next slide, ArrowLeft goes back.
+     * Only possible in preview mode.
+     */
+    #handleKeyDown(e: KeyboardEvent) {
+        if (this.#permissions.editing) return;
+
+        switch (e.key) {
+            case "ArrowRight":
+                this.handleNextSlideClick(e);
+                break;
+            case "ArrowLeft":
+                this.handleNextSlideClick(e, true);
+                break;
+        }
     }
 
-    /** False if slideshow is on the first slide. */
-    get hasPreviousSlide(): boolean {
-        return this.activeSlideIndex > 0;
+    /**
+     * Handles the start of a touch event for swipe navigation.
+     * Records the initial touch position and target element.
+     * Only active in fullscreen mode.
+     */
+    #handleTouchStart(e: TouchEvent) {
+        if (!this.isFullscreen) return;
+        this.#touchStartX = e.touches[0].clientX;
+        this.#touchTarget = e.target as Element;
+    }
+
+    /**
+     * Determines if the given element or any of its ancestors (up to the slideshow container) is an interactive element.
+     * Used to prevent swipe navigation when interacting with widgets or interactive elements.
+     */
+    #isInteractiveTarget(el: Element | null): boolean {
+        const interactiveTags = new Set(["BUTTON", "INPUT", "SELECT", "TEXTAREA", "A", "VIDEO", "AUDIO", "CANVAS", "DETAILS", "SUMMARY"]);
+        let node = el;
+        while (node && node.tagName !== "WEBWRITER-SLIDE") {
+            if (interactiveTags.has(node.tagName)) return true;
+            if (node.hasAttribute("contenteditable") && node.getAttribute("contenteditable") !== "false") return true;
+            if (node.tagName.includes("-")) return true;
+            node = node.parentElement;
+        }
+        return false;
+    }
+
+    /**
+     * Handles the end of a touch event for swipe navigation.
+     * Determines the swipe direction and navigates to the next or previous slide accordingly.
+     * Ignores swipes on interactive elements or if the swipe distance is too small.
+     */
+    #handleTouchEnd(e: TouchEvent) {
+        if (!this.isFullscreen || this.#touchStartX === null) return;
+        const deltaX = e.changedTouches[0].clientX - this.#touchStartX;
+        const target = this.#touchTarget;
+        this.#touchStartX = null;
+        this.#touchTarget = null;
+        if (this.#isInteractiveTarget(target) || Math.abs(deltaX) < 50) return;
+        this.nextSlide(deltaX >= 0);
     }
 
     /**
@@ -365,7 +350,7 @@ export class WebwriterSlides extends LitElementWw {
     /**
      * Changes the active slide to the specified index.
      * Waits for rendering to finish, scrolls the active slide into view,
-     * and generates a thumbnail preview using snapdom.
+     * and generates a thumbnail preview.
      *
      * @param index - The index of the slide to activate.
      */
@@ -389,279 +374,70 @@ export class WebwriterSlides extends LitElementWw {
 
         // Only proceed if slide hasn’t changed in the meantime
         if (this.activeSlideIndex === tmpSlideIndex) {
-            const result = await snapdom(this.slides[tmpSlideIndex], {
-                width: 240,
-                height: 135,
-                dpr: 1,
-            });
-            const img = await result.toWebp({
-                quality: 0.8,
-            });
-            this.slides[tmpSlideIndex].thumbnail = img.src;
+            const thumbnail = await captureThumbnail(this.slides[tmpSlideIndex]);
+            const slide = this.slides[tmpSlideIndex];
+            if (!slide) return;
+            slide.thumbnail = thumbnail;
             this.requestUpdate();
         }
     };
 
     /**
-     * Starts dragging a slide element.
-     * Adds the 'dragging' CSS class and sets drag data.
-     *
-     * @param e - The dragstart event.
-     * @param index - Index of the slide being dragged.
+     * Moves the dragged slide to the place the drop resolved to.
+     * The thumbnails and tabs stand for the authored `webwriter-slide` children,
+     * so the commit moves the slide itself and the lifted item settles at the new layout.
      */
-    private onDragStart(e: DragEvent, index: number) {
-        this.draggingIndex = index;
-        (e.currentTarget as HTMLElement).classList.add("dragging");
-        e.dataTransfer?.setData("text/plain", index.toString());
-        e.dataTransfer!.effectAllowed = "move";
+    private onDragCommit(e: CustomEvent<DragCommitDetail>) {
+        const from = Number(e.detail.key);
+        const slide = this.slides[from];
+        const others = this.slides.filter((other) => other !== slide);
+        if (!slide || e.detail.index === null) return;
+
+        const next = others[e.detail.index];
+        if (next) next.insertAdjacentElement("beforebegin", slide);
+        else others[others.length - 1].insertAdjacentElement("afterend", slide);
+
+        this.activeSlideIndex = e.detail.index;
+        this.requestUpdate();
+    }
+
+    /** The slideshow as seen by the strip and control components. */
+    #view(): SlidesView {
+        return {
+            msg: this.msg,
+            slides: this.slides,
+            activeSlideIndex: this.activeSlideIndex,
+            editing: this.#permissions.editing,
+            isFullscreen: this.isFullscreen,
+            hasPreviousSlide: this.hasPreviousSlide,
+            hasNextSlide: this.hasNextSlide,
+            changeSlide: (index) => this.changeSlide(index),
+            addSlide: (index) => this.addSlide(index),
+            duplicateSlide: (index) => this.duplicateSlide(index),
+            removeSlide: (index) => this.removeSlide(index),
+            handleNextSlideClick: (e, backwards) => this.handleNextSlideClick(e, backwards),
+            toggleFullscreen: () => {
+                if (this.isFullscreen) this.ownerDocument.exitFullscreen();
+                else this.requestFullscreen();
+                this.requestUpdate();
+            },
+            onDragCommit: (e) => this.onDragCommit(e as CustomEvent<DragCommitDetail>),
+        };
     }
 
     /**
-     * Ends dragging a slide.
-     * Moves the dragged slide to its new position if it was moved,
-     * updates the active slide index, and cleans up drag state.
-     *
-     * @param e - The dragend event.
-     */
-    private onDragEnd(e: DragEvent) {
-        const draggingIdx = this.draggingIndex;
-        if (draggingIdx === null || draggingIdx === this.lastDraggedOver)
-            return;
-
-        const draggedSlide = this.slides[draggingIdx];
-        const targetSlide = this.slides[this.lastDraggedOver];
-
-        if (draggedSlide && targetSlide && draggedSlide !== targetSlide) {
-            if (draggingIdx < this.lastDraggedOver) {
-                // Insert dragged slide after the target slide
-                targetSlide.insertAdjacentElement("afterend", draggedSlide);
-            } else {
-                // Insert dragged slide before the target slide
-                targetSlide.insertAdjacentElement("beforebegin", draggedSlide);
-            }
-
-            this.activeSlideIndex = this.lastDraggedOver;
-            this.requestUpdate();
-        }
-
-        (e.currentTarget as HTMLElement).classList.remove("dragging");
-        this.draggingIndex = null;
-        this.lastDraggedOver = -1;
-    }
-
-    /**
-     * Handles dragging over a slide element.
-     * Prevents default to allow dropping and records the slide index being hovered.
-     *
-     * @param e - The dragover event.
-     * @param index - Index of the slide being dragged over.
-     */
-    private onDragOver(e: DragEvent, index: number) {
-        e.preventDefault();
-        this.lastDraggedOver = index;
-    }
-
-    /**
-     * Renders the slideshow component UI including:
-     * - Slide navigation controls (next, previous, duplicate, add, remove).
-     * - View type selector when contenteditable (tabs or slides).
-     * - Tabs view with draggable slide tabs and controls.
-     * - Slides view with thumbnails, draggable slides, and controls.
-     * - The default slot where slide content is displayed.
-     *
+     * Renders the tab strip or the thumbnail strip with the slide controls around the default slot.
      * The controls adapt depending on whether the component is editable.
      */
     render() {
-        const slideButtons = (index: number, tooltipPlacement: "top" | "right" | "bottom" | "left" = "top") => html`
-            ${this.hasAttribute("contenteditable") ? html`
-                <sl-tooltip
-                    content=${this.msg("Duplicate slide")}
-                    placement=${tooltipPlacement}
-                    hoist
-                >
-                    <sl-icon-button
-                        class="duplicate-btn"
-                        @click=${(e: MouseEvent) => {
-                            e.stopPropagation();
-                            this.duplicateSlide(index);
-                        }}
-                        src=${IconDuplicate}
-                    ></sl-icon-button>
-                </sl-tooltip>
-            ` : html``}
-            ${this.hasAttribute("contenteditable") && this.slides.length > 1 ? html`
-                <sl-tooltip
-                    content=${this.msg("Remove slide")}
-                    placement=${tooltipPlacement}
-                    hoist
-                >
-                    <sl-icon-button
-                        class="remove-btn"
-                        @click=${(e: MouseEvent) => {
-                            e.stopPropagation();
-                            this.removeSlide(index);
-                        }}
-                        src=${IconRemove}
-                    ></sl-icon-button>
-                </sl-tooltip>
-            ` : html``}
-        `;
-
-        const controls = html` <div class="controls-section author-only">
-                <sl-tooltip
-                    content=${this.msg("Add slide after current")}
-                    placement="bottom"
-                >
-                    <sl-icon-button
-                        class="add-btn"
-                        @click=${(e: MouseEvent) => {
-                            e.stopPropagation();
-                            this.addSlide(this.activeSlideIndex);
-                        }}
-                        src=${IconAdd}
-                    ></sl-icon-button>
-                </sl-tooltip>
-            </div>
-            <div class="controls-section">
-                <sl-tooltip
-                    content=${this.msg("Go to previous slide")}
-                    placement="bottom"
-                >
-                    <sl-icon-button
-                        @click=${(e: MouseEvent) =>
-                            this.handleNextSlideClick(e, true)}
-                        src=${chevronLeftIcon}
-                        ?disabled=${!this.hasPreviousSlide}
-                    ></sl-icon-button>
-                </sl-tooltip>
-                <div class="slides-index">
-                    <span>${this.activeSlideIndex + 1}</span> /
-                    <span>${this.slides?.length}</span>
-                </div>
-                <sl-tooltip
-                    content=${this.msg("Go to next slide")}
-                    placement="bottom"
-                >
-                    <sl-icon-button
-                        @click=${(e: MouseEvent) =>
-                            this.handleNextSlideClick(e)}
-                        src=${chevronRightIcon}
-                        ?disabled=${!this.hasNextSlide}
-                    ></sl-icon-button>
-                </sl-tooltip>
-            </div>
-            <div class="controls-section">
-                <sl-tooltip
-                    content=${this.isFullscreen
-                        ? this.msg("Exit fullscreen")
-                        : this.msg("Show in fullscreen")}
-                    placement="bottom"
-                >
-                    <sl-icon-button
-                        id="fullscreen"
-                        class="fullscreen-btn"
-                        src=${this.iconSrc}
-                        @click=${() => {
-                            !this.isFullscreen
-                                ? this.requestFullscreen()
-                                : this.ownerDocument.exitFullscreen();
-                            this.requestUpdate();
-                        }}
-                    ></sl-icon-button>
-                </sl-tooltip>
-            </div>`;
-
+        const view = this.#view();
         return html`
-            ${this.type == "tabs"
-                ? html`<aside part="tabs">
-                      <div class="slide-tabs-wrapper">
-                          <div class="slide-tabs">
-                              ${this.slides.map(
-                                  (slide, index) => html`
-                                      <div
-                                          class="slide-tab ${index ===
-                                          this.activeSlideIndex
-                                              ? "active"
-                                              : ""}"
-                                          @click=${() => {
-                                              this.changeSlide(index);
-                                          }}
-                                          draggable="${this.hasAttribute(
-                                              "contenteditable"
-                                          )
-                                              ? "true"
-                                              : "false"}"
-                                          @dragstart=${(e: DragEvent) =>
-                                              this.onDragStart(e, index)}
-                                          @dragend=${this.onDragEnd}
-                                          @dragover=${(e: DragEvent) =>
-                                              this.onDragOver(e, index)}
-                                      >
-                                          <div class="slide-number">
-                                              ${index + 1}
-                                          </div>
-                                          <div class="spacer"></div>
-
-                                          ${slideButtons(index, "right")}
-                                      </div>
-                                  `
-                              )}
-                          </div>
-                      </div>
-                      <div class="controls-rows">${controls}</div>
-                  </aside>`
-                : html``}
+            ${this.type == "tabs" ? renderTabs(view) : html``}
             <slot></slot>
             ${this.type == "slides"
                 ? this.isFullscreen
-                    ? html`<div class="controls-overlay">${controls}</div>`
-                    : html`<aside part="actions">
-                          <div class="slide-thumbs">
-                              ${this.slides.map(
-                                  (slide, index) => html`
-                                      <div
-                                          class="slide-thumb ${index ===
-                                          this.activeSlideIndex
-                                              ? "active"
-                                              : ""}"
-                                          @click=${() => {
-                                              this.changeSlide(index);
-                                          }}
-                                          draggable="${this.hasAttribute(
-                                              "contenteditable"
-                                          )
-                                              ? "true"
-                                              : "false"}"
-                                          @dragstart=${(e: DragEvent) =>
-                                              this.onDragStart(e, index)}
-                                          @dragend=${this.onDragEnd}
-                                          @dragover=${(e: DragEvent) =>
-                                              this.onDragOver(e, index)}
-                                      >
-                                          ${slide.thumbnail
-                                              ? html`<img
-                                                    class="slide-thumb-img"
-                                                    draggable="false"
-                                                    src=${slide.thumbnail}
-                                                />`
-                                              : html`<div
-                                                    class="slide-thumb-img"
-                                                ></div>`}
-
-                                          <div class="slide-options">
-                                              <div class="slide-number">
-                                                  ${index + 1}
-                                              </div>
-                                              <div class="spacer"></div>
-
-                                              ${slideButtons(index)}
-                                          </div>
-                                      </div>
-                                  `
-                              )}
-                          </div>
-                          <div class="controls-columns">${controls}</div>
-                      </aside>`
+                    ? html`<div class="controls-overlay">${renderControls(view)}</div>`
+                    : renderThumbs(view)
                 : html``}
         `;
     }
