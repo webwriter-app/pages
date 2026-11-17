@@ -78,9 +78,6 @@ export class WebwriterSlides extends LitElementWw {
 
     #permissions = new Permissions(this);
 
-    /** Reordering by pointer or keyboard is for authors only. */
-    #drag = new Drag(this, { can: () => this.#permissions.editing });
-
     /**
      * Defines the type of view for the slideshow.
      * - "slides": Show content as sequential slides.
@@ -102,6 +99,7 @@ export class WebwriterSlides extends LitElementWw {
 
     #actionsDisabled = { duplicateActiveSlide: true, removeActiveSlide: true };
     #lifecycle?: AbortController;
+    #changeTimer?: ReturnType<typeof setTimeout>;
     #touchStartX: number | null = null;
     #touchTarget: Element | null = null;
 
@@ -137,6 +135,8 @@ export class WebwriterSlides extends LitElementWw {
 
     constructor() {
         super();
+        // Reordering by pointer or keyboard is for authors only.
+        new Drag(this, { can: () => this.#permissions.editing });
         this.addEventListener("fullscreenchange", () => this.requestUpdate());
     }
 
@@ -155,6 +155,7 @@ export class WebwriterSlides extends LitElementWw {
         super.disconnectedCallback?.();
         this.#lifecycle?.abort();
         this.#lifecycle = undefined;
+        clearTimeout(this.#changeTimer);
     }
 
     protected firstUpdated(): void {
@@ -354,32 +355,27 @@ export class WebwriterSlides extends LitElementWw {
      *
      * @param index - The index of the slide to activate.
      */
-    protected changeSlide = async (index: number) => {
+    protected changeSlide = (index: number) => {
         this.activeSlideIndex = index;
 
-        const tmpSlideIndex = this.activeSlideIndex;
-
-        // Wait briefly to ensure slide rendering completes
-        await new Promise((resolve) => setTimeout(resolve, 100));
-
-        // Scroll the active slide/tab into view smoothly
-        const active = this.renderRoot.querySelector(".active");
-        if (active) {
-            active.scrollIntoView({
+        // Wait briefly to ensure slide rendering completes. Rapid calls (every selection change while
+        // typing) collapse into one scroll and one thumbnail capture.
+        clearTimeout(this.#changeTimer);
+        this.#changeTimer = setTimeout(async () => {
+            this.renderRoot.querySelector(".active")?.scrollIntoView({
                 behavior: "smooth",
                 block: "nearest",
                 inline: "nearest",
             });
-        }
 
-        // Only proceed if slide hasn’t changed in the meantime
-        if (this.activeSlideIndex === tmpSlideIndex) {
-            const thumbnail = await captureThumbnail(this.slides[tmpSlideIndex]);
-            const slide = this.slides[tmpSlideIndex];
+            const slide = this.slides[index];
             if (!slide) return;
+            const thumbnail = await captureThumbnail(slide);
+            // Only keep the capture if the slide has not changed in the meantime.
+            if (this.activeSlideIndex !== index) return;
             slide.thumbnail = thumbnail;
             this.requestUpdate();
-        }
+        }, 100);
     };
 
     /**
