@@ -95,8 +95,26 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "Container for displaying a slideshow of content sequentially.\n\nAuthors add `webwriter-slide` children; the `type` attribute switches between a thumbnail strip (\"slides\")\nand a tab strip (\"tabs\"). Thumbnails are drawn in the editor with a capture library that loads on first use.\nIn use mode the arrow keys, the controls and swipes in fullscreen move between slides.",
+          "description": "Container for displaying a slideshow of content sequentially.\n\nAuthors add `webwriter-slide` children; the `type` attribute switches between a thumbnail strip (\"slides\")\nand a tab strip (\"tabs\"). Thumbnails are drawn in the editor with a capture library that loads on first use.\nIn use mode the arrow keys, the controls and swipes in fullscreen move between slides. The arrow keys leave\ntext entry, Alt and Meta combinations alone. Every thumbnail and tab has a button that selects its slide;\nin edit mode Space or Enter on the thumbnail itself picks it up for reordering.\n\nThe widget follows the page theme: `--ww-text-color`, `--ww-font-family`, and `--ww-theme-accent-1` (the\nselected thumbnail or tab). On paper it prints all slides one after another and leaves out the controls.\n\nConversions: a `section` becomes slides (its nested `section` children become one slide each, otherwise the\nsection is one slide), and the slides convert to a fragment of `section` elements with the slide content.\nThe thumbnails are not carried over.\n\nSignals: `slide` is the number of the current slide, starting at 1; `count` is the number of slides.\nBoth change when readers or authors move to another slide.\n\nKnown limitation: in edit mode the drag module sets `touch-action: none` on the thumbnails, so on a touch\nscreen the thumbnail strip cannot be scrolled by dragging on a thumbnail; the select buttons still work.",
           "name": "WebwriterSlides",
+          "cssParts": [
+            {
+              "description": "The strip of thumbnails and controls below the slide.",
+              "name": "actions"
+            },
+            {
+              "description": "The strip of tabs and controls above the slide.",
+              "name": "tabs"
+            },
+            {
+              "description": "One slide thumbnail in the strip.",
+              "name": "thumbnail"
+            },
+            {
+              "description": "One tab in the tab strip.",
+              "name": "tab"
+            }
+          ],
           "slots": [
             {
               "description": "Slide elements to be displayed (should be `webwriter-slide` components only).",
@@ -112,6 +130,24 @@
               },
               "static": true,
               "default": "{ \"sl-icon-button\": SlIconButton, \"sl-tooltip\": SlTooltip, }"
+            },
+            {
+              "kind": "field",
+              "name": "convertFrom",
+              "type": {
+                "text": "object"
+              },
+              "static": true,
+              "default": "{ section: \"loadSections\" }"
+            },
+            {
+              "kind": "field",
+              "name": "convertTo",
+              "type": {
+                "text": "object"
+              },
+              "static": true,
+              "default": "{ section: \"toSections\" }"
             },
             {
               "kind": "field",
@@ -149,13 +185,6 @@
             },
             {
               "kind": "field",
-              "name": "#drag",
-              "privacy": "private",
-              "default": "new Drag(this, { can: () => this.#permissions.editing })",
-              "description": "Reordering by pointer or keyboard is for authors only."
-            },
-            {
-              "kind": "field",
               "name": "type",
               "type": {
                 "text": "\"tabs\" | \"slides\""
@@ -186,6 +215,26 @@
             },
             {
               "kind": "field",
+              "name": "#slide",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#count",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "signals",
+              "type": {
+                "text": "object"
+              },
+              "readonly": true,
+              "default": "{ slide: this.#slide, count: this.#count }",
+              "description": "Public signals: the current slide number (from 1) and the number of slides."
+            },
+            {
+              "kind": "field",
               "name": "#actionsDisabled",
               "privacy": "private",
               "type": {
@@ -203,12 +252,29 @@
             },
             {
               "kind": "field",
+              "name": "#changeTimer",
+              "privacy": "private",
+              "type": {
+                "text": "ReturnType<typeof setTimeout> | undefined"
+              }
+            },
+            {
+              "kind": "field",
               "name": "#touchStartX",
               "privacy": "private",
               "type": {
                 "text": "number | null"
               },
               "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "#touchStartY",
+              "privacy": "private",
+              "type": {
+                "text": "number"
+              },
+              "default": "0"
             },
             {
               "kind": "field",
@@ -258,6 +324,34 @@
               "privacy": "protected",
               "description": "Whether the slideshow is currently displayed in fullscreen mode.",
               "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "loadSections",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "fragment",
+                  "type": {
+                    "text": "DocumentFragment"
+                  }
+                }
+              ],
+              "description": "Replaces the slides with the slides a `section` stands for; declines anything else."
+            },
+            {
+              "kind": "method",
+              "name": "toSections",
+              "return": {
+                "type": {
+                  "text": "DocumentFragment | null"
+                }
+              },
+              "description": "One `section` per slide, in a detached fragment; `null` without slides."
             },
             {
               "kind": "method",
@@ -369,6 +463,20 @@
                 }
               ],
               "description": "Handles keyboard navigation for the slideshow.\nArrowRight advances to the next slide, ArrowLeft goes back.\nOnly possible in preview mode."
+            },
+            {
+              "kind": "method",
+              "name": "#takesText",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "el",
+                  "type": {
+                    "text": "HTMLElement"
+                  }
+                }
+              ],
+              "description": "Whether the element is a place where arrow keys move a caret or a value."
             },
             {
               "kind": "method",

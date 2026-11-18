@@ -11,13 +11,19 @@ export function renderTabs(view: SlidesView) {
                     (_slide, index) => html`
                         <div
                             class="slide-tab ${index === view.activeSlideIndex ? "active" : ""}"
+                            part="tab"
+                            data-ww-label=${view.msg("Slide") + " " + (index + 1)}
                             @click=${() => view.changeSlide(index)}
                             data-ww-drag=${view.editing ? "slide" : nothing}
                             data-ww-drag-via="pointer keyboard"
                             data-ww-key=${index}
                         >
-                            <div class="slide-number">${index + 1}</div>
-                            <div class="spacer"></div>
+                            <button
+                                type="button"
+                                class="slide-number slide-select"
+                                aria-label=${view.msg("Slide") + " " + (index + 1)}
+                                aria-current=${index === view.activeSlideIndex ? "true" : nothing}
+                            >${index + 1}</button>
 
                             ${renderSlideButtons(view, index, "right")}
                         </div>
@@ -37,14 +43,23 @@ export function renderThumbs(view: SlidesView) {
                 (slide, index) => html`
                     <div
                         class="slide-thumb ${index === view.activeSlideIndex ? "active" : ""}"
+                        part="thumbnail"
+                        data-ww-label=${view.msg("Slide") + " " + (index + 1)}
                         @click=${() => view.changeSlide(index)}
                         data-ww-drag=${view.editing ? "slide" : nothing}
                         data-ww-drag-via="pointer keyboard"
                         data-ww-key=${index}
                     >
-                        ${slide.thumbnail
-                            ? html`<img class="slide-thumb-img" draggable="false" src=${slide.thumbnail} />`
-                            : html`<div class="slide-thumb-img"></div>`}
+                        <button
+                            type="button"
+                            class="slide-select slide-thumb-select"
+                            aria-label=${view.msg("Slide") + " " + (index + 1)}
+                            aria-current=${index === view.activeSlideIndex ? "true" : nothing}
+                        >
+                            ${slide.thumbnail
+                                ? html`<img class="slide-thumb-img" alt="" draggable="false" src=${slide.thumbnail} />`
+                                : html`<div class="slide-thumb-img"></div>`}
+                        </button>
 
                         <div class="slide-options">
                             <div class="slide-number">${index + 1}</div>

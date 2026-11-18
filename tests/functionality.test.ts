@@ -4,6 +4,7 @@ import { assert } from "chai";
 import {getMochaConfig} from "@webwriter/build/test"
 import "../src/widgets/webwriter-slide";
 import type { SelectOptionDeclaration } from "@webwriter/widget";
+import { until } from "./helpers"
 import type { WebwriterSlides } from "../src/widgets/webwriter-slides";
 import "../src/widgets/webwriter-slides";
 
@@ -103,6 +104,73 @@ describe("<webwriter-slides>", function () {
     } finally {
       wrapper.remove()
     }
+  })
+
+  describe("conversions and signals", function () {
+    const make = async (html: string) => {
+      const wrapper = document.createElement("div")
+      wrapper.innerHTML = html
+      document.body.append(wrapper)
+      const el = wrapper.querySelector("webwriter-slides") as any
+      await el.updateComplete
+      return { wrapper, el }
+    }
+
+    it("declares section conversions", function () {
+      const Widget = customElements.get("webwriter-slides") as any
+      assert.deepEqual(Object.keys(Widget.convertFrom), ["section"])
+      assert.deepEqual(Object.keys(Widget.convertTo), ["section"])
+    })
+
+    it("turns slides into section elements and back", async function () {
+      const { wrapper, el } = await make(`<webwriter-slides><webwriter-slide><h2>A</h2><p>One</p></webwriter-slide><webwriter-slide><p>Two</p></webwriter-slide></webwriter-slides>`)
+      try {
+        const fragment = el.toSections() as DocumentFragment
+        const sections = Array.from(fragment.children)
+        assert.deepEqual(sections.map(s => s.localName), ["section", "section"])
+        assert.equal(sections[0].innerHTML, "<h2>A</h2><p>One</p>")
+
+        const { wrapper: other, el: target } = await make(`<webwriter-slides><webwriter-slide><p>Old</p></webwriter-slide></webwriter-slides>`)
+        try {
+          const source = document.createDocumentFragment()
+          const holder = document.createElement("section")
+          holder.append(...sections)
+          source.append(holder)
+          assert.isTrue(target.loadSections(source))
+          const loaded = Array.from(target.querySelectorAll(":scope > webwriter-slide"))
+          assert.deepEqual(loaded.map((s: any) => s.innerHTML), ["<h2>A</h2><p>One</p>", "<p>Two</p>"])
+        } finally { other.remove() }
+      } finally { wrapper.remove() }
+    })
+
+    it("takes a single section as one slide and declines other input", async function () {
+      const { wrapper, el } = await make(`<webwriter-slides><webwriter-slide><p>Old</p></webwriter-slide></webwriter-slides>`)
+      try {
+        const bad = document.createDocumentFragment()
+        bad.append(document.createElement("div"))
+        assert.isFalse(el.loadSections(bad))
+        assert.equal(el.querySelectorAll("webwriter-slide").length, 1)
+        const good = document.createDocumentFragment()
+        const section = document.createElement("section")
+        section.innerHTML = "<p>Only</p>"
+        good.append(section)
+        assert.isTrue(el.loadSections(good))
+        assert.equal(el.querySelector("webwriter-slide").innerHTML, "<p>Only</p>")
+      } finally { wrapper.remove() }
+    })
+
+    it("publishes the current slide and the count as stable signals", async function () {
+      const { wrapper, el } = await make(`<webwriter-slides><webwriter-slide><p>A</p></webwriter-slide><webwriter-slide><p>B</p></webwriter-slide></webwriter-slides>`)
+      try {
+        const signals = el.signals
+        assert.strictEqual(el.signals, signals)
+        await until(() => signals.count.get() === 2, "count")
+        assert.equal(signals.slide.get(), 1)
+        el.nextSlide()
+        await el.updateComplete
+        assert.equal(signals.slide.get(), 2)
+      } finally { wrapper.remove() }
+    })
   })
 
   describe("use methods", function () {

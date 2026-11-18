@@ -19,6 +19,7 @@ export function renderSlideButtons(view: SlidesView, index: number, tooltipPlace
         >
             <sl-icon-button
                 class="duplicate-btn"
+                label=${view.msg("Duplicate slide")}
                 @click=${(e: MouseEvent) => {
                     e.stopPropagation();
                     view.duplicateSlide(index);
@@ -35,6 +36,7 @@ export function renderSlideButtons(view: SlidesView, index: number, tooltipPlace
             >
                 <sl-icon-button
                     class="remove-btn"
+                    label=${view.msg("Remove slide")}
                     @click=${(e: MouseEvent) => {
                         e.stopPropagation();
                         view.removeSlide(index);
@@ -55,6 +57,7 @@ export function renderControls(view: SlidesView) {
             >
                 <sl-icon-button
                     class="add-btn"
+                    label=${view.msg("Add slide after current")}
                     @click=${(e: MouseEvent) => {
                         e.stopPropagation();
                         view.addSlide(view.activeSlideIndex);
@@ -69,12 +72,13 @@ export function renderControls(view: SlidesView) {
                 placement="bottom"
             >
                 <sl-icon-button
+                    label=${view.msg("Go to previous slide")}
                     @click=${(e: MouseEvent) => view.handleNextSlideClick(e, true)}
                     src=${chevronLeftIcon}
                     ?disabled=${!view.hasPreviousSlide}
                 ></sl-icon-button>
             </sl-tooltip>
-            <div class="slides-index">
+            <div class="slides-index" role="status">
                 <span>${view.activeSlideIndex + 1}</span> /
                 <span>${view.slides?.length}</span>
             </div>
@@ -83,6 +87,7 @@ export function renderControls(view: SlidesView) {
                 placement="bottom"
             >
                 <sl-icon-button
+                    label=${view.msg("Go to next slide")}
                     @click=${(e: MouseEvent) => view.handleNextSlideClick(e)}
                     src=${chevronRightIcon}
                     ?disabled=${!view.hasNextSlide}
@@ -99,6 +104,7 @@ export function renderControls(view: SlidesView) {
                 <sl-icon-button
                     id="fullscreen"
                     class="fullscreen-btn"
+                    label=${view.isFullscreen ? view.msg("Exit fullscreen") : view.msg("Show in fullscreen")}
                     src=${view.isFullscreen ? fullscreenExitIcon : fullscreenIcon}
                     @click=${() => view.toggleFullscreen()}
                 ></sl-icon-button>

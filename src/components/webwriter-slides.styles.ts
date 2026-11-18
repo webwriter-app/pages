@@ -7,9 +7,17 @@ export const slides_styles = css`
     :host {
         position: relative;
         background: var(--sl-panel-background-color);
+        color: var(--ww-text-color, inherit);
+        font-family: var(--ww-font-family, inherit);
+        --_accent: var(--ww-theme-accent-1, var(--sl-color-primary-600));
+        --_accent-soft: color-mix(in srgb, var(--ww-theme-accent-1) 12%, white);
         display: block;
         box-sizing: border-box;
         padding: var(--sl-spacing-x-small);
+        min-width: min(300px, 100%);
+        max-width: 2100px;
+        margin-inline: auto;
+        container-type: inline-size;
     }
 
     :host(:not(:fullscreen):not(.ww-fullscreen)) {
@@ -17,6 +25,11 @@ export const slides_styles = css`
         border-radius: var(--sl-border-radius-large);
         aspect-ratio: 16/9;
         width: 100%;
+    }
+
+    :host(:fullscreen),
+    :host(.ww-fullscreen) {
+        max-width: none;
     }
 
     :host(:fullscreen),
@@ -41,7 +54,7 @@ export const slides_styles = css`
     .slides-index {
         user-select: none;
         font-size: var(--sl-font-size-medium);
-        color: var(--sl-color-neutral-800);
+        color: var(--ww-text-color, var(--sl-color-neutral-800));
         display: flex;
         flex-direction: row;
         align-items: center;
@@ -56,6 +69,7 @@ export const slides_styles = css`
         display: block;
         width: 100%;
         height: 100%;
+        min-height: 15rem;
 
         &::slotted {
             width: 100%;
@@ -125,13 +139,43 @@ export const slides_styles = css`
     }
 
     .slide-thumb.active {
-        border-color: var(--sl-color-primary-600);
-        background: var(--sl-color-primary-50);
+        border-color: var(--_accent);
+        background: var(--_accent-soft, var(--sl-color-primary-50));
+    }
+
+    .slide-thumb:focus-visible,
+    .slide-select:focus-visible {
+        outline: var(--sl-focus-ring-width) solid var(--_accent);
+        outline-offset: var(--sl-focus-ring-offset);
+    }
+
+    .slide-select {
+        font: inherit;
+        color: inherit;
+        background: none;
+        border: 0;
+        cursor: pointer;
+        border-radius: var(--sl-border-radius-small);
+    }
+
+    .slide-thumb-select {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        width: 100%;
+        min-height: 0;
+        padding: 0;
+        border-radius: 0;
+    }
+
+    .slide-thumb-select:focus-visible {
+        outline-offset: calc(var(--sl-focus-ring-width) * -1);
     }
 
     .slide-thumb-img {
         width: 100%;
         flex: 1;
+        min-height: 0;
         object-fit: cover;
         border-bottom: var(--sl-panel-border-width) solid var(--sl-panel-border-color);
     }
@@ -181,8 +225,13 @@ export const slides_styles = css`
     }
 
     .slide-tab.active {
-        border-color: var(--sl-color-primary-600);
-        background: var(--sl-color-primary-50);
+        border-color: var(--_accent);
+        background: var(--_accent-soft, var(--sl-color-primary-50));
+    }
+
+    .slide-tab:focus-visible {
+        outline: var(--sl-focus-ring-width) solid var(--_accent);
+        outline-offset: var(--sl-focus-ring-offset);
     }
 
     .slide-options {
@@ -196,6 +245,13 @@ export const slides_styles = css`
 
     .slide-number {
         font-weight: var(--sl-font-weight-semibold);
+    }
+
+    .slide-tab .slide-select {
+        flex: 1 1 auto;
+        text-align: start;
+        padding: 0;
+        align-self: stretch;
     }
 
     .spacer {
@@ -215,5 +271,127 @@ export const slides_styles = css`
         border-radius: var(--sl-border-radius-large);
         border: var(--sl-panel-border-width) solid var(--sl-panel-border-color);
         z-index: 1000000000;
+    }
+
+    @container (max-width: 520px) {
+        slot:not([name]) {
+            min-height: 24rem;
+        }
+
+        [part="actions"] {
+            flex-wrap: wrap;
+        }
+
+        [part="actions"] .controls-columns {
+            order: -1;
+            flex-direction: row;
+            justify-content: space-between;
+            width: 100%;
+            height: auto;
+            margin: 0 0 var(--sl-spacing-x-small);
+        }
+
+        [part="actions"] .slide-thumbs {
+            width: 100%;
+            margin-left: 0;
+        }
+
+        [part="tabs"] {
+            flex-wrap: wrap;
+        }
+
+        [part="tabs"] .slide-tabs-wrapper {
+            flex: 1 1 100%;
+            min-width: 0;
+        }
+
+        [part="tabs"] .controls-rows {
+            width: 100%;
+            box-sizing: border-box;
+            justify-content: space-between;
+            margin-right: 0;
+        }
+    }
+
+    @container (min-width: 1100px) {
+        .slide-thumb {
+            width: 168px;
+            height: 132px;
+        }
+
+        .controls-columns {
+            height: 132px;
+        }
+
+        .slide-tab {
+            width: 128px;
+        }
+    }
+
+    @media (pointer: coarse) {
+        sl-icon-button {
+            font-size: 1.75rem;
+        }
+
+        .controls-columns {
+            height: auto;
+        }
+
+        .slide-thumb {
+            width: 144px;
+            height: 148px;
+        }
+
+        .slide-tab {
+            width: 132px;
+            height: 48px;
+        }
+
+        .slide-select {
+            min-height: 44px;
+        }
+
+        .slide-thumb-select {
+            min-height: 0;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        * {
+            scroll-behavior: auto;
+        }
+    }
+
+    @media print {
+        :host,
+        :host(:not(:fullscreen):not(.ww-fullscreen)) {
+            display: block;
+            border: 0;
+            padding: 0;
+            aspect-ratio: auto;
+            max-width: none;
+            width: auto;
+            background: none;
+            container-type: normal;
+        }
+
+        aside,
+        .controls-overlay {
+            display: none !important;
+        }
+
+        slot:not([name]) {
+            height: auto;
+            min-height: 0;
+        }
+
+        ::slotted(webwriter-slide:not([active])),
+        ::slotted(webwriter-slide) {
+            display: block !important;
+            height: auto !important;
+            overflow: visible !important;
+            break-inside: avoid;
+            margin-block-end: var(--sl-spacing-small);
+        }
     }
 `;

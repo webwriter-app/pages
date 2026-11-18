@@ -1,5 +1,5 @@
 import { html, type PropertyValues } from "lit";
-import { LitElementWw, resolveDeclarations } from "@webwriter/lit";
+import { LitElementWw, resolveDeclarations, signal } from "@webwriter/lit";
 import {
     customElement,
     property,
@@ -22,6 +22,7 @@ import { WebwriterSlide } from "./webwriter-slide";
 import { slides_styles } from "../components/webwriter-slides.styles";
 import { renderControls } from "../components/slides-controls";
 import { renderThumbs, renderTabs } from "../components/slides-strip";
+import { sectionToSlides, slideToSection } from "../components/slides-convert";
 import { captureThumbnail } from "../components/slide-thumbnail";
 import type { SlidesView } from "../model/slides-view";
 
@@ -32,9 +33,28 @@ type Labelled = { msg: MsgFn };
  *
  * Authors add `webwriter-slide` children; the `type` attribute switches between a thumbnail strip ("slides")
  * and a tab strip ("tabs"). Thumbnails are drawn in the editor with a capture library that loads on first use.
- * In use mode the arrow keys, the controls and swipes in fullscreen move between slides.
+ * In use mode the arrow keys, the controls and swipes in fullscreen move between slides. The arrow keys leave
+ * text entry, Alt and Meta combinations alone. Every thumbnail and tab has a button that selects its slide;
+ * in edit mode Space or Enter on the thumbnail itself picks it up for reordering.
+ *
+ * The widget follows the page theme: `--ww-text-color`, `--ww-font-family`, and `--ww-theme-accent-1` (the
+ * selected thumbnail or tab). On paper it prints all slides one after another and leaves out the controls.
+ *
+ * Conversions: a `section` becomes slides (its nested `section` children become one slide each, otherwise the
+ * section is one slide), and the slides convert to a fragment of `section` elements with the slide content.
+ * The thumbnails are not carried over.
+ *
+ * Signals: `slide` is the number of the current slide, starting at 1; `count` is the number of slides.
+ * Both change when readers or authors move to another slide.
+ *
+ * Known limitation: in edit mode the drag module sets `touch-action: none` on the thumbnails, so on a touch
+ * screen the thumbnail strip cannot be scrolled by dragging on a thumbnail; the select buttons still work.
  *
  * @slot default - Slide elements to be displayed (should be `webwriter-slide` components only).
+ * @part actions - The strip of thumbnails and controls below the slide.
+ * @part tabs - The strip of tabs and controls above the slide.
+ * @part thumbnail - One slide thumbnail in the strip.
+ * @part tab - One tab in the tab strip.
  */
 @customElement("webwriter-slides")
 export class WebwriterSlides extends LitElementWw {
@@ -44,6 +64,9 @@ export class WebwriterSlides extends LitElementWw {
         "sl-icon-button": SlIconButton,
         "sl-tooltip": SlTooltip,
     };
+
+    static convertFrom = { section: "loadSections" };
+    static convertTo = { section: "toSections" };
 
     static options = {
         type: {
@@ -97,10 +120,17 @@ export class WebwriterSlides extends LitElementWw {
     @state()
     accessor activeSlideIndex = 0;
 
+    #slide = signal(1);
+    #count = signal(0);
+
+    /** Public signals: the current slide number (from 1) and the number of slides. */
+    readonly signals = { slide: this.#slide, count: this.#count };
+
     #actionsDisabled = { duplicateActiveSlide: true, removeActiveSlide: true };
     #lifecycle?: AbortController;
     #changeTimer?: ReturnType<typeof setTimeout>;
     #touchStartX: number | null = null;
+    #touchStartY = 0;
     #touchTarget: Element | null = null;
 
     /** The drawer declarations with the availability of the slide actions, which follows the slides. */
@@ -171,6 +201,8 @@ export class WebwriterSlides extends LitElementWw {
         this.slides?.forEach(
             (slide, i) => (slide.active = i === this.activeSlideIndex)
         );
+        this.#slide.set(this.activeSlideIndex + 1);
+        this.#count.set(this.slides?.length ?? 0);
         const duplicateDisabled = !this.activeSlide;
         const removeDisabled = duplicateDisabled || this.slides.length <= 1;
         if (this.#actionsDisabled.duplicateActiveSlide !== duplicateDisabled ||
@@ -178,6 +210,24 @@ export class WebwriterSlides extends LitElementWw {
             this.#actionsDisabled = { duplicateActiveSlide: duplicateDisabled, removeActiveSlide: removeDisabled };
             this.dispatchEvent(new Event("optionschange", { bubbles: true }));
         }
+    }
+
+    /** Replaces the slides with the slides a `section` stands for; declines anything else. */
+    loadSections(fragment: DocumentFragment): boolean {
+        const source = fragment.firstElementChild;
+        if (source?.localName !== "section") return false;
+        this.replaceChildren(...sectionToSlides(source, this.ownerDocument));
+        this.activeSlideIndex = 0;
+        return true;
+    }
+
+    /** One `section` per slide, in a detached fragment; `null` without slides. */
+    toSections(): DocumentFragment | null {
+        const slides = Array.from(this.children).filter((child) => child.localName === "webwriter-slide");
+        if (!slides.length) return null;
+        const fragment = this.ownerDocument.createDocumentFragment();
+        fragment.append(...slides.map((slide) => slideToSection(slide, this.ownerDocument)));
+        return fragment;
     }
 
     duplicateActiveSlide() { this.duplicateSlide(this.activeSlideIndex); }
@@ -272,7 +322,8 @@ export class WebwriterSlides extends LitElementWw {
      * Only possible in preview mode.
      */
     #handleKeyDown(e: KeyboardEvent) {
-        if (this.#permissions.editing) return;
+        if (this.#permissions.editing || e.defaultPrevented || e.altKey || e.metaKey) return;
+        if (e.composedPath().some((node) => node instanceof HTMLElement && this.#takesText(node))) return;
 
         switch (e.key) {
             case "ArrowRight":
@@ -284,6 +335,12 @@ export class WebwriterSlides extends LitElementWw {
         }
     }
 
+    /** Whether the element is a place where arrow keys move a caret or a value. */
+    #takesText(el: HTMLElement) {
+        if (el.isContentEditable) return true;
+        return ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName) || /^(textbox|combobox|slider|spinbutton|listbox)$/.test(el.getAttribute("role") ?? "");
+    }
+
     /**
      * Handles the start of a touch event for swipe navigation.
      * Records the initial touch position and target element.
@@ -292,6 +349,7 @@ export class WebwriterSlides extends LitElementWw {
     #handleTouchStart(e: TouchEvent) {
         if (!this.isFullscreen) return;
         this.#touchStartX = e.touches[0].clientX;
+        this.#touchStartY = e.touches[0].clientY;
         this.#touchTarget = e.target as Element;
     }
 
@@ -319,10 +377,11 @@ export class WebwriterSlides extends LitElementWw {
     #handleTouchEnd(e: TouchEvent) {
         if (!this.isFullscreen || this.#touchStartX === null) return;
         const deltaX = e.changedTouches[0].clientX - this.#touchStartX;
+        const deltaY = e.changedTouches[0].clientY - this.#touchStartY;
         const target = this.#touchTarget;
         this.#touchStartX = null;
         this.#touchTarget = null;
-        if (this.#isInteractiveTarget(target) || Math.abs(deltaX) < 50) return;
+        if (this.#isInteractiveTarget(target) || Math.abs(deltaX) < 50 || Math.abs(deltaX) < Math.abs(deltaY) * 1.5) return;
         this.nextSlide(deltaX >= 0);
     }
 
@@ -363,7 +422,7 @@ export class WebwriterSlides extends LitElementWw {
         clearTimeout(this.#changeTimer);
         this.#changeTimer = setTimeout(async () => {
             this.renderRoot.querySelector(".active")?.scrollIntoView({
-                behavior: "smooth",
+                behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
                 block: "nearest",
                 inline: "nearest",
             });

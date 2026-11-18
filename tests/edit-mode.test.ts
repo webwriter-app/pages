@@ -27,6 +27,15 @@ describe("<webwriter-slides> in edit mode", function () {
     assert.equal(widget.activeSlideIndex, 0);
   });
 
+  it("keeps thumbnails and their select buttons on the tab order for the keyboard", async function () {
+    const widget = await mount(`<webwriter-slides contenteditable="">${slides(3)}</webwriter-slides>`);
+    await until(() => items(widget, ".slide-thumb").every(thumb => thumb.tabIndex === 0), "thumbs focusable");
+    const buttons = items<HTMLButtonElement>(widget, "button.slide-select");
+    buttons[1].click();
+    await until(() => widget.activeSlideIndex === 1, "button selects");
+    assert.deepEqual(order(widget), ["s1", "s2", "s3"]);
+  });
+
   describe("drag", function () {
     it("reorders the authored slides from the thumbnails in one transaction", async function () {
       const widget = await mount(`<webwriter-slides contenteditable="">${slides(4)}</webwriter-slides>`);
