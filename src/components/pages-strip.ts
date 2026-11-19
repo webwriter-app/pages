@@ -18,6 +18,7 @@ export function renderTabs(view: PagesView) {
                             return html`
                             <div
                                 class="page-tab ${index === view.activePageIndex ? "active" : ""}"
+                                data-ww-capture-selection="false"
                                 part="tab"
                                 style=${styleMap({ "--_page-background": background === "rgba(0, 0, 0, 0)" ? undefined : background })}
                                 data-ww-label=${label || placeholder}
@@ -74,6 +75,7 @@ export function renderThumbs(view: PagesView) {
                 (page, index) => html`
                     <div
                         class="page-thumb ${index === view.activePageIndex ? "active" : ""}"
+                        data-ww-capture-selection="false"
                         part="thumbnail"
                         data-ww-label=${view.msg("Page") + " " + (index + 1)}
                         @click=${() => view.changePage(index)}

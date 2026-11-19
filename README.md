@@ -29,7 +29,7 @@ Set `orientation="portrait"` for a 9:16 page, or use the default `landscape` for
 
 The widget follows the page theme: `--ww-text-color`, `--ww-font-family`, and `--ww-theme-accent-1` (the
 selected thumbnail). On paper it prints all pages one after another and leaves out the controls.
-In Tabs view, the active tab and its connecting edge match the page's background color. Its remove button overlays the end of the tab with a translucent round background. Duplicate remains available as an action in the options.
+In Tabs view, the active tab and its connecting edge match the page's background color. Its remove button overlays the end of the tab with a translucent round background. Duplicate remains available as an action in the options. Tab and preview controls keep their native focus without capture-selecting the widget; background clicks retain normal capture.
 
 After deletion in edit mode, selection moves to the start of the surviving active page: a text caret where possible, otherwise selection of its first element.
 
