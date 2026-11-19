@@ -11,7 +11,7 @@ import { localizer } from "@webwriter/lit/localize";
 import { Permissions } from "@webwriter/lit/permissions";
 import { Drag, type DragCommitDetail } from "@webwriter/lit/drag";
 import { transaction } from "@webwriter/widget/transaction";
-import type { ActionDeclaration, OptionDeclaration, OptionGroupDeclaration, Declared } from "@webwriter/widget";
+import type { ActionDeclaration, OptionDeclaration, Declared } from "@webwriter/widget";
 import SlIconButton from "@shoelace-style/shoelace/dist/components/icon-button/icon-button.component.js";
 import "@shoelace-style/shoelace/dist/themes/light.css";
 // @ts-ignore The Lit localization CLI generates this JavaScript module.
@@ -30,14 +30,14 @@ type Labelled = { msg: MsgFn };
 /**
  * Display authored content as pages, with tabs by default or a preview-card layout.
  *
- * Authors add `webwriter-page` children; the `type` attribute switches between a thumbnail strip ("pages")
+ * Authors add `webwriter-page` children; the `type` attribute switches between the Slides view with preview cards ("pages")
  * and the default tab strip ("tabs"). Thumbnails are drawn in the editor with a capture library that loads on first use.
  * In use mode the arrow keys, the controls and swipes in fullscreen move between pages. The arrow keys leave
  * text entry, Alt and Meta combinations alone. Every thumbnail and tab has a button that selects its page;
  * in edit mode Space or Enter on the thumbnail itself picks it up for reordering.
  *
  * The widget follows the page theme: `--ww-text-color`, `--ww-font-family`, and `--ww-theme-accent-1` (the
- * selected thumbnail or tab). On paper it prints all pages one after another and leaves out the controls.
+ * selected thumbnail). On paper it prints all pages one after another and leaves out the controls.
  *
  * Conversions: a `section` becomes pages (its nested `section` children become one page each, otherwise the
  * section is one page), and the pages convert to a fragment of `section` elements with the page content.
@@ -69,23 +69,18 @@ export class WebwriterPages extends LitElementWw {
     static options = {
         type: {
             type: "select",
-            group: "presentation",
             label: (widget: Labelled) => widget.msg("View"),
             options: [
                 { value: "tabs", label: (widget: Labelled) => widget.msg("Tabs") },
-                { value: "pages", label: (widget: Labelled) => widget.msg("Pages") },
+                { value: "pages", label: (widget: Labelled) => widget.msg("Slides") },
             ],
         },
     } satisfies Record<string, Declared<OptionDeclaration>>;
 
-    static optionGroups = {
-        presentation: { label: (widget: Labelled) => widget.msg("Presentation"), collapsible: true, advanced: false },
-    } satisfies Record<string, Declared<OptionGroupDeclaration>>;
-
     static actions = {
-        addPage: { label: (widget: Labelled) => widget.msg("Add page"), group: "presentation", icon: "Add", intent: "default" },
-        duplicateActivePage: { label: (widget: Labelled) => widget.msg("Duplicate current page"), group: "presentation", icon: "Copy", intent: "default", disabled: true },
-        removeActivePage: { label: (widget: Labelled) => widget.msg("Remove current page"), group: "presentation", icon: "Delete", intent: "danger", disabled: true },
+        addPage: { label: (widget: Labelled) => widget.msg("Add"), buttonGroup: "pages", icon: "Plus", intent: "default" },
+        removeActivePage: { label: (widget: Labelled) => widget.msg("Remove"), buttonGroup: "pages", icon: "Delete", intent: "danger", disabled: true },
+        duplicateActivePage: { label: (widget: Labelled) => widget.msg("Duplicate"), buttonGroup: "pages", icon: "Copy", intent: "default", disabled: true },
     } satisfies Record<string, Declared<ActionDeclaration>>;
 
     // The drawer labels are computed with `msg`, so the editor reads them again after a language change.
@@ -101,7 +96,7 @@ export class WebwriterPages extends LitElementWw {
 
     /**
      * Defines the type of view for the sequence of pages.
-     * - "pages": Show content as sequential pages.
+     * - "pages": Show the Slides view with preview cards.
      * - "tabs": Show content using tabs.
      */
     @property({ type: String, attribute: true, reflect: true })
@@ -554,11 +549,13 @@ export class WebwriterPages extends LitElementWw {
         return html`
             <div class="pages-layout ${this.type === "pages" ? "pages-view" : "tabs-view"}">
                 ${this.type == "tabs" ? renderTabs(view) : html``}
-                <div class="page-stage">
-                    <slot></slot>
-                    ${this.type == "pages" && this.isFullscreen
-                        ? html`<div class="controls-overlay">${renderControls(view)}</div>`
-                        : html``}
+                <div class="page-viewport">
+                    <div class="page-stage">
+                        <slot></slot>
+                        ${this.type == "pages" && this.isFullscreen
+                            ? html`<div class="controls-overlay" contenteditable="false">${renderControls(view)}</div>`
+                            : html``}
+                    </div>
                 </div>
                 ${this.type == "pages" && !this.isFullscreen ? renderThumbs(view) : html``}
             </div>

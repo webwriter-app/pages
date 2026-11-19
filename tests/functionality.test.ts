@@ -64,8 +64,16 @@ describe("<webwriter-pages>", function () {
       assert.equal(view(widget), label)
     }
     try {
-      await waitForView(german, "Seiten")
-      assert.equal(view(english), "Pages")
+      await waitForView(german, "Folien")
+      assert.equal(view(english), "Slides")
+      const labels = (widget: WebwriterPages) => Object.values(widget.actions).map(action => action.label)
+      assert.deepEqual(labels(english), ["Add", "Remove", "Duplicate"])
+      assert.deepEqual(labels(german), ["Hinzufügen", "Entfernen", "Duplizieren"])
+      assert.deepEqual(Object.keys(english.optionGroups ?? {}), [], "options have no enclosing group")
+      assert.isUndefined(english.options!.type.group, "View appears directly in the drawer")
+      assert.isTrue(Object.values(english.actions).every(action => action.group === undefined), "page actions appear directly in the drawer")
+      assert.isTrue(Object.values(english.actions).every(action => action.buttonGroup === "pages"), "page actions share one button group")
+      assert.deepEqual(Object.values(english.actions).map(action => action.icon), ["Plus", "Delete", "Copy"], "all page actions have supported icons")
       const tooltips = (widget: WebwriterPages) => Array.from(widget.shadowRoot!.querySelectorAll("[title]"), control => control.getAttribute("title"))
       assert.include(tooltips(english), "Duplicate page")
       assert.include(tooltips(german), "Seite duplizieren")
@@ -73,17 +81,17 @@ describe("<webwriter-pages>", function () {
       assert.isFalse(german.querySelector("webwriter-page")!.hasAttribute("lang"))
 
       german.parentElement!.lang = "en"
-      await waitForView(german, "Pages")
+      await waitForView(german, "Slides")
       german.lang = "de"
-      await waitForView(german, "Seiten")
+      await waitForView(german, "Folien")
       german.removeAttribute("lang")
-      await waitForView(german, "Pages")
+      await waitForView(german, "Slides")
 
       const first = wrapper.firstElementChild as HTMLElement
       first.append(german)
       first.lang = "de"
-      await waitForView(english, "Seiten")
-      await waitForView(german, "Seiten")
+      await waitForView(english, "Folien")
+      await waitForView(german, "Folien")
       assert.isFalse(german.hasAttribute("lang"))
     } finally {
       wrapper.remove()
@@ -104,18 +112,18 @@ describe("<webwriter-pages>", function () {
         assert.isTrue(condition(), message)
       }
       const tooltips = (widget: WebwriterPages) => Array.from(widget.shadowRoot!.querySelectorAll("[title]"), control => control.getAttribute("title"))
-      await until(() => view(german) === "Seiten", "German drawer label")
-      assert.equal(view(english), "Pages")
+      await until(() => view(german) === "Folien", "German drawer label")
+      assert.equal(view(english), "Slides")
       assert.include(tooltips(english), "Duplicate page")
       await until(() => tooltips(german).includes("Seite duplizieren"), "German tooltip")
       let changes = 0
       german.addEventListener("optionschange", () => changes++)
       german.parentElement!.lang = "en"
-      await until(() => view(german) === "Pages", "back to English")
+      await until(() => view(german) === "Slides", "back to English")
       german.lang = "de"
-      await until(() => view(german) === "Seiten", "explicit lang")
+      await until(() => view(german) === "Folien", "explicit lang")
       german.removeAttribute("lang")
-      await until(() => view(german) === "Pages", "lang removed")
+      await until(() => view(german) === "Slides", "lang removed")
       assert.isAbove(changes, 0, "optionschange sent")
     } finally {
       wrapper.remove()

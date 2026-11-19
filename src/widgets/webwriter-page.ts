@@ -4,9 +4,11 @@ import { LitElementWw } from "@webwriter/lit";
 import { customElement, property } from "lit/decorators.js";
 
 import "@shoelace-style/shoelace/dist/themes/light.css";
+import "../components/page-media.css";
 
 /**
  * Represents a single page in the `webwriter-pages` widget.
+ * Single-media pages remove padding and fit media without stretching or cropping.
  *
  * @slot default - The content displayed within the page.
  */

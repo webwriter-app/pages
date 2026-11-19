@@ -165,6 +165,25 @@ describe("<webwriter-pages> in edit mode", function () {
     assert.isFalse(items<any>(widget, ".remove-btn")[0].disabled, "remove is enabled after adding a page");
   });
 
+  it("keeps placeholder labels outside document editing while preserving the title input", async function () {
+    const widget = await mount(`<webwriter-pages contenteditable="">${pages(2)}</webwriter-pages>`);
+    const pane = items(widget, '[part="tabs"]')[0];
+    const placeholder = items<HTMLElement>(widget, ".page-label-placeholder")[0];
+    const field = items<HTMLInputElement>(widget, ".page-label-input")[0];
+    assert.equal(pane.contentEditable, "false", "toolbar is excluded from document editing");
+    assert.equal(placeholder.closest("[contenteditable]")?.getAttribute("contenteditable"), "false", "fallback label stays in the private toolbar");
+    assert.equal(getComputedStyle(pane).userSelect, "none", "toolbar text cannot be selected");
+    assert.equal(getComputedStyle(field).userSelect, "text", "native title selection remains available");
+    field.focus();
+    field.setSelectionRange(99, 99);
+    assert.equal(field.selectionStart, 0, "empty placeholder offers only the empty input position");
+    field.value = "Editable title";
+    field.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true }));
+    field.setSelectionRange(0, field.value.length);
+    assert.equal(field.selectionEnd, 14, "authored title can still be selected");
+    assert.equal(widget.children[0].getAttribute("label"), "Editable title");
+  });
+
   it("edits plaintext tab labels, auto-sizes the input, and follows external label changes", async function () {
     const widget = await mount(`<webwriter-pages type="tabs" contenteditable="">${pages(3)}</webwriter-pages>`);
     widget.parentElement!.style.width = "720px";

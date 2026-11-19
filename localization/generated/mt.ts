@@ -8,11 +8,15 @@
     /* eslint-disable @typescript-eslint/no-explicit-any */
 
     export const templates = {
-      's03b454fb08e876ad': `Tabs`,
+      's0043ccab8a7a7eaf': `Slajds`,
+'s03b454fb08e876ad': `Tabs`,
 's5334c0927cf25b86': `Oħroġ mill-iskrin sħiħ`,
 's5c1ecf88259b79f9': `Preżentazzjoni`,
 's7f59f507e02a2f38': `Dehra`,
+'sea4f08110bb8f15d': `Neħħi`,
 'see7c7a973a9b2d6c': `Uri fuq skrin sħiħ`,
+'sf9aee319a006c9b4': `Żid`,
+'sfac15b89e0668996': `Idduplika`,
 's441b8d7365700a09': `Duplicate page`,
 's4924ae578d75adec': `Remove page`,
 's933b62519fffa7f7': `Add page`,
@@ -22,6 +26,4 @@
 's7edad99c6b7bfe88': `Go to next page`,
 's2e192b19ed15fcf6': `Page`,
 's6ac0c20ddc5c15ff': `Pages`,
-'sd6988c0f16ce97ba': `Duplicate current page`,
-'sf33cb3bf48278173': `Remove current page`,
     };

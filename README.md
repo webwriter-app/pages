@@ -15,7 +15,7 @@ Present content as pages or tabs.
 ## `WebwriterPages` (`<webwriter-pages>`)
 Display authored content as pages, with tabs by default or a preview-card layout.
 
-Authors add `webwriter-page` children; the `type` attribute switches between a thumbnail strip ("pages")
+Authors add `webwriter-page` children; the `type` attribute switches between the Slides view with preview cards ("pages")
 and the default tab strip ("tabs"). Thumbnails are drawn in the editor with a capture library that loads on first use.
 In use mode the arrow keys, the controls and swipes in fullscreen move between pages. The arrow keys leave
 text entry, Alt and Meta combinations alone. Every thumbnail and inactive tab has a button that selects its page;
@@ -24,7 +24,7 @@ The selected tab has an auto-sizing plaintext label input. Labels are saved in e
 an empty label displays a grey “Page n” placeholder. Tab-strip chevrons scroll the list without changing pages.
 
 The widget follows the page theme: `--ww-text-color`, `--ww-font-family`, and `--ww-theme-accent-1` (the
-selected thumbnail or tab). On paper it prints all pages one after another and leaves out the controls.
+selected thumbnail). On paper it prints all pages one after another and leaves out the controls.
 
 Conversions: a `section` becomes pages (its nested `section` children become one page each, otherwise the
 section is one page), and the pages convert to a fragment of `section` elements with the page content.
@@ -63,11 +63,10 @@ npm install @webwriter/pages
 | `WebwriterPages.scopedElements` | `object` | - | `{ "sl-icon-button": SlIconButton, }` | ✗ |
 | `WebwriterPages.convertFrom` | `object` | - | `{ section: "loadSections" }` | ✗ |
 | `WebwriterPages.convertTo` | `object` | - | `{ section: "toSections" }` | ✗ |
-| `WebwriterPages.options` | - | - | `{ type: { type: "select", group: "presentation", label: (widget: Labelled) => widget.msg("View"), options: [ { value: "tabs", label: (widget: Labelled) => widget.msg("Tabs") }, { value: "pages", label: (widget: Labelled) => widget.msg("Pages") }, ], }, } satisfies Record<string, Declared<OptionDeclaration>>` | ✗ |
-| `WebwriterPages.optionGroups` | - | - | `{ presentation: { label: (widget: Labelled) => widget.msg("Presentation"), collapsible: true, advanced: false }, } satisfies Record<string, Declared<OptionGroupDeclaration>>` | ✗ |
-| `WebwriterPages.actions` | - | - | `{ addPage: { label: (widget: Labelled) => widget.msg("Add page"), group: "presentation", icon: "Add", intent: "default" }, duplicateActivePage: { label: (widget: Labelled) => widget.msg("Duplicate current page"), group: "presentation", icon: "Copy", intent: "default", disabled: true }, removeActivePage: { label: (widget: Labelled) => widget.msg("Remove current page"), group: "presentation", icon: "Delete", intent: "danger", disabled: true }, } satisfies Record<string, Declared<ActionDeclaration>>` | ✗ |
+| `WebwriterPages.options` | - | - | `{ type: { type: "select", label: (widget: Labelled) => widget.msg("View"), options: [ { value: "tabs", label: (widget: Labelled) => widget.msg("Tabs") }, { value: "pages", label: (widget: Labelled) => widget.msg("Slides") }, ], }, } satisfies Record<string, Declared<OptionDeclaration>>` | ✗ |
+| `WebwriterPages.actions` | - | - | `{ addPage: { label: (widget: Labelled) => widget.msg("Add"), buttonGroup: "pages", icon: "Plus", intent: "default" }, removeActivePage: { label: (widget: Labelled) => widget.msg("Remove"), buttonGroup: "pages", icon: "Delete", intent: "danger", disabled: true }, duplicateActivePage: { label: (widget: Labelled) => widget.msg("Duplicate"), buttonGroup: "pages", icon: "Copy", intent: "default", disabled: true }, } satisfies Record<string, Declared<ActionDeclaration>>` | ✗ |
 | `localize` | - | - | - | ✗ |
-| `type` (`type`) | `"tabs" \| "pages"` | Defines the type of view for the sequence of pages.<br>- "pages": Show content as sequential pages.<br>- "tabs": Show content using tabs. | `"tabs"` | ✓ |
+| `type` (`type`) | `"tabs" \| "pages"` | Defines the type of view for the sequence of pages.<br>- "pages": Show the Slides view with preview cards.<br>- "tabs": Show content using tabs. | `"tabs"` | ✓ |
 | `activePageIndex` | `number` | Index of the currently active page. | `0` | ✗ |
 | `signals` | `object` | Public signals: the current page number (from 1) and the number of pages. | `{ page: this.#page, count: this.#count }` | ✗ |
 | `actions` | - | The drawer declarations with the availability of the page actions, which follows the pages. | - | ✗ |
@@ -130,6 +129,9 @@ npm install @webwriter/pages
 
 ## `WebwriterPage` (`<webwriter-page>`)
 Represents a single page in the `webwriter-pages` widget.
+
+A page containing one media element has no content padding. Media fills the available page area with
+its original proportions preserved and the complete image or video visible. Mixed content keeps its usual padding.
 
 ### Usage
 

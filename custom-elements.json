@@ -8,7 +8,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "Represents a single page in the `webwriter-pages` widget.",
+          "description": "Represents a single page in the `webwriter-pages` widget.\nSingle-media pages remove padding and fit media without stretching or cropping.",
           "name": "WebwriterPage",
           "slots": [
             {
@@ -115,7 +115,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "Display authored content as pages, with tabs by default or a preview-card layout.\n\nAuthors add `webwriter-page` children; the `type` attribute switches between a thumbnail strip (\"pages\")\nand the default tab strip (\"tabs\"). Thumbnails are drawn in the editor with a capture library that loads on first use.\nIn use mode the arrow keys, the controls and swipes in fullscreen move between pages. The arrow keys leave\ntext entry, Alt and Meta combinations alone. Every thumbnail and tab has a button that selects its page;\nin edit mode Space or Enter on the thumbnail itself picks it up for reordering.\n\nThe widget follows the page theme: `--ww-text-color`, `--ww-font-family`, and `--ww-theme-accent-1` (the\nselected thumbnail or tab). On paper it prints all pages one after another and leaves out the controls.\n\nConversions: a `section` becomes pages (its nested `section` children become one page each, otherwise the\nsection is one page), and the pages convert to a fragment of `section` elements with the page content.\nThe thumbnails are not carried over.\n\nSignals: `page` is the number of the current page, starting at 1; `count` is the number of pages.\nBoth change when readers or authors move to another page.\n\nKnown limitation: in edit mode the drag module sets `touch-action: none` on the thumbnails, so on a touch\nscreen the thumbnail strip cannot be scrolled by dragging on a thumbnail; the select buttons still work.",
+          "description": "Display authored content as pages, with tabs by default or a preview-card layout.\n\nAuthors add `webwriter-page` children; the `type` attribute switches between the Slides view with preview cards (\"pages\")\nand the default tab strip (\"tabs\"). Thumbnails are drawn in the editor with a capture library that loads on first use.\nIn use mode the arrow keys, the controls and swipes in fullscreen move between pages. The arrow keys leave\ntext entry, Alt and Meta combinations alone. Every thumbnail and tab has a button that selects its page;\nin edit mode Space or Enter on the thumbnail itself picks it up for reordering.\n\nThe widget follows the page theme: `--ww-text-color`, `--ww-font-family`, and `--ww-theme-accent-1` (the\nselected thumbnail). On paper it prints all pages one after another and leaves out the controls.\n\nConversions: a `section` becomes pages (its nested `section` children become one page each, otherwise the\nsection is one page), and the pages convert to a fragment of `section` elements with the page content.\nThe thumbnails are not carried over.\n\nSignals: `page` is the number of the current page, starting at 1; `count` is the number of pages.\nBoth change when readers or authors move to another page.\n\nKnown limitation: in edit mode the drag module sets `touch-action: none` on the thumbnails, so on a touch\nscreen the thumbnail strip cannot be scrolled by dragging on a thumbnail; the select buttons still work.",
           "name": "WebwriterPages",
           "cssParts": [
             {
@@ -173,19 +173,13 @@
               "kind": "field",
               "name": "options",
               "static": true,
-              "default": "{ type: { type: \"select\", group: \"presentation\", label: (widget: Labelled) => widget.msg(\"View\"), options: [ { value: \"tabs\", label: (widget: Labelled) => widget.msg(\"Tabs\") }, { value: \"pages\", label: (widget: Labelled) => widget.msg(\"Pages\") }, ], }, } satisfies Record<string, Declared<OptionDeclaration>>"
-            },
-            {
-              "kind": "field",
-              "name": "optionGroups",
-              "static": true,
-              "default": "{ presentation: { label: (widget: Labelled) => widget.msg(\"Presentation\"), collapsible: true, advanced: false }, } satisfies Record<string, Declared<OptionGroupDeclaration>>"
+              "default": "{ type: { type: \"select\", label: (widget: Labelled) => widget.msg(\"View\"), options: [ { value: \"tabs\", label: (widget: Labelled) => widget.msg(\"Tabs\") }, { value: \"pages\", label: (widget: Labelled) => widget.msg(\"Slides\") }, ], }, } satisfies Record<string, Declared<OptionDeclaration>>"
             },
             {
               "kind": "field",
               "name": "actions",
               "static": true,
-              "default": "{ addPage: { label: (widget: Labelled) => widget.msg(\"Add page\"), group: \"presentation\", icon: \"Add\", intent: \"default\" }, duplicateActivePage: { label: (widget: Labelled) => widget.msg(\"Duplicate current page\"), group: \"presentation\", icon: \"Copy\", intent: \"default\", disabled: true }, removeActivePage: { label: (widget: Labelled) => widget.msg(\"Remove current page\"), group: \"presentation\", icon: \"Delete\", intent: \"danger\", disabled: true }, } satisfies Record<string, Declared<ActionDeclaration>>"
+              "default": "{ addPage: { label: (widget: Labelled) => widget.msg(\"Add\"), buttonGroup: \"pages\", icon: \"Plus\", intent: \"default\" }, removeActivePage: { label: (widget: Labelled) => widget.msg(\"Remove\"), buttonGroup: \"pages\", icon: \"Delete\", intent: \"danger\", disabled: true }, duplicateActivePage: { label: (widget: Labelled) => widget.msg(\"Duplicate\"), buttonGroup: \"pages\", icon: \"Copy\", intent: \"default\", disabled: true }, } satisfies Record<string, Declared<ActionDeclaration>>"
             },
             {
               "kind": "field",
@@ -211,7 +205,7 @@
               },
               "privacy": "public",
               "default": "\"tabs\"",
-              "description": "Defines the type of view for the sequence of pages.\n- \"pages\": Show content as sequential pages.\n- \"tabs\": Show content using tabs.",
+              "description": "Defines the type of view for the sequence of pages.\n- \"pages\": Show the Slides view with preview cards.\n- \"tabs\": Show content using tabs.",
               "attribute": "type",
               "reflects": true
             },

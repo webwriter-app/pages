@@ -50,6 +50,22 @@
 <trans-unit id="s2c6d6feada924c0d">
   <source>Scroll tabs forward</source>
 </trans-unit>
+      <trans-unit id="sf9aee319a006c9b4">
+        <source>Add</source>
+        <target>Thêm</target>
+      </trans-unit>
+      <trans-unit id="sea4f08110bb8f15d">
+        <source>Remove</source>
+        <target>Xóa</target>
+      </trans-unit>
+      <trans-unit id="sfac15b89e0668996">
+        <source>Duplicate</source>
+        <target>Nhân bản</target>
+      </trans-unit>
+      <trans-unit id="s0043ccab8a7a7eaf">
+        <source>Slides</source>
+        <target>Trang chiếu</target>
+      </trans-unit>
 </body>
 </file>
 </xliff>

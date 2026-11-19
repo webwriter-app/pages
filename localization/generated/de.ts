@@ -8,7 +8,8 @@
     /* eslint-disable @typescript-eslint/no-explicit-any */
 
     export const templates = {
-      's03b454fb08e876ad': `Tabs`,
+      's0043ccab8a7a7eaf': `Folien`,
+'s03b454fb08e876ad': `Tabs`,
 's2c6d6feada924c0d': `Tabs vorwärtsscrollen`,
 's2e192b19ed15fcf6': `Seite`,
 's4200371a855e0ae9': `Tabs zurückscrollen`,
@@ -21,7 +22,8 @@
 's7edad99c6b7bfe88': `Weiter zur nächsten Seite`,
 's7f59f507e02a2f38': `Ansicht`,
 's933b62519fffa7f7': `Seite hinzufügen`,
-'sd6988c0f16ce97ba': `Aktuelle Seite duplizieren`,
+'sea4f08110bb8f15d': `Entfernen`,
 'see7c7a973a9b2d6c': `Im Vollbildmodus anzeigen`,
-'sf33cb3bf48278173': `Aktuelle Seite entfernen`,
+'sf9aee319a006c9b4': `Hinzufügen`,
+'sfac15b89e0668996': `Duplizieren`,
     };

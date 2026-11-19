@@ -28,6 +28,41 @@ describe("<webwriter-pages> in read mode", function () {
     assert.deepEqual(order(widget), before);
   });
 
+  it("fits single media to the page without padding or distorted proportions", async function () {
+    const image = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="320" height="640"><rect width="320" height="640" fill="teal"/></svg>')}`;
+    const widget = await mount(`<webwriter-pages><webwriter-page><!--keep--><picture style="width:320px"><img src="${image}" width="320" height="640" alt="Portrait"></picture></webwriter-page></webwriter-pages>`);
+    widget.parentElement!.style.width = "720px";
+    const page = widget.querySelector<HTMLElement>("webwriter-page")!;
+    const img = page.querySelector("img")!;
+    await img.decode();
+    for(const type of ["tabs", "pages"] as const) {
+      widget.type = type;
+      await widget.updateComplete;
+      await frame(2);
+      const style = getComputedStyle(page), rect = page.getBoundingClientRect();
+      const media = img.getBoundingClientRect();
+      assert.equal(style.padding, "0px");
+      assert.closeTo(media.width, rect.width - page.clientLeft * 2, 1);
+      assert.closeTo(media.height, rect.height - page.clientTop * 2, 1);
+      assert.equal(getComputedStyle(img).objectFit, "contain", "media remains uncropped and proportional");
+      assert.equal(img.naturalWidth / img.naturalHeight, 0.5, "portrait source is preserved");
+      assert.isAtMost(page.scrollHeight, page.clientHeight + 1, "no media scrollbar");
+    }
+    page.insertAdjacentHTML("beforeend", "<p>Caption</p>");
+    await frame(2);
+    assert.isAbove(parseFloat(getComputedStyle(page).paddingTop), 0, "mixed content keeps its padding");
+    assert.equal(img.getAttribute("width"), "320", "authored dimensions are preserved");
+    page.querySelector("p")!.remove();
+    await frame(2);
+    assert.equal(getComputedStyle(page).padding, "0px", "direct DOM changes update layout");
+    page.replaceChildren(document.createElement("video"));
+    await frame(2);
+    const video = page.firstElementChild as HTMLVideoElement;
+    assert.equal(getComputedStyle(video).objectFit, "contain");
+    assert.closeTo(video.getBoundingClientRect().height, page.clientHeight, 1);
+    assert.equal(getComputedStyle(page).padding, "0px");
+  });
+
   it("preserves plaintext tab labels through serialization and follows external updates", async function () {
     const widget = await mount(`<webwriter-pages><webwriter-page label="Introduction"><p>First</p></webwriter-page><webwriter-page><p>Second</p></webwriter-page></webwriter-pages>`);
     const saved = await mount(widget.outerHTML);
@@ -128,6 +163,29 @@ describe("<webwriter-pages> in read mode", function () {
       const page = widget.querySelector("webwriter-page[active]")!.getBoundingClientRect();
       assert.closeTo(page.width / page.height, 16 / 9, 0.01, `page ratio at ${width}`);
       assert.isAtMost(widget.scrollWidth, rect.width + 1, `no sideways overflow at ${width}`);
+    }
+  });
+
+  it("fits fullscreen pages below the actual tab toolbar and colors the surrounding space", async function () {
+    const widget = await mount(`<webwriter-pages type="tabs">${pages(3)}</webwriter-pages>`);
+    widget.classList.add("ww-fullscreen");
+    widget.style.fontSize = "32px";
+    const pane = items(widget, '[part="tabs"]')[0];
+    pane.style.paddingBlock = "2rem";
+    for (const [width, height] of [[900, 400], [400, 800]]) {
+      widget.style.width = `${width}px`;
+      widget.style.height = `${height}px`;
+      await frame(2);
+      const host = widget.getBoundingClientRect();
+      const toolbar = pane.getBoundingClientRect();
+      const page = widget.querySelector("webwriter-page[active]")!.getBoundingClientRect();
+      assert.closeTo(page.width / page.height, 16 / 9, 0.01, "page ratio");
+      assert.isAtLeast(page.top, toolbar.bottom - 1, "page stays below toolbar");
+      assert.isAtMost(page.bottom, host.bottom + 1, "page fits vertically");
+      assert.isAtLeast(page.left, host.left - 1, "page fits on the left");
+      assert.isAtMost(page.right, host.right + 1, "page fits on the right");
+      assert.closeTo(page.top - toolbar.bottom, host.bottom - page.bottom, 1, "unused vertical space is balanced");
+      assert.equal(getComputedStyle(widget).backgroundColor, getComputedStyle(pane).backgroundColor, "letterbox uses the panel color");
     }
   });
 

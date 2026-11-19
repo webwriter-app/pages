@@ -38,28 +38,37 @@ export const pages_styles = css`
         aspect-ratio: 16 / 9;
     }
 
+    .page-viewport {
+        display: contents;
+    }
+
     :host(:fullscreen),
     :host(.ww-fullscreen) {
         max-width: none;
+        background: var(--sl-color-neutral-50);
     }
 
     :host(:fullscreen) .pages-layout,
     :host(.ww-fullscreen) .pages-layout {
         display: flex;
         flex-direction: column;
-        align-items: center;
-        justify-content: center;
         block-size: 100%;
+    }
+
+    :host(:fullscreen) .page-viewport,
+    :host(.ww-fullscreen) .page-viewport {
+        display: grid;
+        place-items: center;
+        flex: 1 1 0;
+        min-block-size: 0;
+        container-type: size;
     }
 
     :host(:fullscreen) .page-stage,
     :host(.ww-fullscreen) .page-stage {
-        flex: 0 0 auto;
-        inline-size: min(100%, calc((100dvh - var(--_fullscreen-toolbar, 0px)) * 16 / 9));
-    }
-
-    .tabs-view {
-        --_fullscreen-toolbar: 5rem;
+        inline-size: min(100cqi, calc(100cqb * 16 / 9));
+        background: var(--sl-panel-background-color);
+        margin: 0;
     }
 
     [part="tabs"] {
@@ -74,6 +83,13 @@ export const pages_styles = css`
         border: var(--sl-panel-border-width) solid var(--sl-panel-border-color);
         border-radius: var(--sl-border-radius-medium) var(--sl-border-radius-medium) 0 0;
         background: var(--sl-color-neutral-50);
+        flex: 0 0 auto;
+    }
+
+    [part="tabs"],
+    [part="actions"],
+    .controls-overlay {
+        user-select: none;
     }
 
     [part="actions"] {
@@ -426,6 +442,7 @@ export const pages_styles = css`
         color: inherit;
         font: inherit;
         line-height: 1.5;
+        user-select: text;
     }
 
     .page-label-input::placeholder,

@@ -5,7 +5,7 @@ import { renderAddPage, renderControls, renderPageButtons } from "./pages-contro
 
 /** The tab strip with its controls, shown in the "tabs" view. */
 export function renderTabs(view: PagesView) {
-    return html`<aside part="tabs">
+    return html`<aside part="tabs" contenteditable="false">
         <div class="page-tabs-row ${view.editing ? "has-add" : ""}" style=${`--_tab-count: ${Math.max(1, view.pages.length)}`}>
             <div class="page-tabs-wrapper" @scroll=${view.onTabScroll}>
                 <div class="page-tabs" data-ww-drop="page" data-ww-drop-position="index" @ww-dragcommit=${view.onDragCommit}>
@@ -65,7 +65,7 @@ export function renderTabs(view: PagesView) {
 
 /** The thumbnail strip with its controls, shown in the "pages" view outside fullscreen. */
 export function renderThumbs(view: PagesView) {
-    return html`<aside part="actions">
+    return html`<aside part="actions" contenteditable="false">
         <div class="page-thumbs" role="region" aria-label=${view.msg("Pages")} tabindex="0" data-ww-drop="page" data-ww-drop-position="index" @ww-dragcommit=${view.onDragCommit}>
             ${view.pages.map(
                 (page, index) => html`
