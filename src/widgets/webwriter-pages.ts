@@ -80,14 +80,6 @@ export class WebwriterPages extends LitElementWw {
                 { value: "pages", label: (widget: Labelled) => widget.msg("Slides") },
             ],
         },
-        orientation: {
-            type: "select",
-            label: (widget: Labelled) => widget.msg("Orientation"),
-            options: [
-                { value: "landscape", label: (widget: Labelled) => widget.msg("Landscape") },
-                { value: "portrait", label: (widget: Labelled) => widget.msg("Portrait") },
-            ],
-        },
     } satisfies Record<string, Declared<OptionDeclaration>>;
 
     static actions = {
@@ -112,7 +104,13 @@ export class WebwriterPages extends LitElementWw {
      * - "pages": Show the Slides view with preview cards.
      * - "tabs": Show content using tabs.
      */
-    @property({ type: String, attribute: true, reflect: true })
+    @property({
+        type: String,
+        attribute: true,
+        reflect: true,
+        useDefault: true,
+        converter: { fromAttribute: (value: string | null) => value === "pages" ? "pages" : "tabs" },
+    })
     public accessor type: "tabs" | "pages" = "tabs";
 
     /** Page orientation: 16:9 landscape or 9:16 portrait. */
@@ -584,7 +582,7 @@ export class WebwriterPages extends LitElementWw {
         const view = this.#view();
         return html`
             <div class="pages-layout ${this.type === "pages" ? "pages-view" : "tabs-view"}">
-                ${this.type == "tabs" ? renderTabs(view) : html``}
+                ${this.type !== "pages" ? renderTabs(view) : html``}
                 <div class="page-viewport">
                     <div class="page-surface">
                         <div class="page-stage"><slot></slot></div>

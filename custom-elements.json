@@ -173,7 +173,7 @@
               "kind": "field",
               "name": "options",
               "static": true,
-              "default": "{ type: { type: \"select\", label: (widget: Labelled) => widget.msg(\"View\"), options: [ { value: \"tabs\", label: (widget: Labelled) => widget.msg(\"Tabs\") }, { value: \"pages\", label: (widget: Labelled) => widget.msg(\"Slides\") }, ], }, orientation: { type: \"select\", label: (widget: Labelled) => widget.msg(\"Orientation\"), options: [ { value: \"landscape\", label: (widget: Labelled) => widget.msg(\"Landscape\") }, { value: \"portrait\", label: (widget: Labelled) => widget.msg(\"Portrait\") }, ], }, } satisfies Record<string, Declared<OptionDeclaration>>"
+              "default": "{ type: { type: \"select\", label: (widget: Labelled) => widget.msg(\"View\"), options: [ { value: \"tabs\", label: (widget: Labelled) => widget.msg(\"Tabs\") }, { value: \"pages\", label: (widget: Labelled) => widget.msg(\"Slides\") }, ], }, } satisfies Record<string, Declared<OptionDeclaration>>"
             },
             {
               "kind": "field",

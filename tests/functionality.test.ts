@@ -32,12 +32,28 @@ describe("<webwriter-pages>", function () {
         assert.equal(el.type, "tabs");
         assert.equal(el.orientation, "landscape");
         assert.isFalse(el.hasAttribute("orientation"), "default does not rewrite existing markup");
-        assert.equal(el.getAttribute("type"), "tabs");
+        assert.isFalse(el.hasAttribute("type"), "default view does not add an attribute");
         assert.isNull(el.shadowRoot!.querySelector(".page-thumb"));
         assert.equal(el.shadowRoot!.querySelector("button.page-select")!.getAttribute("aria-label"), "Page 1");
         assert.isUndefined(customElements.get("webwriter-slides"));
         assert.isUndefined(customElements.get("webwriter-slide"));
       } finally { el.remove(); }
+    })
+
+    it("restores Tabs when the View attribute is removed or cleared", async function () {
+      const widget = await mount("<webwriter-pages type=\"pages\"><webwriter-page><p>Content</p></webwriter-page></webwriter-pages>");
+      try {
+        for(const value of [null, "", "unknown"]) {
+          widget.setAttribute("type", "pages");
+          await widget.updateComplete;
+          if(value === null) widget.removeAttribute("type");
+          else widget.setAttribute("type", value);
+          await widget.updateComplete;
+          assert.equal(widget.type, "tabs");
+          assert.isNotNull(widget.shadowRoot!.querySelector(".page-tab"));
+          assert.isNull(widget.shadowRoot!.querySelector(".page-thumb"));
+        }
+      } finally { unmountAll(); }
     })
 
     it("is defined", async function () {
@@ -50,14 +66,12 @@ describe("<webwriter-pages>", function () {
     })
   })
 
-  it("declares a persisted Orientation option and captures previews without stretching", async function () {
+  it("omits the Orientation option and captures existing page orientations without stretching", async function () {
     this.timeout(10000);
     const widget = await mount("<webwriter-pages><webwriter-page><p>Proportional preview</p></webwriter-page></webwriter-pages>");
     widget.parentElement!.style.width = "320px";
     try {
-      const option = widget.options!.orientation as SelectOptionDeclaration;
-      assert.equal(option.label, "Orientation");
-      assert.deepEqual(option.options!.map(choice => [choice.value, choice.label]), [["landscape", "Landscape"], ["portrait", "Portrait"]]);
+      assert.isUndefined(widget.options!.orientation);
       for(const orientation of ["landscape", "portrait"] as const) {
         widget.orientation = orientation;
         await widget.updateComplete;
@@ -89,9 +103,7 @@ describe("<webwriter-pages>", function () {
     try {
       await waitForView(german, "Folien")
       assert.equal(view(english), "Slides")
-      const orientation = german.options!.orientation as SelectOptionDeclaration;
-      assert.equal(orientation.label, "Ausrichtung");
-      assert.deepEqual(orientation.options!.map(choice => choice.label), ["Querformat", "Hochformat"]);
+      assert.deepEqual(Object.keys(german.options!), ["type"], "View is the only setting");
       const labels = (widget: WebwriterPages) => Object.values(widget.actions).map(action => action.label)
       assert.deepEqual(labels(english), ["Add", "Remove", "Duplicate"])
       assert.deepEqual(labels(german), ["Hinzufügen", "Entfernen", "Duplizieren"])

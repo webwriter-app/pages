@@ -189,7 +189,7 @@ export const pages_styles = css`
         margin-block-start: calc(var(--sl-panel-border-width) * -1);
     }
 
-    :host([type="tabs"]) ::slotted(webwriter-page) {
+    :host(:not([type="pages"])) ::slotted(webwriter-page) {
         border-start-start-radius: 0;
         border-start-end-radius: 0;
     }
