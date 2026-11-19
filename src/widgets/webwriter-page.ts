@@ -31,6 +31,7 @@ export class WebwriterPage extends LitElementWw {
 
     static styles = css`
         :host {
+            --ww-widget-max: none;
             height: 100%;
             width: 100%;
             padding: var(--sl-spacing-small);

@@ -233,6 +233,10 @@ export class WebwriterPages extends LitElementWw {
                 this.#tabResizeObserver ??= new ResizeObserver(this.#updateTabScroll);
                 this.#tabResizeObserver.observe(scroller);
                 if (scroller.firstElementChild) this.#tabResizeObserver.observe(scroller.firstElementChild);
+                const stage = this.renderRoot.querySelector(".page-stage");
+                if (stage) this.#tabResizeObserver.observe(stage);
+                const viewport = this.renderRoot.querySelector(".page-viewport");
+                if (viewport) this.#tabResizeObserver.observe(viewport);
             }
         }
         this.#updateTabScroll();
@@ -251,6 +255,17 @@ export class WebwriterPages extends LitElementWw {
     }
 
     #updateTabScroll = () => {
+        const tabs = this.renderRoot.querySelector<HTMLElement>('[part="tabs"]');
+        const stage = this.renderRoot.querySelector<HTMLElement>(".page-stage");
+        if (tabs && stage) {
+            const style = getComputedStyle(stage);
+            const width = style.inlineSize;
+            if (tabs.style.getPropertyValue("--_page-inline-size") !== width) tabs.style.setProperty("--_page-inline-size", width);
+            const viewport = this.renderRoot.querySelector<HTMLElement>(".page-viewport");
+            const offset = Math.max(0, ((viewport?.clientHeight ?? 0) - parseFloat(style.blockSize)) / 2) + parseFloat(getComputedStyle(tabs).borderBottomWidth);
+            const position = `${offset}px`;
+            if (tabs.style.getPropertyValue("--_page-block-offset") !== position) tabs.style.setProperty("--_page-block-offset", position);
+        }
         const scroller = this.#tabScroller;
         const max = scroller ? Math.max(0, scroller.scrollWidth - scroller.clientWidth) : 0;
         const rtl = scroller && getComputedStyle(scroller).direction === "rtl";

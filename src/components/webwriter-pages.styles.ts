@@ -94,6 +94,28 @@ export const pages_styles = css`
         flex: 0 0 auto;
     }
 
+    :host(:fullscreen) [part="tabs"],
+    :host(.ww-fullscreen) [part="tabs"] {
+        padding-inline: max(0px, calc((100% - var(--_page-inline-size, 100%)) / 2 - var(--sl-panel-border-width)));
+        column-gap: 0;
+        border-color: transparent;
+        transform: translateY(var(--_page-block-offset, 0px));
+    }
+
+    :host(:fullscreen) [part="tabs"]::before,
+    :host(.ww-fullscreen) [part="tabs"]::before {
+        content: "";
+        position: absolute;
+        inline-size: var(--_page-inline-size, 100%);
+        block-size: var(--sl-panel-border-width);
+        inset-inline-start: 50%;
+        inset-block-end: calc(var(--sl-panel-border-width) * -1);
+        transform: translateX(-50%);
+        background: var(--sl-panel-border-color);
+        pointer-events: none;
+        z-index: -1;
+    }
+
     [part="tabs"],
     [part="actions"],
     .controls-overlay {
