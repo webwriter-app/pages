@@ -66,6 +66,18 @@
         <source>Slides</source>
         <target>سلایډونه</target>
       </trans-unit>
+      <trans-unit id="s47ebf3a8fb3b10c1">
+        <source>Orientation</source>
+        <target>لوری</target>
+      </trans-unit>
+      <trans-unit id="s3bb9ed9dd24e9172">
+        <source>Landscape</source>
+        <target>افقي</target>
+      </trans-unit>
+      <trans-unit id="safd96a5026e4555a">
+        <source>Portrait</source>
+        <target>عمودي</target>
+      </trans-unit>
 </body>
 </file>
 </xliff>

@@ -26,4 +26,7 @@
 's7edad99c6b7bfe88': `Go to next page`,
 's2e192b19ed15fcf6': `Page`,
 's6ac0c20ddc5c15ff': `Pages`,
+'s47ebf3a8fb3b10c1': `방향`,
+'s3bb9ed9dd24e9172': `가로`,
+'safd96a5026e4555a': `세로`,
     };

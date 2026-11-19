@@ -13,6 +13,7 @@ export const pages_styles = css`
         --_accent-soft: color-mix(in srgb, var(--ww-theme-accent-1) 12%, white);
         --_page-action-size: 24px;
         --_page-action-space: calc(var(--_page-action-size) / 2 + var(--sl-focus-ring-offset));
+        --_page-ratio: 16 / 9;
         display: block;
         box-sizing: border-box;
         min-width: min(300px, 100%);
@@ -27,6 +28,10 @@ export const pages_styles = css`
         block-size: auto;
     }
 
+    :host([orientation="portrait"]) {
+        --_page-ratio: 9 / 16;
+    }
+
     .pages-layout {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
@@ -35,7 +40,7 @@ export const pages_styles = css`
     .page-stage {
         position: relative;
         min-inline-size: 0;
-        aspect-ratio: 16 / 9;
+        aspect-ratio: var(--_page-ratio);
     }
 
     .page-viewport {
@@ -66,7 +71,7 @@ export const pages_styles = css`
 
     :host(:fullscreen) .page-stage,
     :host(.ww-fullscreen) .page-stage {
-        inline-size: min(100cqi, calc(100cqb * 16 / 9));
+        inline-size: min(100cqi, calc(100cqb * var(--_page-ratio)));
         background: var(--sl-panel-background-color);
         margin: 0;
     }
@@ -200,7 +205,7 @@ export const pages_styles = css`
 
     .page-thumb, .add-page {
         inline-size: var(--_thumb-width, 120px);
-        aspect-ratio: 16 / 9;
+        aspect-ratio: var(--_page-ratio);
         box-sizing: border-box;
         border: var(--sl-panel-border-width) solid var(--sl-panel-border-color);
         display: flex;

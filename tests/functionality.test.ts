@@ -4,9 +4,10 @@ import { assert } from "chai";
 import {getMochaConfig} from "@webwriter/build/test"
 import "../src/widgets/webwriter-page";
 import type { SelectOptionDeclaration } from "@webwriter/widget";
-import { until } from "./helpers"
+import { frame, mount, unmountAll, until } from "./helpers"
 import type { WebwriterPages } from "../src/widgets/webwriter-pages";
 import "../src/widgets/webwriter-pages";
+import { captureThumbnail } from "../src/components/page-thumbnail";
 
 mocha.setup(getMochaConfig())
 
@@ -29,6 +30,8 @@ describe("<webwriter-pages>", function () {
         await el.updateComplete;
         await until(() => el.shadowRoot!.querySelector(".page-tab"), "default tab");
         assert.equal(el.type, "tabs");
+        assert.equal(el.orientation, "landscape");
+        assert.isFalse(el.hasAttribute("orientation"), "default does not rewrite existing markup");
         assert.equal(el.getAttribute("type"), "tabs");
         assert.isNull(el.shadowRoot!.querySelector(".page-thumb"));
         assert.equal(el.shadowRoot!.querySelector("button.page-select")!.getAttribute("aria-label"), "Page 1");
@@ -45,6 +48,26 @@ describe("<webwriter-pages>", function () {
       const el = document.querySelector("webwriter-page")
       assert.isNotNull(el)
     })
+  })
+
+  it("declares a persisted Orientation option and captures previews without stretching", async function () {
+    this.timeout(10000);
+    const widget = await mount("<webwriter-pages><webwriter-page><p>Proportional preview</p></webwriter-page></webwriter-pages>");
+    widget.parentElement!.style.width = "320px";
+    try {
+      const option = widget.options!.orientation as SelectOptionDeclaration;
+      assert.equal(option.label, "Orientation");
+      assert.deepEqual(option.options!.map(choice => [choice.value, choice.label]), [["landscape", "Landscape"], ["portrait", "Portrait"]]);
+      for(const orientation of ["landscape", "portrait"] as const) {
+        widget.orientation = orientation;
+        await widget.updateComplete;
+        await frame(2);
+        const image = new Image();
+        image.src = await captureThumbnail(widget.querySelector("webwriter-page")!);
+        await image.decode();
+        assert.closeTo(image.naturalWidth / image.naturalHeight, orientation === "portrait" ? 9 / 16 : 16 / 9, 0.01, "capture preserves orientation");
+      }
+    } finally { unmountAll(); }
   })
 
   it("keeps controls and drawer labels in each Pages widget's inherited language", async function () {
@@ -66,6 +89,9 @@ describe("<webwriter-pages>", function () {
     try {
       await waitForView(german, "Folien")
       assert.equal(view(english), "Slides")
+      const orientation = german.options!.orientation as SelectOptionDeclaration;
+      assert.equal(orientation.label, "Ausrichtung");
+      assert.deepEqual(orientation.options!.map(choice => choice.label), ["Querformat", "Hochformat"]);
       const labels = (widget: WebwriterPages) => Object.values(widget.actions).map(action => action.label)
       assert.deepEqual(labels(english), ["Add", "Remove", "Duplicate"])
       assert.deepEqual(labels(german), ["Hinzufügen", "Entfernen", "Duplizieren"])

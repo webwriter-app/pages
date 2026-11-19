@@ -70,6 +70,18 @@
         <source>Slides</source>
         <target>Prezentácie</target>
       </trans-unit>
+      <trans-unit id="s47ebf3a8fb3b10c1">
+        <source>Orientation</source>
+        <target>Orientácia</target>
+      </trans-unit>
+      <trans-unit id="s3bb9ed9dd24e9172">
+        <source>Landscape</source>
+        <target>Na šírku</target>
+      </trans-unit>
+      <trans-unit id="safd96a5026e4555a">
+        <source>Portrait</source>
+        <target>Na výšku</target>
+      </trans-unit>
 </body>
   </file>
 </xliff>

@@ -66,6 +66,18 @@
         <source>Slides</source>
         <target>Mga slide</target>
       </trans-unit>
+      <trans-unit id="s47ebf3a8fb3b10c1">
+        <source>Orientation</source>
+        <target>Oryentasyon</target>
+      </trans-unit>
+      <trans-unit id="s3bb9ed9dd24e9172">
+        <source>Landscape</source>
+        <target>Pahalang</target>
+      </trans-unit>
+      <trans-unit id="safd96a5026e4555a">
+        <source>Portrait</source>
+        <target>Patayo</target>
+      </trans-unit>
 </body>
 </file>
 </xliff>

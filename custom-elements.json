@@ -115,7 +115,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "Display authored content as pages, with tabs by default or a preview-card layout.\n\nAuthors add `webwriter-page` children; the `type` attribute switches between the Slides view with preview cards (\"pages\")\nand the default tab strip (\"tabs\"). Thumbnails are drawn in the editor with a capture library that loads on first use.\nIn use mode the arrow keys, the controls and swipes in fullscreen move between pages. The arrow keys leave\ntext entry, Alt and Meta combinations alone. Every thumbnail and tab has a button that selects its page;\nin edit mode Space or Enter on the thumbnail itself picks it up for reordering.\n\nThe widget follows the page theme: `--ww-text-color`, `--ww-font-family`, and `--ww-theme-accent-1` (the\nselected thumbnail). On paper it prints all pages one after another and leaves out the controls.\n\nConversions: a `section` becomes pages (its nested `section` children become one page each, otherwise the\nsection is one page), and the pages convert to a fragment of `section` elements with the page content.\nThe thumbnails are not carried over.\n\nSignals: `page` is the number of the current page, starting at 1; `count` is the number of pages.\nBoth change when readers or authors move to another page.\n\nKnown limitation: in edit mode the drag module sets `touch-action: none` on the thumbnails, so on a touch\nscreen the thumbnail strip cannot be scrolled by dragging on a thumbnail; the select buttons still work.",
+          "description": "Display authored content as pages, with tabs by default or a preview-card layout.\n\nAuthors add `webwriter-page` children; the `type` attribute switches between the Slides view with preview cards (\"pages\")\nand the default tab strip (\"tabs\"). Thumbnails are drawn in the editor with a capture library that loads on first use.\nIn use mode the arrow keys, the controls and swipes in fullscreen move between pages. The arrow keys leave\ntext entry, Alt and Meta combinations alone. Every thumbnail and tab has a button that selects its page;\nin edit mode Space or Enter on the thumbnail itself picks it up for reordering.\n\nSet `orientation=\"portrait\"` for a 9:16 page, or use the default `landscape` for 16:9. The orientation applies to both views, fullscreen, and preview cards. The attribute is optional; an absent attribute keeps landscape without adding it to existing markup.\n\nThe widget follows the page theme: `--ww-text-color`, `--ww-font-family`, and `--ww-theme-accent-1` (the\nselected thumbnail). On paper it prints all pages one after another and leaves out the controls.\n\nConversions: a `section` becomes pages (its nested `section` children become one page each, otherwise the\nsection is one page), and the pages convert to a fragment of `section` elements with the page content.\nThe thumbnails are not carried over.\n\nSignals: `page` is the number of the current page, starting at 1; `count` is the number of pages.\nBoth change when readers or authors move to another page.\n\nKnown limitation: in edit mode the drag module sets `touch-action: none` on the thumbnails, so on a touch\nscreen the thumbnail strip cannot be scrolled by dragging on a thumbnail; the select buttons still work.",
           "name": "WebwriterPages",
           "cssParts": [
             {
@@ -173,7 +173,7 @@
               "kind": "field",
               "name": "options",
               "static": true,
-              "default": "{ type: { type: \"select\", label: (widget: Labelled) => widget.msg(\"View\"), options: [ { value: \"tabs\", label: (widget: Labelled) => widget.msg(\"Tabs\") }, { value: \"pages\", label: (widget: Labelled) => widget.msg(\"Slides\") }, ], }, } satisfies Record<string, Declared<OptionDeclaration>>"
+              "default": "{ type: { type: \"select\", label: (widget: Labelled) => widget.msg(\"View\"), options: [ { value: \"tabs\", label: (widget: Labelled) => widget.msg(\"Tabs\") }, { value: \"pages\", label: (widget: Labelled) => widget.msg(\"Slides\") }, ], }, orientation: { type: \"select\", label: (widget: Labelled) => widget.msg(\"Orientation\"), options: [ { value: \"landscape\", label: (widget: Labelled) => widget.msg(\"Landscape\") }, { value: \"portrait\", label: (widget: Labelled) => widget.msg(\"Portrait\") }, ], }, } satisfies Record<string, Declared<OptionDeclaration>>"
             },
             {
               "kind": "field",
@@ -207,6 +207,17 @@
               "default": "\"tabs\"",
               "description": "Defines the type of view for the sequence of pages.\n- \"pages\": Show the Slides view with preview cards.\n- \"tabs\": Show content using tabs.",
               "attribute": "type",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "orientation",
+              "type": {
+                "text": "\"landscape\" | \"portrait\""
+              },
+              "default": "\"landscape\"",
+              "description": "Page orientation: 16:9 landscape or 9:16 portrait. The optional orientation attribute defaults to landscape when absent; the default is not added to existing markup.",
+              "attribute": "orientation",
               "reflects": true
             },
             {
@@ -614,6 +625,15 @@
               "default": "\"tabs\"",
               "description": "Defines the type of view for the sequence of pages.\n- \"pages\": Show content as sequential pages.\n- \"tabs\": Show content using tabs.",
               "fieldName": "type"
+            },
+            {
+              "name": "orientation",
+              "type": {
+                "text": "\"landscape\" | \"portrait\""
+              },
+              "default": "\"landscape\"",
+              "description": "Page orientation: 16:9 landscape or 9:16 portrait. The optional orientation attribute defaults to landscape when absent; the default is not added to existing markup.",
+              "fieldName": "orientation"
             }
           ],
           "superclass": {

@@ -66,6 +66,18 @@
         <source>Slides</source>
         <target>ស្លាយ</target>
       </trans-unit>
+      <trans-unit id="s47ebf3a8fb3b10c1">
+        <source>Orientation</source>
+        <target>ទិស</target>
+      </trans-unit>
+      <trans-unit id="s3bb9ed9dd24e9172">
+        <source>Landscape</source>
+        <target>ផ្ដេក</target>
+      </trans-unit>
+      <trans-unit id="safd96a5026e4555a">
+        <source>Portrait</source>
+        <target>បញ្ឈរ</target>
+      </trans-unit>
 </body>
 </file>
 </xliff>

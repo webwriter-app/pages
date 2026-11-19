@@ -166,26 +166,62 @@ describe("<webwriter-pages> in read mode", function () {
     }
   });
 
+  it("applies saved and external orientation changes to both layouts and their preview cards", async function () {
+    const widget = await mount(`<webwriter-pages orientation="portrait">${pages(2)}</webwriter-pages>`);
+    assert.equal(widget.orientation, "portrait");
+    for(const type of ["tabs", "pages"] as const) {
+      widget.type = type;
+      for(const orientation of ["portrait", "landscape"] as const) {
+        widget.setAttribute("orientation", orientation);
+        await widget.updateComplete;
+        for(const width of [300, 720, 1100]) {
+          widget.parentElement!.style.width = `${width}px`;
+          await frame(2);
+          const page = widget.querySelector("webwriter-page[active]")!.getBoundingClientRect();
+          const ratio = orientation === "portrait" ? 9 / 16 : 16 / 9;
+          assert.closeTo(page.width / page.height, ratio, 0.01, `${type}/${orientation}/${width}`);
+          for(const card of items(widget, ".page-thumb")) {
+            const box = card.getBoundingClientRect();
+            assert.closeTo(box.width / box.height, ratio, 0.01, "preview matches page orientation");
+          }
+          assert.isAtMost(widget.scrollWidth, widget.getBoundingClientRect().width + 1, "no sideways overflow");
+        }
+      }
+    }
+    widget.orientation = "portrait";
+    await widget.updateComplete;
+    assert.equal(widget.getAttribute("orientation"), "portrait");
+    const restored = await mount(widget.outerHTML);
+    assert.equal(restored.orientation, "portrait", "orientation survives saving and reopening");
+    widget.removeAttribute("orientation");
+    await widget.updateComplete;
+    assert.equal(widget.orientation, "landscape", "removing the attribute restores the default");
+  });
+
   it("fits fullscreen pages below the actual tab toolbar and colors the surrounding space", async function () {
     const widget = await mount(`<webwriter-pages type="tabs">${pages(3)}</webwriter-pages>`);
     widget.classList.add("ww-fullscreen");
     widget.style.fontSize = "32px";
     const pane = items(widget, '[part="tabs"]')[0];
     pane.style.paddingBlock = "2rem";
-    for (const [width, height] of [[900, 400], [400, 800]]) {
-      widget.style.width = `${width}px`;
-      widget.style.height = `${height}px`;
-      await frame(2);
-      const host = widget.getBoundingClientRect();
-      const toolbar = pane.getBoundingClientRect();
-      const page = widget.querySelector("webwriter-page[active]")!.getBoundingClientRect();
-      assert.closeTo(page.width / page.height, 16 / 9, 0.01, "page ratio");
-      assert.isAtLeast(page.top, toolbar.bottom - 1, "page stays below toolbar");
-      assert.isAtMost(page.bottom, host.bottom + 1, "page fits vertically");
-      assert.isAtLeast(page.left, host.left - 1, "page fits on the left");
-      assert.isAtMost(page.right, host.right + 1, "page fits on the right");
-      assert.closeTo(page.top - toolbar.bottom, host.bottom - page.bottom, 1, "unused vertical space is balanced");
-      assert.equal(getComputedStyle(widget).backgroundColor, getComputedStyle(pane).backgroundColor, "letterbox uses the panel color");
+    for (const orientation of ["landscape", "portrait"] as const) {
+      widget.orientation = orientation;
+      await widget.updateComplete;
+      for (const [width, height] of [[900, 400], [400, 800]]) {
+        widget.style.width = `${width}px`;
+        widget.style.height = `${height}px`;
+        await frame(2);
+        const host = widget.getBoundingClientRect();
+        const toolbar = pane.getBoundingClientRect();
+        const page = widget.querySelector("webwriter-page[active]")!.getBoundingClientRect();
+        assert.closeTo(page.width / page.height, orientation === "portrait" ? 9 / 16 : 16 / 9, 0.01, "page ratio");
+        assert.isAtLeast(page.top, toolbar.bottom - 1, "page stays below toolbar");
+        assert.isAtMost(page.bottom, host.bottom + 1, "page fits vertically");
+        assert.isAtLeast(page.left, host.left - 1, "page fits on the left");
+        assert.isAtMost(page.right, host.right + 1, "page fits on the right");
+        assert.closeTo(page.top - toolbar.bottom, host.bottom - page.bottom, 1, "unused vertical space is balanced");
+        assert.equal(getComputedStyle(widget).backgroundColor, getComputedStyle(pane).backgroundColor, "letterbox uses the panel color");
+      }
     }
   });
 

@@ -70,6 +70,18 @@
         <source>Slides</source>
         <target>スライド</target>
       </trans-unit>
+      <trans-unit id="s47ebf3a8fb3b10c1">
+        <source>Orientation</source>
+        <target>向き</target>
+      </trans-unit>
+      <trans-unit id="s3bb9ed9dd24e9172">
+        <source>Landscape</source>
+        <target>横向き</target>
+      </trans-unit>
+      <trans-unit id="safd96a5026e4555a">
+        <source>Portrait</source>
+        <target>縦向き</target>
+      </trans-unit>
 </body>
   </file>
 </xliff>

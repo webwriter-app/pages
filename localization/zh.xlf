@@ -66,6 +66,18 @@
         <source>Slides</source>
         <target>幻灯片</target>
       </trans-unit>
+      <trans-unit id="s47ebf3a8fb3b10c1">
+        <source>Orientation</source>
+        <target>方向</target>
+      </trans-unit>
+      <trans-unit id="s3bb9ed9dd24e9172">
+        <source>Landscape</source>
+        <target>横向</target>
+      </trans-unit>
+      <trans-unit id="safd96a5026e4555a">
+        <source>Portrait</source>
+        <target>纵向</target>
+      </trans-unit>
 </body>
 </file>
 </xliff>

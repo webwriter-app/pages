@@ -26,4 +26,7 @@
 'see7c7a973a9b2d6c': `Im Vollbildmodus anzeigen`,
 'sf9aee319a006c9b4': `Hinzufügen`,
 'sfac15b89e0668996': `Duplizieren`,
+'s47ebf3a8fb3b10c1': `Ausrichtung`,
+'s3bb9ed9dd24e9172': `Querformat`,
+'safd96a5026e4555a': `Hochformat`,
     };

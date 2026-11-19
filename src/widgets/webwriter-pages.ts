@@ -36,6 +36,9 @@ type Labelled = { msg: MsgFn };
  * text entry, Alt and Meta combinations alone. Every thumbnail and tab has a button that selects its page;
  * in edit mode Space or Enter on the thumbnail itself picks it up for reordering.
  *
+ * Set `orientation="portrait"` for a 9:16 page, or use the default `landscape` for 16:9.
+ * The orientation applies to both views, fullscreen, and preview cards.
+ *
  * The widget follows the page theme: `--ww-text-color`, `--ww-font-family`, and `--ww-theme-accent-1` (the
  * selected thumbnail). On paper it prints all pages one after another and leaves out the controls.
  *
@@ -75,6 +78,14 @@ export class WebwriterPages extends LitElementWw {
                 { value: "pages", label: (widget: Labelled) => widget.msg("Slides") },
             ],
         },
+        orientation: {
+            type: "select",
+            label: (widget: Labelled) => widget.msg("Orientation"),
+            options: [
+                { value: "landscape", label: (widget: Labelled) => widget.msg("Landscape") },
+                { value: "portrait", label: (widget: Labelled) => widget.msg("Portrait") },
+            ],
+        },
     } satisfies Record<string, Declared<OptionDeclaration>>;
 
     static actions = {
@@ -101,6 +112,10 @@ export class WebwriterPages extends LitElementWw {
      */
     @property({ type: String, attribute: true, reflect: true })
     public accessor type: "tabs" | "pages" = "tabs";
+
+    /** Page orientation: 16:9 landscape or 9:16 portrait. */
+    @property({ type: String, reflect: true, useDefault: true })
+    accessor orientation: "landscape" | "portrait" = "landscape";
 
     /**
      * All `webwriter-page` elements.
@@ -207,6 +222,9 @@ export class WebwriterPages extends LitElementWw {
      */
     protected updated(changed: PropertyValues<this>) {
         super.updated(changed);
+        if (changed.has("orientation") && changed.get("orientation") !== undefined && this.#permissions.editing) {
+            this.changePage(this.activePageIndex);
+        }
         const scroller = this.renderRoot.querySelector<HTMLElement>(".page-tabs-wrapper");
         if (scroller !== this.#tabScroller) {
             this.#tabResizeObserver?.disconnect();
@@ -484,9 +502,10 @@ export class WebwriterPages extends LitElementWw {
 
             const page = this.pages[index];
             if (!page) return;
+            const orientation = this.orientation;
             const thumbnail = await captureThumbnail(page);
             // Only keep the capture if the page has not changed in the meantime.
-            if (this.activePageIndex !== index) return;
+            if (!this.isConnected || this.activePage !== page || this.orientation !== orientation) return;
             page.thumbnail = thumbnail;
             this.requestUpdate();
         }, 100);

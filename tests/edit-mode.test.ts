@@ -36,6 +36,26 @@ describe("<webwriter-pages> in edit mode", function () {
     assert.deepEqual(order(widget), ["s1", "s2", "s3"]);
   });
 
+  it("turns preview and add cards portrait and refreshes the active thumbnail after an orientation change", async function () {
+    this.timeout(10000);
+    const widget = await mount(`<webwriter-pages type="pages" contenteditable="">${pages(2)}</webwriter-pages>`);
+    widget.parentElement!.style.width = "720px";
+    const page = widget.querySelector("webwriter-page")!;
+    const previous = page.getAttribute("thumbnail");
+    widget.orientation = "portrait";
+    await widget.updateComplete;
+    await frame(2);
+    for(const card of items(widget, ".page-thumb, .add-page")) {
+      const rect = card.getBoundingClientRect();
+      assert.closeTo(rect.width / rect.height, 9 / 16, 0.01);
+    }
+    await until(() => page.getAttribute("thumbnail") && page.getAttribute("thumbnail") !== previous, "portrait capture updated");
+    const image = new Image();
+    image.src = page.getAttribute("thumbnail")!;
+    await image.decode();
+    assert.closeTo(image.naturalWidth / image.naturalHeight, 9 / 16, 0.01, "new capture follows the changed orientation");
+  });
+
   it("joins the active tab to a full-width grey pane and keeps the add tab beside the row", async function () {
     const widget = await mount(`<webwriter-pages type="tabs" contenteditable="">${pages(24)}</webwriter-pages>`);
     const pane = items(widget, '[part="tabs"]')[0];

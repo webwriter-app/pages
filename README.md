@@ -23,6 +23,8 @@ in edit mode Space or Enter on the thumbnail itself picks it up for reordering.
 The selected tab has an auto-sizing plaintext label input. Labels are saved in each page’s `label` attribute;
 an empty label displays a grey “Page n” placeholder. Tab-strip chevrons scroll the list without changing pages.
 
+Set `orientation="portrait"` for a 9:16 page, or use the default `landscape` for 16:9. The orientation applies to both views, fullscreen, and preview cards. The attribute is optional; an absent attribute keeps landscape without adding it to existing markup.
+
 The widget follows the page theme: `--ww-text-color`, `--ww-font-family`, and `--ww-theme-accent-1` (the
 selected thumbnail). On paper it prints all pages one after another and leaves out the controls.
 
@@ -63,10 +65,11 @@ npm install @webwriter/pages
 | `WebwriterPages.scopedElements` | `object` | - | `{ "sl-icon-button": SlIconButton, }` | ✗ |
 | `WebwriterPages.convertFrom` | `object` | - | `{ section: "loadSections" }` | ✗ |
 | `WebwriterPages.convertTo` | `object` | - | `{ section: "toSections" }` | ✗ |
-| `WebwriterPages.options` | - | - | `{ type: { type: "select", label: (widget: Labelled) => widget.msg("View"), options: [ { value: "tabs", label: (widget: Labelled) => widget.msg("Tabs") }, { value: "pages", label: (widget: Labelled) => widget.msg("Slides") }, ], }, } satisfies Record<string, Declared<OptionDeclaration>>` | ✗ |
+| `WebwriterPages.options` | - | - | `{ type: { type: "select", label: (widget: Labelled) => widget.msg("View"), options: [ { value: "tabs", label: (widget: Labelled) => widget.msg("Tabs") }, { value: "pages", label: (widget: Labelled) => widget.msg("Slides") }, ], }, orientation: { type: "select", label: (widget: Labelled) => widget.msg("Orientation"), options: [ { value: "landscape", label: (widget: Labelled) => widget.msg("Landscape") }, { value: "portrait", label: (widget: Labelled) => widget.msg("Portrait") }, ], }, } satisfies Record<string, Declared<OptionDeclaration>>` | ✗ |
 | `WebwriterPages.actions` | - | - | `{ addPage: { label: (widget: Labelled) => widget.msg("Add"), buttonGroup: "pages", icon: "Plus", intent: "default" }, removeActivePage: { label: (widget: Labelled) => widget.msg("Remove"), buttonGroup: "pages", icon: "Delete", intent: "danger", disabled: true }, duplicateActivePage: { label: (widget: Labelled) => widget.msg("Duplicate"), buttonGroup: "pages", icon: "Copy", intent: "default", disabled: true }, } satisfies Record<string, Declared<ActionDeclaration>>` | ✗ |
 | `localize` | - | - | - | ✗ |
 | `type` (`type`) | `"tabs" \| "pages"` | Defines the type of view for the sequence of pages.<br>- "pages": Show the Slides view with preview cards.<br>- "tabs": Show content using tabs. | `"tabs"` | ✓ |
+| `orientation` (`orientation`) | `"landscape" \| "portrait"` | Page orientation: 16:9 landscape or 9:16 portrait. The optional orientation attribute defaults to landscape when absent; the default is not added to existing markup. | `"landscape"` | ✓ |
 | `activePageIndex` | `number` | Index of the currently active page. | `0` | ✗ |
 | `signals` | `object` | Public signals: the current page number (from 1) and the number of pages. | `{ page: this.#page, count: this.#count }` | ✗ |
 | `actions` | - | The drawer declarations with the availability of the page actions, which follows the pages. | - | ✗ |
