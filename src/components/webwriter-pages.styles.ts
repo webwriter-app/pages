@@ -60,6 +60,10 @@ export const pages_styles = css`
         background: var(--sl-color-neutral-50);
     }
 
+    :host::backdrop {
+        background: var(--sl-color-neutral-50, #f9f9f9);
+    }
+
     :host(:fullscreen) .pages-layout,
     :host(.ww-fullscreen) .pages-layout {
         display: flex;
