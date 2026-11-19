@@ -97,7 +97,9 @@ export function renderThumbs(view: PagesView) {
                 `
             )}
         </div>
-        ${renderAddPage(view)}
-        <div class="controls-columns">${renderControls(view, "none")}</div>
+        <div class="preview-actions">
+            ${renderAddPage(view)}
+            <div class="controls-columns">${renderControls(view, "none")}</div>
+        </div>
     </aside>`;
 }

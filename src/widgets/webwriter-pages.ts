@@ -13,6 +13,7 @@ import { Drag, type DragCommitDetail } from "@webwriter/lit/drag";
 import { transaction } from "@webwriter/widget/transaction";
 import type { ActionDeclaration, OptionDeclaration, Declared } from "@webwriter/widget";
 import SlIconButton from "@shoelace-style/shoelace/dist/components/icon-button/icon-button.component.js";
+import SlIcon from "@shoelace-style/shoelace/dist/components/icon/icon.component.js";
 import "@shoelace-style/shoelace/dist/themes/light.css";
 // @ts-ignore The Lit localization CLI generates this JavaScript module.
 import { sourceLocale, targetLocales } from "../../localization/generated/locale-codes.js";
@@ -64,6 +65,7 @@ export class WebwriterPages extends LitElementWw {
 
     static scopedElements = {
         "sl-icon-button": SlIconButton,
+        "sl-icon": SlIcon,
     };
 
     static convertFrom = { section: "loadSections" };

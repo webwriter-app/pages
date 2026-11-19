@@ -250,11 +250,25 @@ describe("<webwriter-pages> in edit mode", function () {
     assert.isFalse(widget.children[0].hasAttribute("label"), "clearing restores the placeholder");
   });
 
+  it("aligns tab action icons with the page labels at every width", async function () {
+    const widget = await mount(`<webwriter-pages contenteditable="">${pages(4)}</webwriter-pages>`);
+    for (const width of [300, 520, 720, 1400]) {
+      widget.parentElement!.style.width = `${width}px`;
+      await frame(2);
+      const label = items(widget, ".page-label-input")[0].getBoundingClientRect();
+      const center = label.top + label.height / 2;
+      for (const button of items(widget, ".page-tabs-row > .add-page, .controls-rows sl-icon-button")) {
+        const box = button.getBoundingClientRect();
+        assert.closeTo(box.top + box.height / 2, center, 1.1, `action aligns with label at ${width}px`);
+      }
+    }
+  });
+
   it("keeps a gap beside the add card while previews scroll and appends a page", async function () {
     const widget = await mount(`<webwriter-pages type="pages" contenteditable="">${pages(12)}</webwriter-pages>`);
     const strip = items(widget, ".page-thumbs")[0];
     const add = items<HTMLButtonElement>(widget, ".add-page")[0];
-    assert.equal(strip.nextElementSibling, add, "add card sits beside the scroller");
+    assert.equal(strip.nextElementSibling, add.parentElement, "add card and fullscreen sit beside the scroller");
     assert.isNull(widget.shadowRoot!.querySelector(".add-btn"), "no toolbar add button");
     for (const width of [300, 720, 1100]) {
       widget.parentElement!.style.width = `${width}px`;

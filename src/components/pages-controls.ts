@@ -5,6 +5,7 @@ import chevronLeftIcon from "@tabler/icons/outline/chevron-left.svg";
 import chevronRightIcon from "@tabler/icons/outline/chevron-right.svg";
 import removeIcon from "@tabler/icons/outline/x.svg";
 import duplicateIcon from "@tabler/icons/outline/copy.svg";
+import plusIcon from "@tabler/icons/outline/plus.svg";
 import type { PagesView } from "../model/pages-view";
 
 /** Duplicate and remove buttons of one page in the tab or thumbnail strip. */
@@ -47,7 +48,7 @@ export function renderAddPage(view: PagesView) {
             aria-label=${view.msg("Add page")}
             title=${view.msg("Add page")}
             @click=${() => view.addPage()}
-        ><span aria-hidden="true">+</span></button>
+        ><sl-icon src=${plusIcon} aria-hidden="true"></sl-icon></button>
     ` : nothing;
 }
 

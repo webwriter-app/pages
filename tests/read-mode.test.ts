@@ -326,7 +326,7 @@ describe("<webwriter-pages> in read mode", function () {
     }
   });
 
-  it("keeps regular Slides controls beneath the add pane and fills the preview column", async function () {
+  it("keeps regular Slides controls beside the add pane with compact previews", async function () {
     const widget = await mount(`<webwriter-pages type="pages" contenteditable="true">${pages(3)}</webwriter-pages>`);
     for (const width of [300, 520, 720, 1100, 1600]) {
       widget.parentElement!.style.width = `${width}px`;
@@ -338,21 +338,15 @@ describe("<webwriter-pages> in read mode", function () {
       const pane = items(widget, '[part="actions"]')[0].getBoundingClientRect();
       const strip = items(widget, ".page-thumbs")[0];
       const preview = items(widget, ".page-thumb")[0].getBoundingClientRect();
-      assert.closeTo(preview.width / preview.height, 16 / 9, 0.01, "preview keeps the page ratio");
-      assert.isAtLeast(fullscreen.top, add.bottom, `fullscreen is below add at ${width}px`);
-      assert.closeTo(fullscreen.right, pane.right - 9, 1, "fullscreen sits in the bottom right");
-      assert.closeTo(fullscreen.bottom, pane.bottom - 9, 1, "fullscreen sits at the bottom");
-      if (width >= 1100) {
-        const style = getComputedStyle(strip);
-        assert.closeTo(items(widget, ".page-thumb")[0].getBoundingClientRect().width,
-          strip.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight), 1,
-          "previews fill the scrollable column");
-      } else {
-        const style = getComputedStyle(strip);
-        assert.closeTo(items(widget, ".page-thumb")[0].getBoundingClientRect().width,
-          Math.min(160, strip.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)), 1,
-          "larger horizontal previews still fit narrow containers");
-      }
+      assert.closeTo(preview.height, 64, 1, "previews stay compact");
+      assert.closeTo(add.height, preview.height, 1, "add pane matches the preview height");
+      assert.isAtLeast(fullscreen.left, add.right, `fullscreen is to the right of add at ${width}px`);
+      assert.closeTo(fullscreen.right, pane.right - 17, 1, "fullscreen stays near the right edge");
+      assert.closeTo(fullscreen.top + fullscreen.height / 2, add.top + add.height / 2, 1, "fullscreen is centered beside add");
+      const style = getComputedStyle(strip);
+      assert.closeTo(preview.width,
+        Math.min(64 * 16 / 9, strip.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)), 1,
+        "previews stay narrow at every container width");
     }
     widget.removeAttribute("contenteditable");
     await widget.updateComplete;
@@ -381,6 +375,38 @@ describe("<webwriter-pages> in read mode", function () {
     await frame(2);
     assert.closeTo(pane.getBoundingClientRect().top, widget.querySelector("webwriter-page[active]")!.getBoundingClientRect().bottom, 1);
     assert.isAbove(strip.scrollWidth, strip.clientWidth, "preview list now scrolls horizontally");
+  });
+
+  it("keeps the preview pane steady when its list starts and stops overflowing", async function () {
+    const widget = await mount(`<webwriter-pages type="pages">${pages(1)}</webwriter-pages>`);
+    widget.parentElement!.style.width = "720px";
+    for (const editing of [false, true]) {
+      widget.toggleAttribute("contenteditable", editing);
+      await widget.updateComplete;
+      for (const orientation of ["landscape", "portrait"] as const) {
+        widget.orientation = orientation;
+        await widget.updateComplete;
+        await frame(2);
+        const strip = items(widget, ".page-thumbs")[0];
+        const pane = items(widget, '[part="actions"]')[0];
+        const first = items(widget, ".page-thumb")[0].getBoundingClientRect();
+        const before = pane.getBoundingClientRect();
+        assert.isAtMost(strip.scrollWidth, strip.clientWidth, "one preview fits");
+        widget.insertAdjacentHTML("beforeend", pages(10));
+        await until(() => items(widget, ".page-thumb").length === 11);
+        await frame(2);
+        assert.isAbove(strip.scrollWidth, strip.clientWidth, "many previews overflow");
+        assert.closeTo(pane.getBoundingClientRect().height, before.height, 0.1, "overflow does not resize the pane");
+        const after = items(widget, ".page-thumb")[0].getBoundingClientRect();
+        assert.closeTo(after.top, first.top, 0.1, "overflow does not move previews");
+        assert.closeTo(after.height, orientation === "portrait" ? 96 : 64, 1, "both orientations use compact previews");
+        if (editing) assert.closeTo(items(widget, ".add-page")[0].getBoundingClientRect().height, after.height, 1);
+        for (const child of [...widget.children].slice(1)) child.remove();
+        await until(() => items(widget, ".page-thumb").length === 1);
+        await frame(2);
+        assert.closeTo(pane.getBoundingClientRect().height, before.height, 0.1, "removing overflow does not resize the pane");
+      }
+    }
   });
 
   it("uses native title tooltips and retains accessible labels in both layouts", async function () {
