@@ -319,7 +319,7 @@ export const pages_styles = css`
         margin-block-start: var(--sl-spacing-x-small);
         padding: 0;
         font: inherit;
-        font-size: 2rem;
+        font-size: var(--sl-font-size-small);
         color: var(--sl-color-neutral-600);
         background: var(--sl-color-neutral-50);
         border-style: dashed;
@@ -341,7 +341,6 @@ export const pages_styles = css`
         border-radius: var(--sl-border-radius-medium) var(--sl-border-radius-medium) 0 0;
         border-block-end: 0;
         background: transparent;
-        font-size: 1.5rem;
     }
 
     .page-thumb[data-ww-dragging], .page-tab[data-ww-dragging] {
