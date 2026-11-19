@@ -8,10 +8,29 @@ import { frame, mount, unmountAll, until } from "./helpers"
 import type { WebwriterPages } from "../src/widgets/webwriter-pages";
 import "../src/widgets/webwriter-pages";
 import { captureThumbnail } from "../src/components/page-thumbnail";
+import introductionSnippet from "../snippets/what-is-webwriter.html";
 
 mocha.setup(getMochaConfig())
 
 describe("<webwriter-pages>", function () {
+
+  it("keeps all introduction images embedded and decodable after saving and reopening", async function () {
+    try {
+      const widget = await mount(introductionSnippet);
+      const reopened = await mount(widget.outerHTML);
+      for (const instance of [widget, reopened]) {
+        const images = Array.from(instance.querySelectorAll("img"));
+        assert.lengthOf(images, 4);
+        for (const image of images) {
+          assert.match(image.getAttribute("src")!, /^data:image\/png;base64,/, "embedded raster images survive snippet insertion");
+          await image.decode();
+          assert.equal(image.naturalWidth, 720);
+          assert.equal(image.naturalHeight, 448);
+          assert.isNotEmpty(image.alt);
+        }
+      }
+    } finally { unmountAll(); }
+  });
 
   before(async function () {
     document.body.insertAdjacentHTML("beforeend",
