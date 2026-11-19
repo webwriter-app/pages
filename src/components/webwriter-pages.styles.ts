@@ -269,6 +269,7 @@ export const pages_styles = css`
         min-inline-size: 0;
         gap: var(--sl-spacing-x-small);
         padding: var(--_page-action-space);
+        padding-block-end: var(--sl-spacing-2x-small);
         /* scrollbar-gutter only reserves inline edges, not the bottom edge. */
         overflow-x: scroll;
         scrollbar-width: thin;
@@ -713,6 +714,7 @@ export const pages_styles = css`
             grid-row: 1 / -1;
             flex-direction: column;
             min-block-size: 0;
+            padding-block-end: var(--_page-action-space);
             overflow-y: auto;
             overflow-x: hidden;
             scrollbar-gutter: stable;
