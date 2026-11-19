@@ -460,7 +460,7 @@ export const pages_styles = css`
 
     .page-tab.active {
         border-color: var(--sl-panel-border-color);
-        background: var(--sl-panel-background-color);
+        background: var(--_page-background, var(--sl-panel-background-color));
     }
 
     .page-tab.active::after {
@@ -469,7 +469,7 @@ export const pages_styles = css`
         inset-inline: 0;
         inset-block-end: calc(var(--sl-panel-border-width) * -1);
         block-size: var(--sl-panel-border-width);
-        background: var(--sl-panel-background-color);
+        background: var(--_page-background, var(--sl-panel-background-color));
     }
 
     .page-tab:focus-visible {

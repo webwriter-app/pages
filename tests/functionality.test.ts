@@ -178,32 +178,54 @@ describe("<webwriter-pages>", function () {
       return { wrapper, el }
     }
 
-    it("declares section conversions", function () {
+    it("imports sections and exports Details elements", function () {
       const Widget = customElements.get("webwriter-pages") as any
       assert.deepEqual(Object.keys(Widget.convertFrom), ["section"])
-      assert.deepEqual(Object.keys(Widget.convertTo), ["section"])
+      assert.deepEqual(Widget.convertTo, {details: "toDetails"})
     })
 
-    it("turns pages into section elements and back", async function () {
-      const { wrapper, el } = await make(`<webwriter-pages type="pages"><webwriter-page label="Introduction"><h2>A</h2><p>One</p></webwriter-page><webwriter-page><p>Two</p></webwriter-page></webwriter-pages>`)
+    it("turns each page into a detached Details element with a plaintext summary", async function () {
+      const { wrapper, el } = await make(`<webwriter-pages type="pages"><webwriter-page label="Introduction"><h2>A</h2><!--keep--><p lang="la">One</p><svg xmlns="http://www.w3.org/2000/svg"><circle r="2"></circle></svg></webwriter-page><webwriter-page><p>Two</p></webwriter-page><webwriter-page label="&lt;b&gt;Literal&lt;/b&gt;"><p>Three</p></webwriter-page></webwriter-pages>`)
       try {
-        const fragment = el.toSections() as DocumentFragment
-        const sections = Array.from(fragment.children)
-        assert.deepEqual(sections.map(s => s.localName), ["section", "section"])
-        assert.equal(sections[0].innerHTML, "<h2>A</h2><p>One</p>")
-        assert.equal(sections[0].getAttribute("aria-label"), "Introduction")
+        const original = el.innerHTML
+        const fragment = el.toDetails() as DocumentFragment
+        const disclosures = Array.from(fragment.children)
+        assert.deepEqual(disclosures.map(s => s.localName), ["details", "details", "details"])
+        assert.deepEqual(disclosures.map(s => s.firstElementChild!.textContent), ["Introduction", "Page 2", "<b>Literal</b>"])
+        assert.isTrue(disclosures.every(s => s.firstElementChild!.localName === "summary"))
+        assert.equal(disclosures[2].firstElementChild!.childElementCount, 0, "label is plaintext")
+        assert.equal(disclosures[0].innerHTML, '<summary>Introduction</summary>' + el.children[0].innerHTML)
+        assert.equal(disclosures[0].querySelector("circle")!.namespaceURI, "http://www.w3.org/2000/svg")
+        assert.isFalse(disclosures[0].hasAttribute("name"), "disclosures remain independent")
+        assert.isFalse(disclosures[0].isConnected, "result is detached")
+        assert.equal(el.innerHTML, original, "conversion leaves source content intact")
+        disclosures[0].querySelector("p")!.textContent = "Changed copy"
+        assert.equal(el.children[0].querySelector("p")!.textContent, "One", "contents are cloned")
+      } finally { wrapper.remove() }
+    })
 
-        const { wrapper: other, el: target } = await make(`<webwriter-pages type="pages"><webwriter-page><p>Old</p></webwriter-page></webwriter-pages>`)
-        try {
-          const source = document.createDocumentFragment()
-          const holder = document.createElement("section")
-          holder.append(...sections)
-          source.append(holder)
-          assert.isTrue(target.loadSections(source))
-          const loaded = Array.from(target.querySelectorAll(":scope > webwriter-page"))
-          assert.deepEqual(loaded.map((s: any) => s.innerHTML), ["<h2>A</h2><p>One</p>", "<p>Two</p>"])
-          assert.equal(loaded[0].getAttribute("label"), "Introduction")
-        } finally { other.remove() }
+    it("converts a single empty page and declines an empty widget", async function () {
+      const { wrapper, el } = await make("<webwriter-pages><webwriter-page></webwriter-page></webwriter-pages>")
+      try {
+        const fragment = el.toDetails() as DocumentFragment
+        assert.equal(fragment.childElementCount, 1)
+        assert.equal(fragment.firstElementChild!.outerHTML, "<details><summary>Page 1</summary></details>")
+        el.replaceChildren()
+        assert.isNull(el.toDetails())
+      } finally { wrapper.remove() }
+    })
+
+    it("still imports nested sections and their labels", async function () {
+      const { wrapper, el } = await make("<webwriter-pages><webwriter-page><p>Old</p></webwriter-page></webwriter-pages>")
+      try {
+        const source = document.createDocumentFragment()
+        const section = document.createElement("section")
+        section.innerHTML = '<section aria-label="Introduction"><h2>A</h2><p>One</p></section><section><p>Two</p></section>'
+        source.append(section)
+        assert.isTrue(el.loadSections(source))
+        assert.equal(el.children.length, 2)
+        assert.equal(el.children[0].getAttribute("label"), "Introduction")
+        assert.deepEqual(Array.from(el.children, (page: any) => page.innerHTML), ["<h2>A</h2><p>One</p>", "<p>Two</p>"])
       } finally { wrapper.remove() }
     })
 

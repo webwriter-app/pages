@@ -1,10 +1,12 @@
-/** A detached `section` with a copy of the page content; the page stays as it is. */
-export function pageToSection(page: Element, doc: Document): HTMLElement {
-    const section = doc.createElement("section");
+/** A detached disclosure with a copy of the page content; the page stays as it is. */
+export function pageToDetails(page: Element, doc: Document, fallbackLabel: string): HTMLDetailsElement {
+    const details = doc.createElement("details");
+    const summary = doc.createElement("summary");
     const label = page.getAttribute("label");
-    if (label) section.setAttribute("aria-label", label);
-    for (const child of Array.from(page.childNodes)) section.append(child.cloneNode(true));
-    return section;
+    summary.textContent = label?.trim() ? label : fallbackLabel;
+    details.append(summary);
+    for (const child of Array.from(page.childNodes)) details.append(child.cloneNode(true));
+    return details;
 }
 
 /**

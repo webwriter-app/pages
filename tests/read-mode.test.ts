@@ -63,6 +63,29 @@ describe("<webwriter-pages> in read mode", function () {
     assert.equal(getComputedStyle(page).padding, "0px");
   });
 
+  it("matches active tabs and their connecting edge to each page background", async function () {
+    const widget = await mount('<webwriter-pages><webwriter-page style="background-color:rgb(220, 235, 255)"><p>First</p></webwriter-page><webwriter-page style="background-color:rgb(240, 225, 255)"><p>Second</p></webwriter-page></webwriter-pages>');
+    const page = widget.children[0] as HTMLElement;
+    const active = () => items(widget, ".page-tab.active")[0];
+    const matchesPage = (element: Element) => getComputedStyle(active()).backgroundColor === getComputedStyle(element).backgroundColor
+      && getComputedStyle(active(), "::after").backgroundColor === getComputedStyle(element).backgroundColor;
+    assert.isTrue(matchesPage(page));
+    assert.equal(getComputedStyle(items(widget, ".page-tab:not(.active)")[0]).backgroundColor, "rgba(0, 0, 0, 0)", "inactive tab stays transparent");
+    page.style.backgroundColor = "rgb(250, 230, 210)";
+    await until(() => matchesPage(page), "direct style updates reach the tab");
+    const style = document.createElement("style");
+    style.textContent = "webwriter-page.page-background-test {background-color:rgb(210, 240, 225)}";
+    widget.parentElement!.append(style);
+    page.style.removeProperty("background-color");
+    page.classList.add("page-background-test");
+    await until(() => matchesPage(page), "preset class changes reach the tab");
+    items<HTMLButtonElement>(widget, ".page-tab .page-select")[1].click();
+    await widget.updateComplete;
+    assert.isTrue(matchesPage(widget.children[1]), "new active page supplies its background");
+    (widget.children[1] as HTMLElement).style.removeProperty("background-color");
+    await until(() => getComputedStyle(active()).backgroundColor === "rgb(255, 255, 255)", "transparent pages retain the normal white tab");
+  });
+
   it("preserves plaintext tab labels through serialization and follows external updates", async function () {
     const widget = await mount(`<webwriter-pages><webwriter-page label="Introduction"><p>First</p></webwriter-page><webwriter-page><p>Second</p></webwriter-page></webwriter-pages>`);
     const saved = await mount(widget.outerHTML);

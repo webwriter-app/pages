@@ -8,9 +8,10 @@ Present content as pages or tabs.
 
 | Name | Import Path |
 | :--: | :---------: |
-| Example | `@webwriter/pages/snippets/example.html` |
 | Slides | `@webwriter/pages/snippets/slides.html` |
+| What is WebWriter? | `@webwriter/pages/snippets/what-is-webwriter.html` |
 
+Slides inserts one empty page in the Slides layout. “What is WebWriter?” introduces authoring, exploration, collaboration, and widget development in four illustrated pages; its embedded images also work offline.
 
 
 ## `WebwriterPages` (`<webwriter-pages>`)
@@ -28,10 +29,11 @@ Set `orientation="portrait"` for a 9:16 page, or use the default `landscape` for
 
 The widget follows the page theme: `--ww-text-color`, `--ww-font-family`, and `--ww-theme-accent-1` (the
 selected thumbnail). On paper it prints all pages one after another and leaves out the controls.
+In Tabs view, the active tab and its connecting edge match the page's background color.
 
 Conversions: a `section` becomes pages (its nested `section` children become one page each, otherwise the
-section is one page), and the pages convert to a fragment of `section` elements with the page content.
-Page labels are preserved as section `aria-label` attributes; thumbnails are not carried over.
+section is one page). Each page converts to a `details` element with its label as the summary.
+Page labels become plaintext summaries; unlabeled pages use “Page n”. Page content is preserved, and thumbnails are not carried over.
 
 Signals: `page` is the number of the current page, starting at 1; `count` is the number of pages.
 Both change when readers or authors move to another page.
@@ -65,7 +67,7 @@ npm install @webwriter/pages
 | :-------------------: | :--: | :---------: | :-----: | :------: |
 | `WebwriterPages.scopedElements` | `object` | - | `{ "sl-icon-button": SlIconButton, }` | ✗ |
 | `WebwriterPages.convertFrom` | `object` | - | `{ section: "loadSections" }` | ✗ |
-| `WebwriterPages.convertTo` | `object` | - | `{ section: "toSections" }` | ✗ |
+| `WebwriterPages.convertTo` | `object` | - | `{ details: "toDetails" }` | ✗ |
 | `WebwriterPages.options` | - | - | `{ type: { type: "select", label: (widget: Labelled) => widget.msg("View"), options: [ { value: "tabs", label: (widget: Labelled) => widget.msg("Tabs") }, { value: "pages", label: (widget: Labelled) => widget.msg("Slides") }, ], }, } satisfies Record<string, Declared<OptionDeclaration>>` | ✗ |
 | `WebwriterPages.actions` | - | - | `{ addPage: { label: (widget: Labelled) => widget.msg("Add"), buttonGroup: "pages", icon: "Plus", intent: "default" }, removeActivePage: { label: (widget: Labelled) => widget.msg("Remove"), buttonGroup: "pages", icon: "Delete", intent: "danger", disabled: true }, duplicateActivePage: { label: (widget: Labelled) => widget.msg("Duplicate"), buttonGroup: "pages", icon: "Copy", intent: "default", disabled: true }, } satisfies Record<string, Declared<ActionDeclaration>>` | ✗ |
 | `localize` | - | - | - | ✗ |
@@ -84,7 +86,7 @@ npm install @webwriter/pages
 | Name | Description | Parameters |
 | :--: | :---------: | :-------: |
 | `loadSections` | Replaces the pages with the pages a `section` stands for; declines anything else. | `fragment: DocumentFragment`
-| `toSections` | One `section` per page, in a detached fragment; `null` without pages. | -
+| `toDetails` | One `details` per page with its label as summary; `null` without pages. | -
 | `duplicateActivePage` | - | -
 | `addPage` | Add a new empty page element. Optionally insert after given index. | `index: number`
 | `duplicatePage` | Duplicate an existing page at given index. | `index: number`

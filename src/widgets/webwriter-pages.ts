@@ -22,7 +22,7 @@ import { WebwriterPage } from "./webwriter-page";
 import { pages_styles } from "../components/webwriter-pages.styles";
 import { renderControls } from "../components/pages-controls";
 import { renderThumbs, renderTabs } from "../components/pages-strip";
-import { sectionToPages, pageToSection } from "../components/pages-convert";
+import { sectionToPages, pageToDetails } from "../components/pages-convert";
 import { captureThumbnail } from "../components/page-thumbnail";
 import type { PagesView } from "../model/pages-view";
 
@@ -44,7 +44,7 @@ type Labelled = { msg: MsgFn };
  * selected thumbnail). On paper it prints all pages one after another and leaves out the controls.
  *
  * Conversions: a `section` becomes pages (its nested `section` children become one page each, otherwise the
- * section is one page), and the pages convert to a fragment of `section` elements with the page content.
+ * section is one page). Each page converts to a `details` element with its label as the summary.
  * The thumbnails are not carried over.
  *
  * Signals: `page` is the number of the current page, starting at 1; `count` is the number of pages.
@@ -69,7 +69,7 @@ export class WebwriterPages extends LitElementWw {
     };
 
     static convertFrom = { section: "loadSections" };
-    static convertTo = { section: "toSections" };
+    static convertTo = { details: "toDetails" };
 
     static options = {
         type: {
@@ -133,7 +133,7 @@ export class WebwriterPages extends LitElementWw {
 
     #tabScroller: HTMLElement | null = null;
     #tabResizeObserver?: ResizeObserver;
-    #pageLabelsObserver = new MutationObserver((records) => {
+    #pageAttributesObserver = new MutationObserver((records) => {
         if (records.some(({ target }) => target.parentNode === this && (target as Element).localName === "webwriter-page")) {
             this.requestUpdate();
         }
@@ -198,7 +198,7 @@ export class WebwriterPages extends LitElementWw {
         document.addEventListener("selectionchange", () => this.#handleSelectionChange(), { passive: true, signal });
         this.addEventListener("touchstart", (e) => this.#handleTouchStart(e), { passive: true, signal });
         this.addEventListener("touchend", (e) => this.#handleTouchEnd(e), { passive: true, signal });
-        this.#pageLabelsObserver.observe(this, { attributes: true, attributeFilter: ["label"], subtree: true });
+        this.#pageAttributesObserver.observe(this, { attributes: true, attributeFilter: ["label", "style", "class"], subtree: true });
         this.requestUpdate();
     }
 
@@ -209,7 +209,7 @@ export class WebwriterPages extends LitElementWw {
         clearTimeout(this.#changeTimer);
         this.#tabResizeObserver?.disconnect();
         this.#tabScroller = null;
-        this.#pageLabelsObserver.disconnect();
+        this.#pageAttributesObserver.disconnect();
     }
 
     protected firstUpdated(): void {
@@ -305,12 +305,12 @@ export class WebwriterPages extends LitElementWw {
         return true;
     }
 
-    /** One `section` per page, in a detached fragment; `null` without pages. */
-    toSections(): DocumentFragment | null {
+    /** One `details` per page with its label as summary; `null` without pages. */
+    toDetails(): DocumentFragment | null {
         const pages = Array.from(this.children).filter((child) => child.localName === "webwriter-page");
         if (!pages.length) return null;
         const fragment = this.ownerDocument.createDocumentFragment();
-        fragment.append(...pages.map((page) => pageToSection(page, this.ownerDocument)));
+        fragment.append(...pages.map((page, index) => pageToDetails(page, this.ownerDocument, this.msg("Page") + " " + (index + 1))));
         return fragment;
     }
 

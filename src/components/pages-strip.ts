@@ -1,5 +1,6 @@
 import { html, nothing } from "lit";
 import { live } from "lit/directives/live.js";
+import { styleMap } from "lit/directives/style-map.js";
 import type { PagesView } from "../model/pages-view";
 import { renderAddPage, renderControls, renderPageButtons } from "./pages-controls";
 
@@ -13,10 +14,12 @@ export function renderTabs(view: PagesView) {
                         (page, index) => {
                             const placeholder = view.msg("Page") + " " + (index + 1);
                             const label = page.getAttribute("label") ?? "";
+                            const background = index === view.activePageIndex ? getComputedStyle(page).backgroundColor : undefined;
                             return html`
                             <div
                                 class="page-tab ${index === view.activePageIndex ? "active" : ""}"
                                 part="tab"
+                                style=${styleMap({ "--_page-background": background === "rgba(0, 0, 0, 0)" ? undefined : background })}
                                 data-ww-label=${label || placeholder}
                                 @click=${() => view.changePage(index)}
                                 data-ww-drag=${view.editing ? "page" : nothing}
