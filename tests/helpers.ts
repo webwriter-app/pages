@@ -1,4 +1,4 @@
-import type { WebwriterSlides } from "../src/widgets/webwriter-slides";
+import type { WebwriterPages } from "../src/widgets/webwriter-pages";
 
 const mounted: HTMLElement[] = [];
 
@@ -43,19 +43,19 @@ export async function drag(item: HTMLElement, target: HTMLElement, { cancel = fa
   return { lifted };
 }
 
-export const slides = (count: number) =>
-  Array.from({ length: count }, (_, i) => `<webwriter-slide id="s${i + 1}"><p>Slide ${i + 1}</p></webwriter-slide>`).join("");
+export const pages = (count: number) =>
+  Array.from({ length: count }, (_, i) => `<webwriter-page id="s${i + 1}"><p>Page ${i + 1}</p></webwriter-page>`).join("");
 
-/** Adds the markup to the page and waits until the slideshow has rendered its thumbnails or tabs. */
+/** Adds the markup to the page and waits until the sequence of pages has rendered its thumbnails or tabs. */
 export async function mount(html: string) {
   const wrap = document.createElement("div");
   wrap.innerHTML = html;
   document.body.append(wrap);
   mounted.push(wrap);
-  const widget = wrap.querySelector("webwriter-slides") as WebwriterSlides;
-  await customElements.whenDefined("webwriter-slides");
+  const widget = wrap.querySelector("webwriter-pages") as WebwriterPages;
+  await customElements.whenDefined("webwriter-pages");
   await widget.updateComplete;
-  await until(() => widget.shadowRoot!.querySelector(".slide-thumb, .slide-tab"), "no thumbs");
+  await until(() => widget.shadowRoot!.querySelector(".page-thumb, .page-tab"), "no thumbs");
   return widget;
 }
 
@@ -67,7 +67,7 @@ export function unmountAll() {
   for (const element of mounted.splice(0)) element.remove();
 }
 
-export const order = (widget: Element) => [...widget.children].filter(child => child.localName === "webwriter-slide").map(child => child.id);
+export const order = (widget: Element) => [...widget.children].filter(child => child.localName === "webwriter-page").map(child => child.id);
 export const items = <T extends Element = HTMLElement>(widget: Element, selector: string) => [...widget.shadowRoot!.querySelectorAll<T>(selector)];
 
 export function steps(widget: Element) {

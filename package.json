@@ -1,7 +1,7 @@
 {
-  "name": "@webwriter/slides",
+  "name": "@webwriter/pages",
   "version": "3.0.0",
-  "description": "Present content as a sequence of slides or tabs.",
+  "description": "Present content as pages or tabs.",
   "repository": "github:webwriter-app/slides",
   "keywords": [
     "webwriter-widget",
@@ -39,7 +39,7 @@
     "widget-testable",
     "widget-supports-shared-dependencies",
     "presentations",
-    "slideshow",
+    "pagination",
     "tabs",
     "widget-lang-en",
     "widget-lang-en-US",
@@ -176,13 +176,13 @@
     "typescript": "^7.0.2"
   },
   "exports": {
-    "./widgets/webwriter-slides.*": {
-      "source": "./src/widgets/webwriter-slides.ts",
-      "default": "./dist/widgets/webwriter-slides.*"
+    "./widgets/webwriter-pages.*": {
+      "source": "./src/widgets/webwriter-pages.ts",
+      "default": "./dist/widgets/webwriter-pages.*"
     },
-    "./widgets/webwriter-slide.*": {
-      "source": "./src/widgets/webwriter-slide.ts",
-      "default": "./dist/widgets/webwriter-slide.*"
+    "./widgets/webwriter-page.*": {
+      "source": "./src/widgets/webwriter-page.ts",
+      "default": "./dist/widgets/webwriter-page.*"
     },
     "./tests/functionality.*": {
       "source": "./tests/functionality.test.ts",
@@ -202,12 +202,14 @@
     "./custom-elements.json": "./custom-elements.json"
   },
   "editingConfig": {
-    "./widgets/webwriter-slides": {
+    "./widgets/webwriter-pages": {
+      "resize": "inline",
       "definingAsContext": true,
       "definingForContent": true,
-      "content": "webwriter-slide+"
+      "content": "webwriter-page+"
     },
-    "./widgets/webwriter-slide": {
+    "./widgets/webwriter-page": {
+      "resize": "none",
       "definingAsContext": true,
       "definingForContent": true,
       "content": "p | flow*",

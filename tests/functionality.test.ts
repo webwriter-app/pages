@@ -2,45 +2,61 @@
 import "mocha/mocha.js";
 import { assert } from "chai";
 import {getMochaConfig} from "@webwriter/build/test"
-import "../src/widgets/webwriter-slide";
+import "../src/widgets/webwriter-page";
 import type { SelectOptionDeclaration } from "@webwriter/widget";
 import { until } from "./helpers"
-import type { WebwriterSlides } from "../src/widgets/webwriter-slides";
-import "../src/widgets/webwriter-slides";
+import type { WebwriterPages } from "../src/widgets/webwriter-pages";
+import "../src/widgets/webwriter-pages";
 
 mocha.setup(getMochaConfig())
 
-describe("<webwriter-slides>", function () {
+describe("<webwriter-pages>", function () {
 
   before(async function () {
     document.body.insertAdjacentHTML("beforeend",
-      `<webwriter-slides><webwriter-slide><p>Initial slide</p></webwriter-slide></webwriter-slides>`
+      `<webwriter-pages type="pages"><webwriter-page><p>Initial page</p></webwriter-page></webwriter-pages>`
     )
-    const el = document.querySelector("webwriter-slides") as any
+    const el = document.querySelector("webwriter-pages") as any
     await el.updateComplete
   }) 
 
   describe("initialize", function () {
+    it("defaults to Tabs for newly created Pages widgets", async function () {
+      const el = document.createElement("webwriter-pages") as WebwriterPages;
+      el.innerHTML = "<webwriter-page><p>First page</p></webwriter-page>";
+      document.body.append(el);
+      try {
+        await el.updateComplete;
+        await until(() => el.shadowRoot!.querySelector(".page-tab"), "default tab");
+        assert.equal(el.type, "tabs");
+        assert.equal(el.getAttribute("type"), "tabs");
+        assert.isNull(el.shadowRoot!.querySelector(".page-thumb"));
+        assert.equal(el.shadowRoot!.querySelector("button.page-select")!.getAttribute("aria-label"), "Page 1");
+        assert.isUndefined(customElements.get("webwriter-slides"));
+        assert.isUndefined(customElements.get("webwriter-slide"));
+      } finally { el.remove(); }
+    })
+
     it("is defined", async function () {
-      const el = document.querySelector("webwriter-slides:defined")
+      const el = document.querySelector("webwriter-pages:defined")
       assert.isNotNull(el)
     })
-    it("contains defined <webwriter-slide>", async function () {
-      const el = document.querySelector("webwriter-slide")
+    it("contains defined <webwriter-page>", async function () {
+      const el = document.querySelector("webwriter-page")
       assert.isNotNull(el)
     })
   })
 
-  it("keeps controls and drawer labels in each slideshow's inherited language", async function () {
+  it("keeps controls and drawer labels in each Pages widget's inherited language", async function () {
     const wrapper = document.createElement("section")
     wrapper.innerHTML = `
-      <div lang="en"><webwriter-slides contenteditable="true"><webwriter-slide><p>First</p></webwriter-slide></webwriter-slides></div>
-      <div lang="de"><webwriter-slides contenteditable="true"><webwriter-slide><p>Second</p></webwriter-slide></webwriter-slides></div>
+      <div lang="en"><webwriter-pages type="pages" contenteditable="true"><webwriter-page><p>First</p></webwriter-page></webwriter-pages></div>
+      <div lang="de"><webwriter-pages type="pages" contenteditable="true"><webwriter-page><p>Second</p></webwriter-page></webwriter-pages></div>
     `
     document.body.append(wrapper)
-    const [english, german] = Array.from(wrapper.querySelectorAll<WebwriterSlides>("webwriter-slides"))
-    const view = (widget: WebwriterSlides) => (widget.options!.type as SelectOptionDeclaration).options!.find((choice) => choice.value === "slides")!.label
-    const waitForView = async (widget: WebwriterSlides, label: string) => {
+    const [english, german] = Array.from(wrapper.querySelectorAll<WebwriterPages>("webwriter-pages"))
+    const view = (widget: WebwriterPages) => (widget.options!.type as SelectOptionDeclaration).options!.find((choice) => choice.value === "pages")!.label
+    const waitForView = async (widget: WebwriterPages, label: string) => {
       for (let attempt = 0; attempt < 40 && view(widget) !== label; attempt++) {
         await new Promise(resolve => setTimeout(resolve, 25))
       }
@@ -48,26 +64,26 @@ describe("<webwriter-slides>", function () {
       assert.equal(view(widget), label)
     }
     try {
-      await waitForView(german, "Folien")
-      assert.equal(view(english), "Slides")
-      const tooltips = (widget: WebwriterSlides) => Array.from(widget.shadowRoot!.querySelectorAll("sl-tooltip"), tooltip => tooltip.getAttribute("content"))
-      assert.include(tooltips(english), "Duplicate slide")
-      assert.include(tooltips(german), "Folie duplizieren")
+      await waitForView(german, "Seiten")
+      assert.equal(view(english), "Pages")
+      const tooltips = (widget: WebwriterPages) => Array.from(widget.shadowRoot!.querySelectorAll("[title]"), control => control.getAttribute("title"))
+      assert.include(tooltips(english), "Duplicate page")
+      assert.include(tooltips(german), "Seite duplizieren")
       assert.isFalse(german.hasAttribute("lang"))
-      assert.isFalse(german.querySelector("webwriter-slide")!.hasAttribute("lang"))
+      assert.isFalse(german.querySelector("webwriter-page")!.hasAttribute("lang"))
 
       german.parentElement!.lang = "en"
-      await waitForView(german, "Slides")
+      await waitForView(german, "Pages")
       german.lang = "de"
-      await waitForView(german, "Folien")
+      await waitForView(german, "Seiten")
       german.removeAttribute("lang")
-      await waitForView(german, "Slides")
+      await waitForView(german, "Pages")
 
       const first = wrapper.firstElementChild as HTMLElement
       first.append(german)
       first.lang = "de"
-      await waitForView(english, "Folien")
-      await waitForView(german, "Folien")
+      await waitForView(english, "Seiten")
+      await waitForView(german, "Seiten")
       assert.isFalse(german.hasAttribute("lang"))
     } finally {
       wrapper.remove()
@@ -77,29 +93,29 @@ describe("<webwriter-slides>", function () {
   it("changes the drawer labels and tooltips with the inherited, explicit or removed language and announces it", async function () {
     const wrapper = document.createElement("section")
     wrapper.innerHTML = `
-      <div lang="en"><webwriter-slides contenteditable=""><webwriter-slide><p>First</p></webwriter-slide></webwriter-slides></div>
-      <div lang="de"><webwriter-slides contenteditable=""><webwriter-slide><p>Second</p></webwriter-slide></webwriter-slides></div>`
+      <div lang="en"><webwriter-pages type="pages" contenteditable=""><webwriter-page><p>First</p></webwriter-page></webwriter-pages></div>
+      <div lang="de"><webwriter-pages type="pages" contenteditable=""><webwriter-page><p>Second</p></webwriter-page></webwriter-pages></div>`
     document.body.append(wrapper)
     try {
-      const [english, german] = Array.from(wrapper.querySelectorAll<WebwriterSlides>("webwriter-slides"))
-      const view = (widget: WebwriterSlides) => (widget.options!.type as SelectOptionDeclaration).options!.find((choice) => choice.value === "slides")!.label
+      const [english, german] = Array.from(wrapper.querySelectorAll<WebwriterPages>("webwriter-pages"))
+      const view = (widget: WebwriterPages) => (widget.options!.type as SelectOptionDeclaration).options!.find((choice) => choice.value === "pages")!.label
       const until = async (condition: () => boolean, message: string) => {
         for (let attempt = 0; attempt < 200 && !condition(); attempt++) await new Promise(resolve => setTimeout(resolve, 30))
         assert.isTrue(condition(), message)
       }
-      const tooltips = (widget: WebwriterSlides) => Array.from(widget.shadowRoot!.querySelectorAll("sl-tooltip"), tooltip => tooltip.getAttribute("content"))
-      await until(() => view(german) === "Folien", "German drawer label")
-      assert.equal(view(english), "Slides")
-      assert.include(tooltips(english), "Duplicate slide")
-      await until(() => tooltips(german).includes("Folie duplizieren"), "German tooltip")
+      const tooltips = (widget: WebwriterPages) => Array.from(widget.shadowRoot!.querySelectorAll("[title]"), control => control.getAttribute("title"))
+      await until(() => view(german) === "Seiten", "German drawer label")
+      assert.equal(view(english), "Pages")
+      assert.include(tooltips(english), "Duplicate page")
+      await until(() => tooltips(german).includes("Seite duplizieren"), "German tooltip")
       let changes = 0
       german.addEventListener("optionschange", () => changes++)
       german.parentElement!.lang = "en"
-      await until(() => view(german) === "Slides", "back to English")
+      await until(() => view(german) === "Pages", "back to English")
       german.lang = "de"
-      await until(() => view(german) === "Folien", "explicit lang")
+      await until(() => view(german) === "Seiten", "explicit lang")
       german.removeAttribute("lang")
-      await until(() => view(german) === "Slides", "lang removed")
+      await until(() => view(german) === "Pages", "lang removed")
       assert.isAbove(changes, 0, "optionschange sent")
     } finally {
       wrapper.remove()
@@ -111,82 +127,84 @@ describe("<webwriter-slides>", function () {
       const wrapper = document.createElement("div")
       wrapper.innerHTML = html
       document.body.append(wrapper)
-      const el = wrapper.querySelector("webwriter-slides") as any
+      const el = wrapper.querySelector("webwriter-pages") as any
       await el.updateComplete
       return { wrapper, el }
     }
 
     it("declares section conversions", function () {
-      const Widget = customElements.get("webwriter-slides") as any
+      const Widget = customElements.get("webwriter-pages") as any
       assert.deepEqual(Object.keys(Widget.convertFrom), ["section"])
       assert.deepEqual(Object.keys(Widget.convertTo), ["section"])
     })
 
-    it("turns slides into section elements and back", async function () {
-      const { wrapper, el } = await make(`<webwriter-slides><webwriter-slide><h2>A</h2><p>One</p></webwriter-slide><webwriter-slide><p>Two</p></webwriter-slide></webwriter-slides>`)
+    it("turns pages into section elements and back", async function () {
+      const { wrapper, el } = await make(`<webwriter-pages type="pages"><webwriter-page label="Introduction"><h2>A</h2><p>One</p></webwriter-page><webwriter-page><p>Two</p></webwriter-page></webwriter-pages>`)
       try {
         const fragment = el.toSections() as DocumentFragment
         const sections = Array.from(fragment.children)
         assert.deepEqual(sections.map(s => s.localName), ["section", "section"])
         assert.equal(sections[0].innerHTML, "<h2>A</h2><p>One</p>")
+        assert.equal(sections[0].getAttribute("aria-label"), "Introduction")
 
-        const { wrapper: other, el: target } = await make(`<webwriter-slides><webwriter-slide><p>Old</p></webwriter-slide></webwriter-slides>`)
+        const { wrapper: other, el: target } = await make(`<webwriter-pages type="pages"><webwriter-page><p>Old</p></webwriter-page></webwriter-pages>`)
         try {
           const source = document.createDocumentFragment()
           const holder = document.createElement("section")
           holder.append(...sections)
           source.append(holder)
           assert.isTrue(target.loadSections(source))
-          const loaded = Array.from(target.querySelectorAll(":scope > webwriter-slide"))
+          const loaded = Array.from(target.querySelectorAll(":scope > webwriter-page"))
           assert.deepEqual(loaded.map((s: any) => s.innerHTML), ["<h2>A</h2><p>One</p>", "<p>Two</p>"])
+          assert.equal(loaded[0].getAttribute("label"), "Introduction")
         } finally { other.remove() }
       } finally { wrapper.remove() }
     })
 
-    it("takes a single section as one slide and declines other input", async function () {
-      const { wrapper, el } = await make(`<webwriter-slides><webwriter-slide><p>Old</p></webwriter-slide></webwriter-slides>`)
+    it("takes a single section as one page and declines other input", async function () {
+      const { wrapper, el } = await make(`<webwriter-pages type="pages"><webwriter-page><p>Old</p></webwriter-page></webwriter-pages>`)
       try {
         const bad = document.createDocumentFragment()
         bad.append(document.createElement("div"))
         assert.isFalse(el.loadSections(bad))
-        assert.equal(el.querySelectorAll("webwriter-slide").length, 1)
+        assert.equal(el.querySelectorAll("webwriter-page").length, 1)
         const good = document.createDocumentFragment()
         const section = document.createElement("section")
         section.innerHTML = "<p>Only</p>"
         good.append(section)
         assert.isTrue(el.loadSections(good))
-        assert.equal(el.querySelector("webwriter-slide").innerHTML, "<p>Only</p>")
+        assert.equal(el.querySelector("webwriter-page").innerHTML, "<p>Only</p>")
       } finally { wrapper.remove() }
     })
 
-    it("publishes the current slide and the count as stable signals", async function () {
-      const { wrapper, el } = await make(`<webwriter-slides><webwriter-slide><p>A</p></webwriter-slide><webwriter-slide><p>B</p></webwriter-slide></webwriter-slides>`)
+    it("publishes the current page and the count as stable signals", async function () {
+      const { wrapper, el } = await make(`<webwriter-pages type="pages"><webwriter-page><p>A</p></webwriter-page><webwriter-page><p>B</p></webwriter-page></webwriter-pages>`)
       try {
         const signals = el.signals
         assert.strictEqual(el.signals, signals)
         await until(() => signals.count.get() === 2, "count")
-        assert.equal(signals.slide.get(), 1)
-        el.nextSlide()
+        assert.equal(signals.page.get(), 1)
+        el.nextPage()
         await el.updateComplete
-        assert.equal(signals.slide.get(), 2)
+        assert.equal(signals.page.get(), 2)
       } finally { wrapper.remove() }
     })
   })
 
   describe("use methods", function () {
-    it("can add a slide", async function () {
-      const el = document.querySelector("webwriter-slides") as any
-      el.addSlide()
+    it("can add a page", async function () {
+      const el = document.querySelector("webwriter-pages") as any
+      el.addPage()
       await el.updateComplete
-      const slides = el.querySelectorAll("webwriter-slide")
-      assert.equal(slides.length, 2)
+      const pages = el.querySelectorAll("webwriter-page")
+      assert.equal(pages.length, 2)
     })
-    it("removes the active slide and preserves the required last slide", async function () {
-      const el = document.querySelector("webwriter-slides") as any
-      el.removeActiveSlide()
-      el.removeActiveSlide()
-      const slides = el.querySelectorAll("webwriter-slide")
-      assert.equal(slides.length, 1)
+    it("removes the active page and preserves the required last page", async function () {
+      const el = document.querySelector("webwriter-pages") as any
+      el.removeActivePage()
+      el.removeActivePage()
+      const pages = el.querySelectorAll("webwriter-page")
+      assert.equal(pages.length, 1)
     })
   })
 });

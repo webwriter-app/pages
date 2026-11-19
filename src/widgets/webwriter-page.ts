@@ -6,19 +6,23 @@ import { customElement, property } from "lit/decorators.js";
 import "@shoelace-style/shoelace/dist/themes/light.css";
 
 /**
- * Represents a single slide in the `webwriter-slides` widget.
+ * Represents a single page in the `webwriter-pages` widget.
  *
- * @slot default - The content displayed within the slide.
+ * @slot default - The content displayed within the page.
  */
-@customElement("webwriter-slide")
-export class WebwriterSlide extends LitElementWw {
-    /** Indicates whether the slide is currently active/visible. */
+@customElement("webwriter-page")
+export class WebwriterPage extends LitElementWw {
+    /** Indicates whether the page is currently active/visible. */
     @property({ type: Boolean, attribute: true, reflect: true })
     accessor active = false;
 
+    /** Plaintext tab label. An empty label shows the page-number placeholder. */
+    @property({ type: String, reflect: true, useDefault: true })
+    accessor label = "";
+
     /**
-     * Data URI string for the slide thumbnail (e.g., "data:image/png;base64,...").
-     * Used to display a preview image for the slide.
+     * Data URI string for the page thumbnail (e.g., "data:image/png;base64,...").
+     * Used to display a preview image for the page.
      */
     @property({ type: String, attribute: true, reflect: true })
     accessor thumbnail = "";
