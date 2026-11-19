@@ -368,19 +368,56 @@ export class WebwriterPages extends LitElementWw {
         }
     }
 
-    /** Remove the currently active page element. */
+    /** Remove a page and return editor selection to the surviving active page's start. */
     removePage(pageIndex: number) {
         if (this.pages.length <= 1 || !this.pages[pageIndex]) return;
-        transaction(this, () => {
+        transaction(this, async () => {
             const page = this.pages[pageIndex];
             if (this.pages.length <= 1 || !page) return;
             page.remove();
-            if (this.activePageIndex > this.pages.length - 1) {
-                this.changePage(this.pages.length - 1);
-            }
+            this.changePage(Math.min(this.activePageIndex, this.pages.length - 1));
+            const active = this.activePage;
             this.requestUpdate();
-            return this.updateComplete;
+            await this.updateComplete;
+            await active?.updateComplete;
+            if (this.isConnected && active && this.activePage === active && this.#permissions.editing) {
+                this.#selectPageStart(active);
+            }
         });
+    }
+
+    /** Return document editing to the first content of the surviving page. */
+    #selectPageStart(page: WebwriterPage) {
+        (this.renderRoot as ShadowRoot).activeElement?.closest<HTMLElement>("sl-icon-button, input, button")?.blur();
+        this.blur();
+        const selection = this.ownerDocument.getSelection();
+        if (!selection) return;
+        let node: Node = page;
+        let first: Element | undefined;
+        let textContainer: Element | undefined;
+        while (node instanceof Element) {
+            if (node !== page && (node.localName.includes("-") || node.matches("img, picture, svg, math, video, audio, canvas, iframe, object, embed, hr, input, textarea, select, button, [contenteditable='false']"))) break;
+            if (node.matches("p, h1, h2, h3, h4, h5, h6, pre, li, td, th, summary")) textContainer = node;
+            const child = Array.from(node.childNodes).find((child) => child instanceof Text ? Boolean(child.data.trim())
+                : child instanceof Element && !child.matches("[hidden], [inert], script, style, template") && getComputedStyle(child).display !== "none");
+            if (!child || child instanceof HTMLBRElement) {
+                if (node === page || node.matches("p, h1, h2, h3, h4, h5, h6, div, pre, li, td, th, summary")) {
+                    selection.setPosition(node, 0);
+                    return;
+                }
+                break;
+            }
+            if (node === page && child instanceof Element) first = child;
+            node = child;
+        }
+        if (node instanceof Text) selection.setPosition(node, 0);
+        else if (textContainer) selection.setPosition(textContainer, 0);
+        else if (first) {
+            const range = this.ownerDocument.createRange();
+            range.selectNode(first);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
     }
 
     /** Activate the next page element. */

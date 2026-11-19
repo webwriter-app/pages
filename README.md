@@ -29,7 +29,9 @@ Set `orientation="portrait"` for a 9:16 page, or use the default `landscape` for
 
 The widget follows the page theme: `--ww-text-color`, `--ww-font-family`, and `--ww-theme-accent-1` (the
 selected thumbnail). On paper it prints all pages one after another and leaves out the controls.
-In Tabs view, the active tab and its connecting edge match the page's background color.
+In Tabs view, the active tab and its connecting edge match the page's background color. Its remove button overlays the end of the tab with a translucent round background. Duplicate remains available as an action in the options.
+
+After deletion in edit mode, selection moves to the start of the surviving active page: a text caret where possible, otherwise selection of its first element.
 
 Conversions: a `section` becomes pages (its nested `section` children become one page each, otherwise the
 section is one page). Each page converts to a `details` element with its label as the summary.
@@ -91,7 +93,7 @@ npm install @webwriter/pages
 | `addPage` | Add a new empty page element. Optionally insert after given index. | `index: number`
 | `duplicatePage` | Duplicate an existing page at given index. | `index: number`
 | `removeActivePage` | Remove the currently active page element. | -
-| `removePage` | Remove the currently active page element. | `pageIndex: number`
+| `removePage` | Remove a page and return editor selection to the surviving active page's start. | `pageIndex: number`
 | `nextPage` | Activate the next page element. | `backwards=false`, `step=1`
 
 *[Methods](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Method_definitions) allow programmatic access to the widget.*

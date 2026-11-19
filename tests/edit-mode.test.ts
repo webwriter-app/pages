@@ -20,7 +20,7 @@ describe("<webwriter-pages> in edit mode", function () {
   it("shows authors the controls while the arrow keys do not navigate", async function () {
     const widget = await mount(`<webwriter-pages type="pages" contenteditable="">${pages(3)}</webwriter-pages>`);
     const controls = items(widget, "sl-icon-button[data-ww-can]");
-    assert.isTrue(controls.every(visible) && controls.length === 2, "active page controls");
+    assert.isTrue(controls.every(visible) && controls.length === 1, "active page controls");
     assert.isTrue(visible(items(widget, ".add-page")[0]), "add card");
     assert.equal(items(widget, "[data-ww-drag]").length, 3, "drag markers");
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
@@ -118,7 +118,7 @@ describe("<webwriter-pages> in edit mode", function () {
   it("overlays controls only on the active preview and reveals them on keyboard focus", async function () {
     const widget = await mount(`<webwriter-pages type="pages" contenteditable="">${pages(3)}</webwriter-pages>`);
     const thumbs = items(widget, ".page-thumb");
-    assert.equal(thumbs[0].querySelectorAll(".duplicate-btn, .remove-btn").length, 2);
+    assert.equal(thumbs[0].querySelectorAll(".duplicate-btn, .remove-btn").length, 1);
     assert.equal(thumbs[1].querySelectorAll(".duplicate-btn, .remove-btn").length, 0);
     assert.equal(getComputedStyle(thumbs[0].querySelector(".page-options")!).position, "absolute");
     assert.equal(getComputedStyle(thumbs[1].querySelector(".page-number")!).opacity, "0.5");
@@ -127,44 +127,48 @@ describe("<webwriter-pages> in edit mode", function () {
     select.click();
     await widget.updateComplete;
     assert.equal(thumbs[0].querySelectorAll(".duplicate-btn, .remove-btn").length, 0);
-    assert.equal(thumbs[1].querySelectorAll(".duplicate-btn, .remove-btn").length, 2);
+    assert.equal(thumbs[1].querySelectorAll(".duplicate-btn, .remove-btn").length, 1);
     assert.equal(getComputedStyle(thumbs[1].querySelector(".page-number")!).opacity, "1");
     assert.equal(getComputedStyle(thumbs[1].querySelector("sl-icon-button")!).opacity, "1");
   });
 
-  it("places white circular actions across the top-right border in both layouts", async function () {
+  it("overlays a circular remove button without a duplicate control in both layouts", async function () {
     const widget = await mount(`<webwriter-pages contenteditable="">${pages(3)}</webwriter-pages>`);
     widget.parentElement!.style.width = "720px";
     for (const type of ["tabs", "pages"] as const) {
       widget.type = type;
       await widget.updateComplete;
       await frame(2);
+      assert.isNull(widget.shadowRoot!.querySelector(".duplicate-btn"), "duplicate is an action only");
+      assert.property(widget.actions, "duplicateActivePage", "duplicate action remains available");
       const card = items(widget, type === "tabs" ? ".page-tab.active" : ".page-thumb.active")[0];
-      const duplicate = card.querySelector<HTMLElement>(".duplicate-btn")!;
       const remove = card.querySelector<HTMLElement>(".remove-btn")!;
       await until(() => remove.shadowRoot?.querySelector('[part="base"]'), "action button ready");
       const box = card.getBoundingClientRect();
       const close = remove.getBoundingClientRect();
-      const copy = duplicate.getBoundingClientRect();
-      assert.isBelow(close.top, box.top, `${type} remove overlaps top`);
-      assert.isAbove(close.bottom, box.top, `${type} remove crosses top`);
-      assert.isBelow(close.left, box.right, `${type} remove overlaps right`);
-      assert.isAbove(close.right, box.right, `${type} remove crosses right`);
-      assert.closeTo(close.left + close.width / 2, box.right, 1.5, "remove centered on right edge");
-      assert.closeTo(copy.top, close.top, 1, "actions align at the top");
-      assert.closeTo(close.left - copy.right, 6, 1, "actions have a gap");
-      for (const button of [duplicate, remove]) {
-        const base = button.shadowRoot!.querySelector<HTMLElement>('[part="base"]')!;
-        const style = getComputedStyle(button, "::before");
-        assert.equal(style.backgroundColor, "rgb(255, 255, 255)", "white button surface");
-        assert.equal(style.borderRadius, "50%", "circular button");
-        const rect = base.getBoundingClientRect();
-        assert.closeTo(rect.width, rect.height, 1, "round target");
-        assert.isAtLeast(rect.width, 24, "usable target");
-        assert.equal(style.inset, "2px", "visible circle is smaller than its click target");
-        const hit = widget.shadowRoot!.elementFromPoint(rect.left + rect.width / 2, rect.top + 2);
-        assert.isTrue(hit === button, "overlapping portion remains clickable");
+      const style = getComputedStyle(remove, "::before");
+      if (type === "tabs") {
+        const label = items(widget, ".page-label-input")[0].getBoundingClientRect();
+        assert.closeTo(close.top + close.height / 2, label.top + label.height / 2, 1.1, "remove aligns with label");
+        assert.closeTo(box.right - close.right, 5, 1, "remove overlays the tab's end");
+        assert.equal(style.backgroundColor, "rgba(255, 255, 255, 0.5)", "half-transparent background");
+        remove.style.display = "none";
+        assert.closeTo(card.getBoundingClientRect().width, box.width, 0.1, "remove reserves no tab width");
+        assert.closeTo(items(widget, ".page-label-input")[0].getBoundingClientRect().width, label.width, 0.1, "remove reserves no label width");
+        remove.style.removeProperty("display");
+      } else {
+        assert.isBelow(close.top, box.top, "preview remove overlaps top");
+        assert.isAbove(close.bottom, box.top, "preview remove crosses top");
+        assert.closeTo(close.left + close.width / 2, box.right, 1.5, "remove centered on preview edge");
+        assert.equal(style.backgroundColor, "rgb(255, 255, 255)", "white preview button surface");
       }
+      assert.equal(style.borderRadius, "50%", "circular background");
+      const base = remove.shadowRoot!.querySelector<HTMLElement>('[part="base"]')!;
+      const rect = base.getBoundingClientRect();
+      assert.closeTo(rect.width, rect.height, 1, "round target");
+      assert.isAtLeast(rect.width, 24, "usable target");
+      const hit = widget.shadowRoot!.elementFromPoint(rect.left + rect.width / 2, rect.top + 2);
+      assert.isTrue(hit === remove, "overlay remains clickable");
     }
   });
 
@@ -184,6 +188,49 @@ describe("<webwriter-pages> in edit mode", function () {
     await widget.updateComplete;
     assert.isFalse(items<any>(widget, ".remove-btn")[0].disabled, "remove is enabled after adding a page");
   });
+
+  for (const type of ["tabs", "pages"]) {
+    it(`places selection at the surviving page's start after removal in ${type}`, async function () {
+      const cases = [
+        {html: '<h2><strong>Start here</strong></h2><p>Later</p>', caret: "strong", text: true},
+        {html: '<section><p>Nested start</p></section>', caret: "p", text: true},
+        {html: '<p><br></p>', caret: "p", text: false},
+        {html: '<p><strong></strong></p>', caret: "p", text: false},
+        {html: '<p><img alt="Inline image">Text</p>', caret: "p", text: false},
+        {html: '<!--keep-->\n<img alt="First"><p>Later text</p>', element: "img"},
+        {html: '<figure><img alt="First"><figcaption>Caption</figcaption></figure>', element: "figure"},
+        {html: '<div contenteditable="false">Locked</div><p>Later text</p>', element: "div"},
+        {html: '', caret: "webwriter-page", text: false},
+      ];
+      for (const entry of cases) {
+        const widget = await mount(`<webwriter-pages type="${type}" contenteditable=""><webwriter-page><p>Remove me</p></webwriter-page><webwriter-page>${entry.html}</webwriter-page></webwriter-pages>`);
+        const surviving = widget.children[1];
+        items<HTMLElement>(widget, ".remove-btn")[0].click();
+        await until(() => document.getSelection()?.anchorNode && surviving.contains(document.getSelection()!.anchorNode), "selection enters surviving page");
+        const selection = document.getSelection()!;
+        assert.equal(widget.activePage, surviving, "surviving page is active");
+        if (entry.element) {
+          const range = selection.getRangeAt(0);
+          assert.equal(range.cloneContents().firstElementChild?.localName, entry.element, "first element is selected rather than later text");
+          assert.equal(range.endOffset - range.startOffset, 1);
+        } else {
+          const container = entry.caret === "webwriter-page" ? surviving : surviving.querySelector(entry.caret!)!;
+          assert.equal(selection.anchorNode, entry.text ? container.firstChild : container);
+          assert.equal(selection.anchorOffset, 0, "caret at start");
+          assert.isTrue(selection.isCollapsed);
+        }
+        unmountAll();
+      }
+      const widget = await mount(`<webwriter-pages type="${type}" contenteditable="">${pages(2)}</webwriter-pages>`);
+      widget.nextPage();
+      await widget.updateComplete;
+      widget.removeActivePage();
+      const first = widget.firstElementChild!.querySelector("p")!.firstChild;
+      await until(() => document.getSelection()?.anchorNode === first, "removing the last page selects the previous page start");
+      assert.equal(document.getSelection()!.anchorOffset, 0);
+      assert.equal(widget.activePageIndex, 0);
+    });
+  }
 
   it("keeps placeholder labels outside document editing while preserving the title input", async function () {
     const widget = await mount(`<webwriter-pages contenteditable="">${pages(2)}</webwriter-pages>`);
@@ -257,7 +304,7 @@ describe("<webwriter-pages> in edit mode", function () {
       await frame(2);
       const label = items(widget, ".page-label-input")[0].getBoundingClientRect();
       const center = label.top + label.height / 2;
-      for (const button of items(widget, ".page-tabs-row > .add-page, .controls-rows sl-icon-button")) {
+      for (const button of items(widget, ".page-tabs-row > .add-page, .controls-rows sl-icon-button, .page-tab.active .remove-btn")) {
         const box = button.getBoundingClientRect();
         assert.closeTo(box.top + box.height / 2, center, 1.1, `action aligns with label at ${width}px`);
       }
@@ -433,7 +480,7 @@ describe("<webwriter-pages> in edit mode", function () {
     const click = (selector: string) => () => widget.shadowRoot!.querySelector<HTMLElement>(selector)!.click();
     assert.deepEqual(await run(click(".add-page")), ["transactionstart", "transactionend"], "add");
     assert.equal(widget.querySelectorAll("webwriter-page").length, 3);
-    assert.deepEqual(await run(click(".duplicate-btn")), ["transactionstart", "transactionend"], "duplicate");
+    assert.deepEqual(await run(() => widget.duplicatePage(widget.activePageIndex)), ["transactionstart", "transactionend"], "duplicate");
     assert.equal(widget.querySelectorAll("webwriter-page").length, 4);
     assert.deepEqual(await run(click(".remove-btn")), ["transactionstart", "transactionend"], "remove");
     assert.equal(widget.querySelectorAll("webwriter-page").length, 3);

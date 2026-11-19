@@ -452,7 +452,7 @@
                   }
                 }
               ],
-              "description": "Remove the currently active page element."
+              "description": "Remove a page and return editor selection to the surviving active page's start."
             },
             {
               "kind": "method",

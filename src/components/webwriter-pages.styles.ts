@@ -399,7 +399,6 @@ export const pages_styles = css`
     }
 
     .remove-btn,
-    .duplicate-btn,
     .page-number,
     .fullscreen-btn {
         cursor: pointer;
@@ -425,7 +424,7 @@ export const pages_styles = css`
     .page-tabs-wrapper {
         flex: 0 1 auto;
         min-inline-size: 0;
-        padding: var(--_page-action-space) var(--_page-action-space) var(--sl-panel-border-width) var(--sl-focus-ring-offset);
+        padding: var(--sl-spacing-2x-small) var(--sl-focus-ring-offset) var(--sl-panel-border-width);
         overflow-y: hidden;
         overflow-x: auto;
         scrollbar-width: none;
@@ -581,8 +580,13 @@ export const pages_styles = css`
         inset-block-start: calc(var(--_page-action-size) / -2);
         inset-inline-end: calc(var(--_page-action-size) / -2);
         display: flex;
-        gap: 6px;
         z-index: 2;
+    }
+
+    .page-tab .page-actions {
+        inset-block: 0;
+        inset-inline-end: var(--sl-spacing-2x-small);
+        align-items: center;
     }
 
     .page-actions sl-icon-button {
@@ -615,6 +619,11 @@ export const pages_styles = css`
         border-radius: 50%;
         background: transparent;
         color: inherit;
+    }
+
+    .page-tab .remove-btn::before {
+        background: rgb(255 255 255 / 0.5);
+        border-color: transparent;
     }
 
     .page-actions sl-icon-button::part(base):focus-visible {
@@ -665,12 +674,8 @@ export const pages_styles = css`
             border-color: var(--sl-color-danger-600);
         }
 
-        .page-actions .duplicate-btn:hover::part(base) {
-            color: var(--sl-color-neutral-900);
-        }
-
-        .page-actions .duplicate-btn:hover::before {
-            border-color: var(--sl-color-neutral-400);
+        .page-tab .remove-btn:not([disabled]):hover::before {
+            background: white;
         }
     }
 

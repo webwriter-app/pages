@@ -17,6 +17,21 @@ describe("<webwriter-pages> in read mode", function () {
     document.designMode = "off";
   });
 
+  it("does not move the document selection when a page is removed outside editing", async function () {
+    const widget = await mount(`<webwriter-pages>${pages(2)}</webwriter-pages>`);
+    const paragraph = document.createElement("p");
+    paragraph.textContent = "Reading outside the widget";
+    widget.parentElement!.prepend(paragraph);
+    const selection = document.getSelection()!;
+    selection.setPosition(paragraph.firstChild, 3);
+    widget.removeActivePage();
+    await widget.updateComplete;
+    await frame(2);
+    assert.equal(widget.children.length, 1);
+    assert.equal(selection.anchorNode, paragraph.firstChild);
+    assert.equal(selection.anchorOffset, 3);
+  });
+
   it("shows readers no authoring controls and nothing can be dragged", async function () {
     const widget = await mount(`<webwriter-pages type="pages">${pages(3)}</webwriter-pages>`);
     assert.equal(items(widget, "sl-icon-button[data-ww-can]").filter(visible).length, 0, "visible author controls");

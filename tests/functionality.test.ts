@@ -113,8 +113,8 @@ describe("<webwriter-pages>", function () {
       assert.isTrue(Object.values(english.actions).every(action => action.buttonGroup === "pages"), "page actions share one button group")
       assert.deepEqual(Object.values(english.actions).map(action => action.icon), ["Plus", "Delete", "Copy"], "all page actions have supported icons")
       const tooltips = (widget: WebwriterPages) => Array.from(widget.shadowRoot!.querySelectorAll("[title]"), control => control.getAttribute("title"))
-      assert.include(tooltips(english), "Duplicate page")
-      assert.include(tooltips(german), "Seite duplizieren")
+      assert.include(tooltips(english), "Remove page")
+      assert.include(tooltips(german), "Seite entfernen")
       assert.isFalse(german.hasAttribute("lang"))
       assert.isFalse(german.querySelector("webwriter-page")!.hasAttribute("lang"))
 
@@ -152,8 +152,8 @@ describe("<webwriter-pages>", function () {
       const tooltips = (widget: WebwriterPages) => Array.from(widget.shadowRoot!.querySelectorAll("[title]"), control => control.getAttribute("title"))
       await until(() => view(german) === "Folien", "German drawer label")
       assert.equal(view(english), "Slides")
-      assert.include(tooltips(english), "Duplicate page")
-      await until(() => tooltips(german).includes("Seite duplizieren"), "German tooltip")
+      assert.include(tooltips(english), "Remove page")
+      await until(() => tooltips(german).includes("Seite entfernen"), "German tooltip")
       let changes = 0
       german.addEventListener("optionschange", () => changes++)
       german.parentElement!.lang = "en"

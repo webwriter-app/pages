@@ -4,25 +4,13 @@ import fullscreenExitIcon from "@tabler/icons/outline/arrows-minimize.svg";
 import chevronLeftIcon from "@tabler/icons/outline/chevron-left.svg";
 import chevronRightIcon from "@tabler/icons/outline/chevron-right.svg";
 import removeIcon from "@tabler/icons/outline/x.svg";
-import duplicateIcon from "@tabler/icons/outline/copy.svg";
 import plusIcon from "@tabler/icons/outline/plus.svg";
 import type { PagesView } from "../model/pages-view";
 
-/** Duplicate and remove buttons of one page in the tab or thumbnail strip. */
+/** Remove button of the active page in the tab or thumbnail strip. */
 export function renderPageButtons(view: PagesView, index: number) {
     if (index !== view.activePageIndex) return nothing;
     return html`<div class="page-actions">
-        <sl-icon-button
-            class="duplicate-btn"
-            data-ww-can="edit"
-            title=${view.msg("Duplicate page")}
-            label=${view.msg("Duplicate page")}
-            @click=${(e: MouseEvent) => {
-                e.stopPropagation();
-                view.duplicatePage(index);
-            }}
-            src=${duplicateIcon}
-        ></sl-icon-button>
         <sl-icon-button
             class="remove-btn"
             data-ww-can="edit"
