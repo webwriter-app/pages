@@ -40,6 +40,9 @@ export const pages_styles = css`
     .page-stage {
         position: relative;
         min-inline-size: 0;
+        inline-size: 100%;
+        block-size: auto;
+        align-self: center;
         aspect-ratio: var(--_page-ratio);
     }
 
@@ -144,8 +147,8 @@ export const pages_styles = css`
     }
 
     ::slotted(webwriter-page) {
-        width: 100%;
-        height: 100%;
+        width: 100% !important;
+        height: 100% !important;
     }
 
     .controls-columns, .controls-rows {

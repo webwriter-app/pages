@@ -198,6 +198,30 @@ describe("<webwriter-pages> in read mode", function () {
     assert.equal(widget.orientation, "landscape", "removing the attribute restores the default");
   });
 
+  it("sizes the page from available width and overrides saved child dimensions", async function () {
+    const widget = await mount(`<webwriter-pages><webwriter-page style="width:80px;height:800px"><p>Saved content</p></webwriter-page></webwriter-pages>`);
+    const page = widget.querySelector<HTMLElement>("webwriter-page")!;
+    for(const type of ["tabs", "pages"] as const) {
+      widget.type = type;
+      for(const orientation of ["landscape", "portrait"] as const) {
+        widget.orientation = orientation;
+        await widget.updateComplete;
+        for(const width of [300, 720, 1100]) {
+          widget.parentElement!.style.width = `${width}px`;
+          await frame(2);
+          const host = widget.getBoundingClientRect();
+          const pane = items(widget, '[part="actions"]')[0]?.getBoundingClientRect();
+          const available = type === "pages" && width >= 1100 ? host.width - pane!.width : host.width;
+          const rect = page.getBoundingClientRect();
+          assert.closeTo(rect.width, available, 1, "page fills its available column");
+          assert.closeTo(rect.height, available / (orientation === "portrait" ? 9 / 16 : 16 / 9), 1, "height follows width and orientation");
+        }
+      }
+    }
+    assert.equal(page.style.width, "80px", "saved markup is preserved");
+    assert.equal(page.style.height, "800px", "saved markup is preserved");
+  });
+
   it("fits fullscreen pages below the actual tab toolbar and colors the surrounding space", async function () {
     const widget = await mount(`<webwriter-pages type="tabs">${pages(3)}</webwriter-pages>`);
     widget.classList.add("ww-fullscreen");
