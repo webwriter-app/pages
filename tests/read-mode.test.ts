@@ -145,7 +145,7 @@ describe("<webwriter-pages> in read mode", function () {
       assert.equal(getComputedStyle(widget).color, "rgb(1, 2, 3)");
       assert.include(getComputedStyle(widget).fontFamily, "Courier");
       assert.equal(getComputedStyle(widget.shadowRoot.querySelector(".page-thumb.active")).borderTopColor, "rgb(200, 10, 20)");
-      assert.equal(getComputedStyle(widget.shadowRoot.querySelector(".pages-index")).color, "rgb(1, 2, 3)");
+      assert.equal(getComputedStyle(widget.shadowRoot.querySelector(".page-thumbs")).color, "rgb(1, 2, 3)");
     } finally {
       wrap.remove();
     }
@@ -324,6 +324,40 @@ describe("<webwriter-pages> in read mode", function () {
         }
       }
     }
+  });
+
+  it("keeps regular Slides controls beneath the add pane and fills the preview column", async function () {
+    const widget = await mount(`<webwriter-pages type="pages" contenteditable="true">${pages(3)}</webwriter-pages>`);
+    for (const width of [300, 520, 720, 1100, 1600]) {
+      widget.parentElement!.style.width = `${width}px`;
+      await frame(2);
+      assert.isNull(widget.shadowRoot!.querySelector(".pages-index"), "pagination is fullscreen-only");
+      assert.isNull(widget.shadowRoot!.querySelector('[title="Go to next page"]'), "no regular navigation chevron");
+      const add = items(widget, ".add-page")[0].getBoundingClientRect();
+      const fullscreen = items(widget, "#fullscreen")[0].getBoundingClientRect();
+      const pane = items(widget, '[part="actions"]')[0].getBoundingClientRect();
+      const strip = items(widget, ".page-thumbs")[0];
+      const preview = items(widget, ".page-thumb")[0].getBoundingClientRect();
+      assert.closeTo(preview.width / preview.height, 16 / 9, 0.01, "preview keeps the page ratio");
+      assert.isAtLeast(fullscreen.top, add.bottom, `fullscreen is below add at ${width}px`);
+      assert.closeTo(fullscreen.right, pane.right - 9, 1, "fullscreen sits in the bottom right");
+      assert.closeTo(fullscreen.bottom, pane.bottom - 9, 1, "fullscreen sits at the bottom");
+      if (width >= 1100) {
+        const style = getComputedStyle(strip);
+        assert.closeTo(items(widget, ".page-thumb")[0].getBoundingClientRect().width,
+          strip.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight), 1,
+          "previews fill the scrollable column");
+      } else {
+        const style = getComputedStyle(strip);
+        assert.closeTo(items(widget, ".page-thumb")[0].getBoundingClientRect().width,
+          Math.min(160, strip.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)), 1,
+          "larger horizontal previews still fit narrow containers");
+      }
+    }
+    widget.removeAttribute("contenteditable");
+    await widget.updateComplete;
+    assert.isNull(widget.shadowRoot!.querySelector(".add-page"));
+    assert.isNotNull(widget.shadowRoot!.querySelector("#fullscreen"), "readers retain fullscreen access");
   });
 
   it("scrolls previews vertically beside a wide page and returns them below a narrow page", async function () {

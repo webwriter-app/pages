@@ -162,7 +162,8 @@ export const pages_styles = css`
 
     [part="actions"] {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto auto;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-rows: auto minmax(0, 1fr);
         gap: var(--sl-spacing-x-small);
         border: var(--sl-panel-border-width) solid var(--sl-panel-border-color);
         border-block-start: 0;
@@ -222,7 +223,9 @@ export const pages_styles = css`
     }
 
     .controls-columns {
-        grid-column: -2 / -1;
+        grid-column: 2;
+        grid-row: 2;
+        place-self: end;
         flex-direction: column;
         flex: 0 0 auto;
         border: 0;
@@ -252,8 +255,11 @@ export const pages_styles = css`
     }
 
     .page-thumbs {
-        --_thumb-width: 120px;
+        --_thumb-width: 160px;
+        grid-column: 1;
+        grid-row: 1 / -1;
         display: flex;
+        align-items: start;
         flex-direction: row;
         flex: 1 1 auto;
         min-inline-size: 0;
@@ -288,7 +294,10 @@ export const pages_styles = css`
     }
 
     [part="actions"] > .add-page {
+        grid-column: 2;
+        grid-row: 1;
         margin-block-start: var(--_page-action-space);
+        margin-inline-end: var(--sl-spacing-x-small);
     }
 
     .add-page {
@@ -661,25 +670,6 @@ export const pages_styles = css`
     }
 
     @container pages (max-width: 520px) {
-        [part="actions"] {
-            grid-template-columns: minmax(0, 1fr) auto;
-        }
-
-        [part="actions"] > .add-page {
-            margin-inline-end: var(--sl-spacing-x-small);
-        }
-
-        [part="actions"] .controls-columns {
-            grid-column: 1 / -1;
-            flex-direction: row;
-            flex-wrap: wrap;
-            justify-content: space-between;
-        }
-
-        [part="actions"] .page-thumbs {
-            flex: 0 0 auto;
-        }
-
         .page-tabs-row > .add-page {
             inline-size: 40px;
         }
@@ -709,13 +699,16 @@ export const pages_styles = css`
         }
 
         :host(:not(:fullscreen):not(.ww-fullscreen)) .page-thumbs {
-            --_thumb-width: 160px;
             grid-column: 1;
             grid-row: 1 / -1;
             flex-direction: column;
             min-block-size: 0;
             overflow-y: auto;
             overflow-x: hidden;
+        }
+
+        :host(:not(:fullscreen):not(.ww-fullscreen)) .page-thumb {
+            inline-size: 100%;
         }
 
         :host(:not(:fullscreen):not(.ww-fullscreen)) [part="actions"] > .add-page {
@@ -747,10 +740,6 @@ export const pages_styles = css`
 
         sl-icon-button {
             font-size: 1.75rem;
-        }
-
-        .page-thumbs {
-            --_thumb-width: 144px;
         }
 
         .page-actions sl-icon-button {

@@ -52,11 +52,11 @@ export function renderAddPage(view: PagesView) {
 }
 
 /** Page navigation or tab scrolling, plus fullscreen controls. */
-export function renderControls(view: PagesView, navigation: "pages" | "tabs" = "pages") {
+export function renderControls(view: PagesView, navigation: "pages" | "tabs" | "none" = "pages") {
     const tabs = navigation === "tabs";
     const previousTitle = tabs ? view.msg("Scroll tabs backward") : view.msg("Go to previous page");
     const nextTitle = tabs ? view.msg("Scroll tabs forward") : view.msg("Go to next page");
-    return html`<div class="controls-section">
+    return html`${navigation === "none" ? nothing : html`<div class="controls-section">
             <sl-icon-button
                 class=${tabs ? "tabs-scroll-backward" : ""}
                 title=${previousTitle}
@@ -77,7 +77,7 @@ export function renderControls(view: PagesView, navigation: "pages" | "tabs" = "
                 src=${chevronRightIcon}
                 ?disabled=${tabs ? !view.canScrollTabsForward : !view.hasNextPage}
             ></sl-icon-button>
-        </div>
+        </div>`}
         <div class="controls-section">
             <sl-icon-button
                 id="fullscreen"
