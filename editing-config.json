@@ -11,6 +11,13 @@
       "de": "Seiten"
     }
   },
+  "./snippets/slides": {
+    "label": {
+      "_": "Slides",
+      "en": "Slides",
+      "de": "Folien"
+    }
+  },
   "./snippets/example": {
     "label": {
       "_": "Example",

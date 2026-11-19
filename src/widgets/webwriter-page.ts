@@ -39,6 +39,7 @@ export class WebwriterPage extends LitElementWw {
             display: block;
             overflow-y: auto;
             overflow-x: hidden;
+            scrollbar-width: thin;
             border: var(--sl-panel-border-width) solid var(--sl-panel-border-color) !important;
             border-radius: var(--sl-border-radius-medium);
         }

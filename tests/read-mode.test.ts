@@ -154,6 +154,7 @@ describe("<webwriter-pages> in read mode", function () {
   it("keeps pages at 16:9 across widths even when their content overflows", async function () {
     const widget = await mount(`<webwriter-pages type="pages">${pages(2)}</webwriter-pages>`);
     widget.querySelector("webwriter-page")!.innerHTML = "<p>Long page content</p>".repeat(50);
+    assert.equal(getComputedStyle(widget.querySelector("webwriter-page")!).scrollbarWidth, "thin", "page content uses a thin scrollbar");
     const box = widget.parentElement!;
     for (const width of [300, 720, 1099, 1100, 2400]) {
       box.style.width = `${width}px`;

@@ -197,6 +197,7 @@
       "default": "./dist/tests/edit-mode.*"
     },
     "./snippets/example.html": "./snippets/example.html",
+    "./snippets/slides.html": "./snippets/slides.html",
     "./icon": "./icon.svg",
     "./editing-config.json": "./editing-config.json",
     "./custom-elements.json": "./custom-elements.json"

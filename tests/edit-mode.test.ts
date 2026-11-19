@@ -264,6 +264,26 @@ describe("<webwriter-pages> in edit mode", function () {
     }
   });
 
+  it("scrolls the active preview far enough to expose its overlapping remove button", async function () {
+    this.timeout(10000);
+    const widget = await mount(`<webwriter-pages type="pages" contenteditable="">${pages(12)}</webwriter-pages>`);
+    widget.parentElement!.style.width = "720px";
+    for (const direction of ["ltr", "rtl"]) {
+      widget.dir = direction;
+      await frame(2);
+      for (const index of [5, 0, 11]) {
+        items<HTMLButtonElement>(widget, ".page-thumb-select")[index].click();
+        await widget.updateComplete;
+        await until(() => {
+          const strip = items(widget, ".page-thumbs")[0];
+          const viewport = strip.getBoundingClientRect();
+          const remove = items(widget, ".page-thumb.active .remove-btn")[0].getBoundingClientRect();
+          return remove.left >= viewport.left && remove.right <= viewport.left + strip.clientWidth;
+        }, `remove button is fully visible for ${direction} page ${index + 1}`);
+      }
+    }
+  });
+
   it("keeps a gap beside the add card while previews scroll and appends a page", async function () {
     const widget = await mount(`<webwriter-pages type="pages" contenteditable="">${pages(12)}</webwriter-pages>`);
     const strip = items(widget, ".page-thumbs")[0];

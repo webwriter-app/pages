@@ -9,6 +9,7 @@ Present content as pages or tabs.
 | Name | Import Path |
 | :--: | :---------: |
 | Example | `@webwriter/pages/snippets/example.html` |
+| Slides | `@webwriter/pages/snippets/slides.html` |
 
 
 

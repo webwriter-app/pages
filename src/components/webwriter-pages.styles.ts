@@ -296,6 +296,8 @@ export const pages_styles = css`
 
     .page-thumb {
         block-size: var(--_preview-height);
+        scroll-margin-inline: var(--_page-action-space);
+        scroll-margin-block-start: var(--_page-action-space);
         max-inline-size: 100%;
         overflow: visible;
     }
