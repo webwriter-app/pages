@@ -584,8 +584,8 @@ export class WebwriterPages extends LitElementWw {
             <div class="pages-layout ${this.type === "pages" ? "pages-view" : "tabs-view"}">
                 ${this.type == "tabs" ? renderTabs(view) : html``}
                 <div class="page-viewport">
-                    <div class="page-stage">
-                        <slot></slot>
+                    <div class="page-surface">
+                        <div class="page-stage"><slot></slot></div>
                         ${this.type == "pages" && this.isFullscreen
                             ? html`<div class="controls-overlay" contenteditable="false">${renderControls(view)}</div>`
                             : html``}

@@ -291,6 +291,41 @@ describe("<webwriter-pages> in read mode", function () {
     }
   });
 
+  it("keeps fullscreen slide controls outside the physical right edge within the viewport", async function () {
+    const widget = await mount(`<webwriter-pages type="pages">${pages(3)}</webwriter-pages>`);
+    Object.defineProperty(widget, "isFullscreen", { configurable: true, get: () => true });
+    widget.classList.add("ww-fullscreen");
+    widget.requestUpdate();
+    await widget.updateComplete;
+    for(const direction of ["ltr", "rtl"] as const) {
+      widget.dir = direction;
+      for(const orientation of ["landscape", "portrait"] as const) {
+        widget.orientation = orientation;
+        await widget.updateComplete;
+        for(const [width, height] of [[1400, 650], [750, 950], [360, 640]]) {
+          widget.style.width = `${width}px`;
+          widget.style.height = `${height}px`;
+          await frame(2);
+          const context = `${direction}/${orientation}/${width}x${height}`;
+          const host = widget.getBoundingClientRect();
+          const page = widget.querySelector("webwriter-page[active]")!.getBoundingClientRect();
+          const controls = items(widget, ".controls-overlay")[0].getBoundingClientRect();
+          assert.isAbove(controls.width, 0, `controls are visible: ${context}`);
+          assert.isAbove(controls.height, 0, `controls are visible: ${context}`);
+          assert.closeTo(page.width / page.height, orientation === "portrait" ? 9 / 16 : 16 / 9, 0.01, `page ratio: ${context}`);
+          assert.closeTo(controls.left, page.right + 12, 1, `controls use the physical right edge with a 12px gap: ${context}`);
+          assert.closeTo(controls.bottom, page.bottom - 12, 1, `controls align above the page bottom: ${context}`);
+          for(const [name, rect] of [["page", page], ["controls", controls]] as const) {
+            assert.isAtLeast(rect.left, host.left - 1, `${name} fits on the left: ${context}`);
+            assert.isAtMost(rect.right, host.right + 1, `${name} fits on the right: ${context}`);
+            assert.isAtLeast(rect.top, host.top - 1, `${name} fits at the top: ${context}`);
+            assert.isAtMost(rect.bottom, host.bottom + 1, `${name} fits at the bottom: ${context}`);
+          }
+        }
+      }
+    }
+  });
+
   it("scrolls previews vertically beside a wide page and returns them below a narrow page", async function () {
     const widget = await mount(`<webwriter-pages type="pages">${pages(12)}</webwriter-pages>`);
     widget.parentElement!.style.width = "1100px";

@@ -50,6 +50,10 @@ export const pages_styles = css`
         display: contents;
     }
 
+    .page-surface {
+        display: contents;
+    }
+
     :host(:fullscreen),
     :host(.ww-fullscreen) {
         max-width: none;
@@ -66,6 +70,7 @@ export const pages_styles = css`
     :host(:fullscreen) .page-viewport,
     :host(.ww-fullscreen) .page-viewport {
         display: grid;
+        grid-template-columns: minmax(0, 1fr);
         place-items: center;
         flex: 1 1 0;
         min-block-size: 0;
@@ -77,6 +82,39 @@ export const pages_styles = css`
         inline-size: min(100cqi, calc(100cqb * var(--_page-ratio)));
         background: var(--sl-panel-background-color);
         margin: 0;
+    }
+
+    :host(:fullscreen) .pages-view .page-surface,
+    :host(.ww-fullscreen) .pages-view .page-surface {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+        gap: var(--sl-spacing-small);
+        inline-size: max-content;
+        max-inline-size: 100%;
+    }
+
+    :host(:fullscreen) .pages-view .page-stage,
+    :host(.ww-fullscreen) .pages-view .page-stage {
+        grid-column: 1;
+        grid-row: 1;
+        inline-size: calc(100cqb * var(--_page-ratio));
+        max-inline-size: 100%;
+    }
+
+    :host(:fullscreen) .pages-view .page-surface:dir(rtl),
+    :host(.ww-fullscreen) .pages-view .page-surface:dir(rtl) {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    :host(:fullscreen) .pages-view .page-surface:dir(rtl) > .page-stage,
+    :host(.ww-fullscreen) .pages-view .page-surface:dir(rtl) > .page-stage {
+        grid-column: 2;
+    }
+
+    :host(:fullscreen) .pages-view .page-surface:dir(rtl) > .controls-overlay,
+    :host(.ww-fullscreen) .pages-view .page-surface:dir(rtl) > .controls-overlay {
+        grid-column: 1;
     }
 
     [part="tabs"] {
@@ -608,9 +646,9 @@ export const pages_styles = css`
     }
 
     .controls-overlay {
-        position: absolute;
-        bottom: var(--sl-spacing-small);
-        right: var(--sl-spacing-small);
+        grid-column: 2;
+        grid-row: 1;
+        margin-block-end: var(--sl-spacing-small);
         display: flex;
         flex-direction: row;
         align-items: center;
@@ -786,6 +824,7 @@ export const pages_styles = css`
         }
 
         .pages-layout,
+        .page-surface,
         .page-stage {
             display: block !important;
             aspect-ratio: auto;
