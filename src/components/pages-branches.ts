@@ -104,7 +104,7 @@ export class PagesBranches extends LitElementWw {
         if (!this.view.editing || !source || !target || source === target) return false;
         const branches = readBranches(source);
         if (branches.some((branch) => branch.target === to)) return false;
-        this.setBranches(source, [...branches, { target: to, label: this.#label(target) }]);
+        this.setBranches(source, [...branches, { target: to, label: "" }]);
         return true;
     }
 
@@ -153,7 +153,7 @@ export class PagesBranches extends LitElementWw {
                 @keydown=${this.#keydown}>
                 ${view.pages.flatMap((source) => readBranches(source).filter((branch) => this.#page(branch.target)).map((branch) => html`
                     <ww-path data-ww-key=${`path:${pageKey(source)}:${branch.target}`} from=${`${pageKey(source)}:out`} to=${`${branch.target}:in`}
-                        route="curve" marker-end="arrow" aria-label=${branch.label} selectable ?selected=${this.selectedPath === `path:${pageKey(source)}:${branch.target}`}>
+                        route="curve" marker-end="arrow" aria-label=${branch.label || this.#label(this.#page(branch.target)!)} selectable ?selected=${this.selectedPath === `path:${pageKey(source)}:${branch.target}`}>
                     </ww-path>`))}
                 ${repeat(view.pages, pageKey, (node, index) => {
                     const position = readNodePosition(node, index), key = pageKey(node);

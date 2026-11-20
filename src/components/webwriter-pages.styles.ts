@@ -71,14 +71,15 @@ export const pages_styles = css`
     .branch-choice-wrap .branch-choice { padding-inline-end: 24px; }
 
     .branch-controls.graph-expanded { border-radius: 0; }
-    .branch-fullscreen { display: flex; flex: 0 0 auto; margin-block-start: 7px; }
+    .branch-tools { display: flex; flex-direction: column; align-items: center; flex: 0 0 auto; margin-block-start: 7px; gap: 4px; }
+    .branch-fullscreen { display: flex; }
     .branch-controls .graph-toggle {
         display: inline-flex;
         align-items: center;
         justify-content: center;
         flex: 0 0 auto;
         inline-size: 32px;
-        margin-block-start: 4px;
+        min-block-size: 32px;
         padding: 0;
         border: 0;
         background: transparent;
@@ -176,6 +177,11 @@ export const pages_styles = css`
         outline-offset: var(--sl-focus-ring-offset);
     }
 
+    .branch-controls .choice-form :is(input, select):focus {
+        outline: 2px solid var(--sl-color-neutral-600, #52525b);
+        outline-offset: -2px;
+    }
+
     @media (hover: hover) {
         .branch-controls button:not(:disabled):hover { border-color: var(--_accent); }
         .branch-controls .graph-toggle:hover { background: transparent; color: var(--_accent); }
@@ -183,7 +189,7 @@ export const pages_styles = css`
     }
     @media (pointer: coarse) {
         .branch-controls :is(button, input, select) { min-block-size: 44px; }
-        .branch-controls .graph-toggle { inline-size: 44px; }
+        .branch-controls .graph-toggle { inline-size: 44px; min-block-size: 44px; }
     }
 
     :host([type="branches"]) ::slotted(webwriter-page) {
@@ -357,7 +363,7 @@ export const pages_styles = css`
         margin-block-start: calc(var(--sl-panel-border-width) * -1);
     }
 
-    :host(:not([type="pages"])) ::slotted(webwriter-page) {
+    :host(:not([type="pages"]):not([type="branches"])) ::slotted(webwriter-page) {
         border-start-start-radius: 0;
         border-start-end-radius: 0;
     }

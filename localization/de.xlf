@@ -190,6 +190,18 @@
         <source>Close</source>
         <target>Schließen</target>
       </trans-unit>
+      <trans-unit id="s309c270b33a470b8">
+        <source>New page</source>
+        <target>Neue Seite</target>
+      </trans-unit>
+      <trans-unit id="s354ae458a550da1f">
+        <source>Destination</source>
+        <target>Ziel</target>
+      </trans-unit>
+      <trans-unit id="s5590dbf7e425789d">
+        <source>Label</source>
+        <target>Beschriftung</target>
+      </trans-unit>
 </body>
   </file>
 </xliff>

@@ -442,6 +442,16 @@ export class WebwriterPages extends LitElementWw {
         });
     };
 
+    #addPageChoice = (source: WebwriterPage, label: string) => {
+        if (!this.#permissions.editing || source.parentElement !== this) return;
+        transaction(this, () => {
+            const target = this.#createPage();
+            ensurePageKeys(this.pages);
+            writeBranches(source, [...readBranches(source), { target: pageKey(target), label }]);
+            this.requestUpdate();
+        });
+    };
+
     #moveBranchPages = (items: MoveDetail["items"]) => {
         if (!this.#permissions.editing) return;
         transaction(this, () => {
@@ -499,7 +509,7 @@ export class WebwriterPages extends LitElementWw {
         transaction(this, () => this.#addPage(index));
     }
 
-    #addPage(index?: number) {
+    #createPage(index?: number) {
         const page = this.ownerDocument.createElement(
             "webwriter-page"
         ) as WebwriterPage;
@@ -513,12 +523,17 @@ export class WebwriterPages extends LitElementWw {
             this.appendChild(page);
         }
 
+        return page;
+    }
+
+    #addPage(index?: number) {
+        const page = this.#createPage(index);
         this.changePage(this.pages.indexOf(page));
 
         // place cursor at the start of the new page
         const selection = document.getSelection();
         if (selection) {
-            selection.setBaseAndExtent(p, 0, p, 0);
+            selection.setBaseAndExtent(page.firstElementChild!, 0, page.firstElementChild!, 0);
         }
         return this.updateComplete;
     }
@@ -821,7 +836,7 @@ export class WebwriterPages extends LitElementWw {
                     </div>
                 </div>
                 ${this.type == "pages" && !this.isFullscreen ? renderThumbs(view) : html``}
-                ${branches ? renderBranchChoices(view, this.#setBranches, this.#followBranch, this.branchGraphExpanded, () => this.branchGraphExpanded = !this.branchGraphExpanded) : nothing}
+                ${branches ? renderBranchChoices(view, this.#setBranches, this.#followBranch, this.branchGraphExpanded, () => this.branchGraphExpanded = !this.branchGraphExpanded, this.#addPageChoice) : nothing}
                 ${branches && view.editing ? html`<pages-branches id="branch-editor" part="branch-editor" contenteditable="false" data-ww-capture-selection="false"
                     ?hidden=${!this.branchGraphExpanded} .collapsed=${!this.branchGraphExpanded}
                     .view=${view} .startKey=${this.startPage || pageKey(view.pages[0])}

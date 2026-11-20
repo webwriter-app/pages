@@ -88,8 +88,10 @@ describe("Pages Branches view", function () {
         assert.isNull(graph.shadowRoot!.querySelector(".help"), "no permanent editing hint");
         const toggle = control<HTMLButtonElement>(widget, ".branch-controls .graph-toggle");
         const controls = control(widget, ".branch-controls");
-        assert.equal(controls.firstElementChild, toggle, "chevron starts the choices row");
-        assert.equal(controls.lastElementChild!.className, "branch-fullscreen", "fullscreen ends the choices row");
+        assert.equal(controls.firstElementChild!.className, "branch-choices", "choices start the row");
+        assert.equal(controls.lastElementChild!.className, "branch-tools", "controls end the row");
+        assert.equal(toggle.previousElementSibling!.className, "branch-fullscreen");
+        assert.isAtLeast(toggle.getBoundingClientRect().top, control(widget, "#fullscreen").getBoundingClientRect().bottom, "chevron sits below fullscreen");
         assert.equal(controls.nextElementSibling, graph, "graph follows choices in DOM and keyboard order");
         assert.isAbove(controls.getBoundingClientRect().top, control(widget, ".page-stage").getBoundingClientRect().top);
         assert.isAtLeast(graph.getBoundingClientRect().top, controls.getBoundingClientRect().bottom - 1);
@@ -153,6 +155,7 @@ describe("Pages Branches view", function () {
         const popup = open();
         assert.isNotNull(popup);
         assert.lengthOf(readBranches(widget.children[0]), 0, "opening + does not save a choice");
+        popup.querySelector<HTMLSelectElement>("select")!.value = pageKey(widget.children[1]);
         popup.querySelector<HTMLInputElement>('input')!.value = "Continue to the activity";
         popup.querySelector<HTMLButtonElement>(".choice-save")!.click();
         await until(() => choices(widget).length === 1, "choice saved");
@@ -173,6 +176,61 @@ describe("Pages Branches view", function () {
         assert.isNull(widget.shadowRoot!.querySelector(".choice-popover, .choice-goto, .add-choice"));
         choices(widget)[0].click();
         await until(() => widget.activePageIndex === 2, "reader buttons navigate directly");
+    });
+
+    it("defaults to a new empty destination and saves its choice in one transaction", async function () {
+        const widget = await mount(`<webwriter-pages type="branches" contenteditable="true">${pages(1)}</webwriter-pages>`);
+        await editor(widget);
+        control(widget, ".add-choice").click();
+        const popup = control<HTMLDialogElement>(widget, ".choice-popover:popover-open");
+        const destination = popup.querySelector<HTMLSelectElement>("select")!;
+        const input = popup.querySelector<HTMLInputElement>("input")!;
+        assert.equal(destination.selectedOptions[0].textContent, "New page");
+        assert.equal(input.value, "");
+        assert.equal(input.placeholder, "Page 2");
+        assert.deepEqual([...popup.querySelectorAll("form label")].map(el => [...el.childNodes].filter(node => node.nodeType === Node.TEXT_NODE).map(node => node.textContent).join("").trim()), ["Destination", "Label"]);
+        const log = steps(widget);
+        popup.querySelector<HTMLButtonElement>(".choice-save")!.click();
+        await until(() => widget.children.length === 2 && readBranches(widget.children[0]).length === 1);
+        await frame(3);
+        const target = widget.children[1];
+        assert.equal(target.innerHTML, "<p></p>");
+        assert.equal(readBranches(widget.children[0])[0].target, pageKey(target));
+        assert.equal(readBranches(widget.children[0])[0].label, "", "blank label stays inherited");
+        assert.equal(choices(widget)[0].textContent!.trim(), "Page 2");
+        assert.equal(widget.activePageIndex, 0, "creating a destination keeps the source page active");
+        assert.deepEqual(log.stop(), ["transactionstart", "transactionend"]);
+    });
+
+    it("inherits destination labels and updates the placeholder when destinations change", async function () {
+        const widget = await mount(`<webwriter-pages type="branches" contenteditable="true">${pages(3)}</webwriter-pages>`);
+        await editor(widget);
+        widget.children[1].setAttribute("label", "Activity");
+        await frame(2);
+        control(widget, ".add-choice").click();
+        const popup = control<HTMLDialogElement>(widget, ".choice-popover:popover-open");
+        const select = popup.querySelector<HTMLSelectElement>("select")!, input = popup.querySelector<HTMLInputElement>("input")!;
+        select.value = pageKey(widget.children[1]);
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+        assert.equal(input.placeholder, "Activity");
+        assert.equal(input.value, "", "placeholder is not authored text");
+        popup.querySelector<HTMLButtonElement>(".choice-save")!.click();
+        await until(() => choices(widget).length === 1);
+        assert.equal(choices(widget)[0].textContent!.trim(), "Activity");
+        widget.children[1].setAttribute("label", "Renamed activity");
+        await until(() => choices(widget)[0].textContent!.trim() === "Renamed activity");
+        choices(widget)[0].click();
+        const edit = control<HTMLDialogElement>(widget, ".choice-popover:popover-open");
+        assert.equal(edit.querySelector<HTMLInputElement>("input")!.value, "");
+        assert.equal(edit.querySelector<HTMLInputElement>("input")!.placeholder, "Renamed activity");
+        edit.querySelector<HTMLSelectElement>("select")!.value = pageKey(widget.children[2]);
+        edit.querySelector<HTMLSelectElement>("select")!.dispatchEvent(new Event("change", { bubbles: true }));
+        assert.equal(edit.querySelector<HTMLInputElement>("input")!.placeholder, "Page 3");
+        edit.querySelector<HTMLButtonElement>(".choice-save")!.click();
+        await until(() => choices(widget)[0].textContent!.trim() === "Page 3");
+        widget.removeAttribute("contenteditable");
+        await until(() => !widget.shadowRoot!.querySelector("pages-branches"));
+        assert.equal(choices(widget)[0].textContent!.trim(), "Page 3", "read mode uses the destination name too");
     });
 
     it("keeps choice drafts transient, resets them on reopening and removes via the popup", async function () {

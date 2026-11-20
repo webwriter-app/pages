@@ -11,6 +11,8 @@ import type { WebwriterPage } from "../widgets/webwriter-page";
 import type { WebwriterPages } from "../widgets/webwriter-pages";
 import { pageKey, readBranches, type PageBranch } from "../model/page-branches";
 
+const newPageDestination = "new:page";
+
 function invoker(popup: HTMLElement) {
     return (popup.getRootNode() as ShadowRoot).querySelector<HTMLButtonElement>(`[popovertarget="${popup.id}"]`);
 }
@@ -39,7 +41,7 @@ function fallbackPopup(event: MouseEvent, id: string, prepare: (popup: HTMLDialo
 }
 
 /** The bottom pane is the common interface for reading and editing page choices. */
-export function renderBranchChoices(view: PagesView, setBranches: (page: WebwriterPage, branches: PageBranch[]) => void, follow: (target: string) => void, graphExpanded: boolean, toggleGraph: () => void) {
+export function renderBranchChoices(view: PagesView, setBranches: (page: WebwriterPage, branches: PageBranch[]) => void, follow: (target: string) => void, graphExpanded: boolean, toggleGraph: () => void, addPageChoice: (source: WebwriterPage, label: string) => void) {
     const page = view.pages[view.activePageIndex];
     const label = (target: WebwriterPage) => target.getAttribute("label") || `${view.msg("Page")} ${view.pages.indexOf(target) + 1}`;
     const branches = (page ? readBranches(page) : []).filter((branch, index, all) => all.findIndex((entry) => entry.target === branch.target) === index);
@@ -49,10 +51,17 @@ export function renderBranchChoices(view: PagesView, setBranches: (page: Webwrit
     const addButton = (popup: HTMLElement) => (popup.getRootNode() as ShadowRoot).querySelector<HTMLButtonElement>(".add-choice");
 
     const popup = (id: string, original?: string) => {
+        const updatePlaceholder = (dialog: HTMLDialogElement) => {
+            const destination = dialog.querySelector<HTMLSelectElement>('select[name="destination"]')!.value;
+            const target = view.pages.find((target) => pageKey(target) === destination);
+            dialog.querySelector<HTMLInputElement>('input[name="label"]')!.placeholder = target ? label(target)
+                : destination === newPageDestination ? `${view.msg("Page")} ${view.pages.length + 1}` : view.msg("Missing page");
+        };
         const prepare = (dialog: HTMLDialogElement) => {
             const branch = original ? readBranches(page).find((branch) => branch.target === original) : undefined;
             dialog.querySelector<HTMLInputElement>('input[name="label"]')!.value = branch?.label ?? "";
-            dialog.querySelector<HTMLSelectElement>('select[name="destination"]')!.value = branch?.target ?? pageKey(destinations()[0]);
+            dialog.querySelector<HTMLSelectElement>('select[name="destination"]')!.value = branch?.target ?? newPageDestination;
+            updatePlaceholder(dialog);
         };
         const title = original ? view.msg("Edit choice") : view.msg("Add choice");
         return { prepare, content: html`<dialog id=${id} class="choice-popover" popover="auto" aria-label=${title}
@@ -68,19 +77,26 @@ export function renderBranchChoices(view: PagesView, setBranches: (page: Webwrit
                     const dialog = form.closest("dialog")!;
                     const destination = form.querySelector<HTMLSelectElement>('select[name="destination"]')!.value;
                     const text = form.querySelector<HTMLInputElement>('input[name="label"]')!.value;
+                    if (!original && destination === newPageDestination) {
+                        closePopup(dialog, addButton(dialog));
+                        addPageChoice(page, text);
+                        return;
+                    }
                     const target = view.pages.find((target) => target.parentElement === page.parentElement && pageKey(target) === destination);
                     const current = readBranches(page);
                     if (!target || target === page || current.some((branch) => branch.target === destination && branch.target !== original)) return;
                     if (original && !current.some((branch) => branch.target === original)) return;
                     closePopup(dialog, original === destination ? invoker(dialog) : addButton(dialog));
                     setBranches(page, original ? current.map((branch) => branch.target === original ? { ...branch, target: destination, label: text } : branch)
-                        : [...current, { target: destination, label: text || label(target) }]);
+                        : [...current, { target: destination, label: text }]);
                 }}>
-                    <label>${view.msg("Choice label")}<input name="label" class="choice-label-input" type="text" autofocus></label>
-                    <label>${view.msg("Destination page")}<select name="destination" class="choice-destination" required>
+                    <label for=${`${id}-destination`}>${view.msg("Destination")}<select id=${`${id}-destination`} name="destination" class="choice-destination" required autofocus
+                        @change=${(event: Event) => updatePlaceholder((event.currentTarget as HTMLElement).closest("dialog")!)}>
+                        ${!original ? html`<option value=${newPageDestination}>${view.msg("New page")}</option>` : nothing}
                         ${original && !view.pages.some((target) => pageKey(target) === original) ? html`<option value=${original} disabled>${view.msg("Missing page")}</option>` : nothing}
                         ${destinations(original).map((target) => html`<option value=${pageKey(target)}>${label(target)}</option>`)}
                     </select></label>
+                    <label for=${`${id}-label`}>${view.msg("Label")}<input id=${`${id}-label`} name="label" class="choice-label-input" type="text"></label>
                     <div class="choice-popover-actions">
                         ${original ? html`<button type="button" class="remove-choice" @click=${(event: MouseEvent) => {
                             const dialog = (event.currentTarget as HTMLElement).closest("dialog")!;
@@ -97,18 +113,16 @@ export function renderBranchChoices(view: PagesView, setBranches: (page: Webwrit
     const addition = view.editing && page ? popup(addId) : undefined;
     const toggleLabel = graphExpanded ? view.msg("Collapse graph") : view.msg("Expand graph");
     return html`<aside class="branch-controls ${view.editing && graphExpanded ? "graph-expanded" : ""}" part="branch-controls" contenteditable="false" data-ww-capture-selection="false">
-        ${view.editing ? html`<button type="button" class="graph-toggle" aria-expanded=${String(graphExpanded)} aria-controls="branch-editor" aria-label=${toggleLabel} title=${toggleLabel}
-            @click=${toggleGraph}><sl-icon src=${graphExpanded ? chevronDown : chevronRight} aria-hidden="true"></sl-icon></button>` : nothing}
         <nav class="branch-choices" aria-label=${view.msg("Page choices")}>
             ${repeat(branches, (branch) => branch.target, (branch) => {
                 const target = view.pages.find((target) => pageKey(target) === branch.target);
-                if (!view.editing) return target ? html`<button type="button" class="branch-choice" @click=${() => follow(branch.target)}>${branch.label || view.msg("Continue")}</button>` : nothing;
+                if (!view.editing) return target ? html`<button type="button" class="branch-choice" @click=${() => follow(branch.target)}>${branch.label || (target ? label(target) : view.msg("Missing page"))}</button>` : nothing;
                 const id = `choice-edit-${pageKey(page)}-${branch.target}`;
                 const editor = popup(id, branch.target);
                 const goTo = target ? `${view.msg("Go to page")}: ${label(target)}` : view.msg("Missing page");
                 return html`<div class="branch-choice-wrap">
                     <button type="button" class="branch-choice" popovertarget=${id} aria-haspopup="dialog" title=${view.msg("Edit choice")}
-                        @click=${(event: MouseEvent) => fallbackPopup(event, id, editor.prepare)}>${branch.label || view.msg("Continue")}</button>
+                        @click=${(event: MouseEvent) => fallbackPopup(event, id, editor.prepare)}>${branch.label || (target ? label(target) : view.msg("Missing page"))}</button>
                     <button type="button" class="choice-goto" ?disabled=${!target} title=${goTo} aria-label=${goTo}
                         @click=${(event: MouseEvent) => {
                             const root = (event.currentTarget as HTMLElement).getRootNode() as ShadowRoot;
@@ -120,8 +134,12 @@ export function renderBranchChoices(view: PagesView, setBranches: (page: Webwrit
                 </div>`;
             })}
             ${addition ? html`<button type="button" class="add-choice" popovertarget=${addId} aria-haspopup="dialog" title=${view.msg("Add choice")} aria-label=${view.msg("Add choice")}
-                ?disabled=${!destinations().length} @click=${(event: MouseEvent) => fallbackPopup(event, addId, addition.prepare)}><sl-icon src=${plusIcon} aria-hidden="true"></sl-icon></button>${addition.content}` : nothing}
+                @click=${(event: MouseEvent) => fallbackPopup(event, addId, addition.prepare)}><sl-icon src=${plusIcon} aria-hidden="true"></sl-icon></button>${addition.content}` : nothing}
         </nav>
-        <div class="branch-fullscreen">${renderControls(view, "none", false)}</div>
+        <div class="branch-tools">
+            <div class="branch-fullscreen">${renderControls(view, "none", false)}</div>
+            ${view.editing ? html`<button type="button" class="graph-toggle" aria-expanded=${String(graphExpanded)} aria-controls="branch-editor" aria-label=${toggleLabel} title=${toggleLabel}
+                @click=${toggleGraph}><sl-icon src=${graphExpanded ? chevronDown : chevronRight} aria-hidden="true"></sl-icon></button>` : nothing}
+        </div>
     </aside>`;
 }
