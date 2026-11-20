@@ -8,7 +8,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "Represents a single page in the `webwriter-pages` widget.\nSingle-media pages remove padding and fit media without stretching or cropping.",
+          "description": "Represents a single page in the `webwriter-pages` widget.\nSingle-media pages remove padding and fit media without stretching or cropping.\nIn Branches view, `page-key`, `branches`, `node-x` and `node-y` keep routing and graph layout.",
           "name": "WebwriterPage",
           "slots": [
             {
@@ -49,6 +49,50 @@
               "description": "Data URI string for the page thumbnail (e.g., \"data:image/png;base64,...\").\nUsed to display a preview image for the page.",
               "attribute": "thumbnail",
               "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "pageKey",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\"",
+              "description": "Stable local identifier for Branches links; independent of order and label.",
+              "attribute": "page-key",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "branches",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\"",
+              "description": "JSON choices: an array of objects with target page keys and plaintext labels.",
+              "attribute": "branches",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "nodeX",
+              "type": {
+                "text": "number | undefined"
+              },
+              "default": "undefined",
+              "description": "Saved node position in the Branches editor. Absent coordinates use a grid.",
+              "attribute": "node-x",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "nodeY",
+              "type": {
+                "text": "number | undefined"
+              },
+              "default": "undefined",
+              "description": "Saved vertical node position in the Branches editor.",
+              "attribute": "node-y",
+              "reflects": true
             }
           ],
           "attributes": [
@@ -78,6 +122,42 @@
               "default": "\"\"",
               "description": "Data URI string for the page thumbnail (e.g., \"data:image/png;base64,...\").\nUsed to display a preview image for the page.",
               "fieldName": "thumbnail"
+            },
+            {
+              "name": "page-key",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\"",
+              "description": "Stable local identifier for Branches links; independent of order and label.",
+              "fieldName": "pageKey"
+            },
+            {
+              "name": "branches",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\"",
+              "description": "JSON choices: an array of objects with target page keys and plaintext labels.",
+              "fieldName": "branches"
+            },
+            {
+              "name": "node-x",
+              "type": {
+                "text": "number | undefined"
+              },
+              "default": "undefined",
+              "description": "Saved node position in the Branches editor. Absent coordinates use a grid.",
+              "fieldName": "nodeX"
+            },
+            {
+              "name": "node-y",
+              "type": {
+                "text": "number | undefined"
+              },
+              "default": "undefined",
+              "description": "Saved vertical node position in the Branches editor.",
+              "fieldName": "nodeY"
             }
           ],
           "superclass": {
@@ -115,7 +195,7 @@
       "declarations": [
         {
           "kind": "class",
-          "description": "Display authored content as pages, with tabs by default or a preview-card layout.\n\nAuthors add `webwriter-page` children; the `type` attribute switches between the Slides view with preview cards (\"pages\")\nand the default tab strip (\"tabs\"). Thumbnails are drawn in the editor with a capture library that loads on first use.\nIn use mode the arrow keys, the controls and swipes in fullscreen move between pages. The arrow keys leave\ntext entry, Alt and Meta combinations alone. Every thumbnail and tab has a button that selects its page;\nin edit mode Space or Enter on the thumbnail itself picks it up for reordering.\n\nSet `orientation=\"portrait\"` for a 9:16 page, or use the default `landscape` for 16:9. The orientation applies to both views, fullscreen, and preview cards. The attribute is optional; an absent attribute keeps landscape without adding it to existing markup.\n\nThe widget follows the page theme: `--ww-text-color`, `--ww-font-family`, and `--ww-theme-accent-1` (the\nselected thumbnail). On paper it prints all pages one after another and leaves out the controls.\n\nConversions: a `section` becomes pages (its nested `section` children become one page each, otherwise the\nsection is one page). Each page converts to a `details` element with its label as the summary.\nThe thumbnails are not carried over.\n\nSignals: `page` is the number of the current page, starting at 1; `count` is the number of pages.\nBoth change when readers or authors move to another page.\n\nEnable `completion-indicators` to mark pages read after switching away, once opened and scrolled to the bottom.\nA checkmark on each read tab/preview and an aggregate checkmark in the controls show progress.\nProgress is local to this widget instance, is not saved in authored HTML, and does not advance in edit mode.\n\nKnown limitation: in edit mode the drag module sets `touch-action: none` on the thumbnails, so on a touch\nscreen the thumbnail strip cannot be scrolled by dragging on a thumbnail; the select buttons still work.",
+          "description": "Display authored content in Tabs, Slides, or Branches, with Tabs by default.\n\nAuthors add `webwriter-page` children; the `type` attribute switches between the Slides view with preview cards (\"pages\")\nand the default tab strip (\"tabs\"). Thumbnails are drawn in the editor with a capture library that loads on first use.\nThe \"branches\" view adds an editing-only Scene graph. Node labels, start page, positions and choices\nare saved on the authored pages; the bottom pane edits choices and lets readers follow them.\nThe graph has no reading-mode controls, and Branches hides completion indicators.\nIn use mode the arrow keys, the controls and swipes in fullscreen move between pages. The arrow keys leave\ntext entry, Alt and Meta combinations alone. Every thumbnail and tab has a button that selects its page;\nin edit mode Space or Enter on the thumbnail itself picks it up for reordering.\n\nSet `orientation=\"portrait\"` for a 9:16 page, or use the default `landscape` for 16:9.\nThe orientation applies to all views, fullscreen, and preview cards.\n\nThe widget follows the page theme: `--ww-text-color`, `--ww-font-family`, and `--ww-theme-accent-1` (the\nselected thumbnail). On paper it prints all pages one after another and leaves out the controls.\n\nConversions: a `section` becomes pages (its nested `section` children become one page each, otherwise the\nsection is one page). Each page converts to a `details` element with its label as the summary.\nThe thumbnails are not carried over.\n\nSignals: `page` is the number of the current page, starting at 1; `count` is the number of pages.\nBoth change when readers or authors move to another page.\n\nEnable `completion-indicators` to mark pages read after switching away, once opened and scrolled to the bottom.\nA checkmark on each read tab/preview and an aggregate checkmark in the controls show progress.\nProgress is local to this widget instance, is not saved in authored HTML, and does not advance in edit mode.\n\nKnown limitation: in edit mode the drag module sets `touch-action: none` on the thumbnails, so on a touch\nscreen the thumbnail strip cannot be scrolled by dragging on a thumbnail; the select buttons still work.",
           "name": "WebwriterPages",
           "cssParts": [
             {
@@ -133,6 +213,14 @@
             {
               "description": "One tab in the tab strip.",
               "name": "tab"
+            },
+            {
+              "description": "The editing-only Scene graph in Branches view.",
+              "name": "branch-editor"
+            },
+            {
+              "description": "The bottom pane of choices and continuation controls in Branches view.",
+              "name": "branch-controls"
             }
           ],
           "slots": [
@@ -173,7 +261,7 @@
               "kind": "field",
               "name": "options",
               "static": true,
-              "default": "{ type: { type: \"select\", label: (widget: Labelled) => widget.msg(\"View\"), options: [ { value: \"tabs\", label: (widget: Labelled) => widget.msg(\"Tabs\") }, { value: \"pages\", label: (widget: Labelled) => widget.msg(\"Slides\") }, ], }, completionIndicators: { type: Boolean, label: (widget: Labelled) => widget.msg(\"Show completion indicators\"), }, } satisfies Record<string, Declared<OptionDeclaration>>"
+              "default": "{ type: { type: \"select\", label: (widget: Labelled) => widget.msg(\"View\"), options: [ { value: \"tabs\", label: (widget: Labelled) => widget.msg(\"Tabs\") }, { value: \"pages\", label: (widget: Labelled) => widget.msg(\"Slides\") }, { value: \"branches\", label: (widget: Labelled) => widget.msg(\"Branches\") }, ], }, completionIndicators: { type: Boolean, label: (widget: Labelled) => widget.msg(\"Show completion indicators\"), }, } satisfies Record<string, Declared<OptionDeclaration>>"
             },
             {
               "kind": "field",
@@ -201,11 +289,11 @@
               "kind": "field",
               "name": "type",
               "type": {
-                "text": "\"tabs\" | \"pages\""
+                "text": "\"tabs\" | \"pages\" | \"branches\""
               },
               "privacy": "public",
               "default": "\"tabs\"",
-              "description": "Defines the type of view for the sequence of pages.\n- \"pages\": Show the Slides view with preview cards.\n- \"tabs\": Show content using tabs.",
+              "description": "Defines the type of view for the sequence of pages.\n- \"pages\": Show the Slides view with preview cards.\n- \"tabs\": Show content using tabs.\n- \"branches\": Edit a page graph; read by following choices.",
               "attribute": "type",
               "reflects": true
             },
@@ -617,6 +705,17 @@
                 }
               },
               "description": "The sequence of pages as seen by the strip and control components."
+            },
+            {
+              "kind": "field",
+              "name": "startPage",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\"",
+              "description": "Stable key of the first page in Branches; an absent key starts at the first page.",
+              "attribute": "start-page",
+              "reflects": true
             }
           ],
           "events": [
@@ -631,10 +730,10 @@
             {
               "name": "type",
               "type": {
-                "text": "\"tabs\" | \"pages\""
+                "text": "\"tabs\" | \"pages\" | \"branches\""
               },
               "default": "\"tabs\"",
-              "description": "Defines the type of view for the sequence of pages.\n- \"pages\": Show content as sequential pages.\n- \"tabs\": Show content using tabs.",
+              "description": "Defines the type of view for the sequence of pages.\n- \"pages\": Show the Slides view with preview cards.\n- \"tabs\": Show content using tabs.\n- \"branches\": Edit a page graph; read by following choices.",
               "fieldName": "type"
             },
             {
@@ -654,6 +753,15 @@
               "default": "\"landscape\"",
               "description": "Page orientation: 16:9 landscape or 9:16 portrait. The optional orientation attribute defaults to landscape when absent; the default is not added to existing markup.",
               "fieldName": "orientation"
+            },
+            {
+              "name": "start-page",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\"",
+              "description": "Stable key of the first page in Branches; an absent key starts at the first page.",
+              "fieldName": "startPage"
             }
           ],
           "superclass": {

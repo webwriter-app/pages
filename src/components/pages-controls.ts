@@ -62,7 +62,7 @@ export function renderAddPage(view: PagesView) {
 }
 
 /** Page navigation or tab scrolling, plus fullscreen controls. */
-export function renderControls(view: PagesView, navigation: "pages" | "tabs" | "none" = "pages") {
+export function renderControls(view: PagesView, navigation: "pages" | "tabs" | "none" = "pages", completion = true) {
     const tabs = navigation === "tabs";
     const previousTitle = tabs ? view.msg("Scroll tabs backward") : view.msg("Go to previous page");
     const nextTitle = tabs ? view.msg("Scroll tabs forward") : view.msg("Go to next page");
@@ -97,6 +97,6 @@ export function renderControls(view: PagesView, navigation: "pages" | "tabs" | "
                 src=${view.isFullscreen ? fullscreenExitIcon : fullscreenIcon}
                 @click=${() => view.toggleFullscreen()}
             ></sl-icon-button>
-            ${renderCompletionOverview(view)}
+            ${completion ? renderCompletionOverview(view) : nothing}
         </div>`;
 }

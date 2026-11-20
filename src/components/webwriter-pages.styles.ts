@@ -37,6 +37,89 @@ export const pages_styles = css`
         grid-template-columns: minmax(0, 1fr);
     }
 
+    [part="branch-editor"] {
+        border: var(--sl-panel-border-width) solid var(--sl-panel-border-color);
+        border-radius: var(--sl-border-radius-medium) var(--sl-border-radius-medium) 0 0;
+        overflow: clip;
+        user-select: none;
+    }
+
+    .branch-topbar {
+        display: flex;
+        justify-content: end;
+        padding-inline: var(--sl-spacing-x-small);
+        background: var(--sl-color-neutral-50);
+        border: var(--sl-panel-border-width) solid var(--sl-panel-border-color);
+        border-block-end: 0;
+        border-radius: var(--sl-border-radius-medium) var(--sl-border-radius-medium) 0 0;
+    }
+
+    .branch-controls {
+        display: grid;
+        gap: var(--sl-spacing-small);
+        padding: var(--sl-spacing-small);
+        background: var(--sl-color-neutral-50);
+        border: var(--sl-panel-border-width) solid var(--sl-panel-border-color);
+        border-block-start: 0;
+        border-radius: 0 0 var(--sl-border-radius-medium) var(--sl-border-radius-medium);
+        user-select: none;
+    }
+
+    .branch-choices, .branch-choice-edit, .branch-new-choice {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--sl-spacing-x-small);
+    }
+
+    .branch-choice-edit { flex: 1 1 100%; }
+    .branch-choice-edit input { flex: 1 1 12rem; }
+    .branch-new-choice select { flex: 1 1 12rem; }
+
+    .branch-controls button, .branch-controls input, .branch-controls select {
+        box-sizing: border-box;
+        min-block-size: 36px;
+        min-inline-size: 0;
+        max-inline-size: 100%;
+        padding: var(--sl-spacing-2x-small) var(--sl-spacing-small);
+        border: 1px solid var(--sl-panel-border-color);
+        border-radius: var(--sl-border-radius-medium);
+        background: var(--sl-panel-background-color);
+        color: inherit;
+        font: inherit;
+    }
+
+    .branch-controls button { cursor: pointer; overflow-wrap: anywhere; }
+    .branch-controls button:disabled { opacity: 0.45; cursor: default; }
+    .branch-controls :is(button, input, select):focus-visible {
+        outline: var(--sl-focus-ring-width) solid var(--_accent);
+        outline-offset: var(--sl-focus-ring-offset);
+    }
+
+    @media (hover: hover) { .branch-controls button:not(:disabled):hover { border-color: var(--_accent); } }
+    @media (pointer: coarse) { .branch-controls :is(button, input, select) { min-block-size: 44px; } }
+
+    :host([type="branches"]) ::slotted(webwriter-page) {
+        border-end-start-radius: 0;
+        border-end-end-radius: 0;
+    }
+
+    :host(:fullscreen) [part="branch-editor"],
+    :host(.ww-fullscreen) [part="branch-editor"] {
+        max-block-size: 35vh;
+        overflow: auto;
+        flex: 0 0 auto;
+    }
+
+    :host(:fullscreen) .branch-topbar,
+    :host(.ww-fullscreen) .branch-topbar,
+    :host(:fullscreen) .branch-controls,
+    :host(.ww-fullscreen) .branch-controls {
+        flex: 0 0 auto;
+        border-color: transparent;
+        border-radius: 0;
+    }
+
     .page-stage {
         position: relative;
         min-inline-size: 0;
@@ -855,6 +938,7 @@ export const pages_styles = css`
         }
 
         aside,
+        [part="branch-editor"],
         .controls-overlay {
             display: none !important;
         }

@@ -94,6 +94,82 @@
         <source>Pages completed</source>
         <target>Abgeschlossene Seiten</target>
       </trans-unit>
+      <trans-unit id="sad8f83df9312b389">
+        <source>Branches</source>
+        <target>Verzweigungen</target>
+      </trans-unit>
+      <trans-unit id="sc944851a6584c93f">
+        <source>Remove connection</source>
+        <target>Verbindung entfernen</target>
+      </trans-unit>
+      <trans-unit id="sc65ea2cf2f21a13a">
+        <source>Zoom out</source>
+        <target>Verkleinern</target>
+      </trans-unit>
+      <trans-unit id="s236ae937cbcd6a39">
+        <source>Zoom in</source>
+        <target>Vergrößern</target>
+      </trans-unit>
+      <trans-unit id="s62d28b100af985f8">
+        <source>Fit graph</source>
+        <target>Graph einpassen</target>
+      </trans-unit>
+      <trans-unit id="sb0ddb594a148d04a">
+        <source>Page branches</source>
+        <target>Seitenverzweigungen</target>
+      </trans-unit>
+      <trans-unit id="s9f03b254f12f6c69">
+        <source>Connect to page</source>
+        <target>Mit Seite verbinden</target>
+      </trans-unit>
+      <trans-unit id="sb06ba136bba475e6">
+        <source>Connect from page</source>
+        <target>Von Seite verbinden</target>
+      </trans-unit>
+      <trans-unit id="sdee6470f4b971f5e">
+        <source>Start page</source>
+        <target>Startseite</target>
+      </trans-unit>
+      <trans-unit id="s8f0fb3a1f7e4a801">
+        <source>Set as start</source>
+        <target>Als Start festlegen</target>
+      </trans-unit>
+      <trans-unit id="s09ee132b9020ff58">
+        <source>Page label</source>
+        <target>Seitenbeschriftung</target>
+      </trans-unit>
+      <trans-unit id="sa676e073152a7238">
+        <source>Choice label</source>
+        <target>Auswahlbeschriftung</target>
+      </trans-unit>
+      <trans-unit id="sfbf60e7cedcc7bd6">
+        <source>Missing page</source>
+        <target>Fehlende Seite</target>
+      </trans-unit>
+      <trans-unit id="sbdf3e4d5b2373ae4">
+        <source>Remove choice</source>
+        <target>Auswahl entfernen</target>
+      </trans-unit>
+      <trans-unit id="s301c62396112dffe">
+        <source>Destination page</source>
+        <target>Zielseite</target>
+      </trans-unit>
+      <trans-unit id="s0f121560cc5ec2f7">
+        <source>Add choice</source>
+        <target>Auswahl hinzufügen</target>
+      </trans-unit>
+      <trans-unit id="s8e9d3a9db3fbea9a">
+        <source>Select a node to edit its page. Connect the dots to add choices, or use the destination menu below.</source>
+        <target>Wählen Sie einen Knoten, um seine Seite zu bearbeiten. Verbinden Sie die Punkte, um Auswahlmöglichkeiten hinzuzufügen, oder nutzen Sie das Zielmenü darunter.</target>
+      </trans-unit>
+      <trans-unit id="s415b9ffddb8c1de6">
+        <source>Page choices</source>
+        <target>Seitenauswahl</target>
+      </trans-unit>
+      <trans-unit id="s81ecf2d4386b8e84">
+        <source>Continue</source>
+        <target>Fortfahren</target>
+      </trans-unit>
 </body>
   </file>
 </xliff>

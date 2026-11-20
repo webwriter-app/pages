@@ -1,4 +1,4 @@
-import { html, type PropertyValues } from "lit";
+import { html, nothing, type PropertyValues } from "lit";
 import { LitElementWw, resolveDeclarations, signal } from "@webwriter/lit";
 import {
     customElement,
@@ -25,20 +25,27 @@ import { renderThumbs, renderTabs } from "../components/pages-strip";
 import { sectionToPages, pageToDetails } from "../components/pages-convert";
 import { captureThumbnail } from "../components/page-thumbnail";
 import type { PagesView } from "../model/pages-view";
+import { PagesBranches } from "../components/pages-branches";
+import { renderBranchChoices } from "../components/pages-branch-choices";
+import { ensurePageKeys, pageKey, readBranches, writeBranches, type PageBranch } from "../model/page-branches";
+import type { MoveDetail } from "@webwriter/lit/scene";
 
 type Labelled = { msg: MsgFn };
 
 /**
- * Display authored content as pages, with tabs by default or a preview-card layout.
+ * Display authored content in Tabs, Slides, or Branches, with Tabs by default.
  *
  * Authors add `webwriter-page` children; the `type` attribute switches between the Slides view with preview cards ("pages")
  * and the default tab strip ("tabs"). Thumbnails are drawn in the editor with a capture library that loads on first use.
+ * The "branches" view adds an editing-only Scene graph. Node labels, start page, positions and choices
+ * are saved on the authored pages; the bottom pane edits choices and lets readers follow them.
+ * The graph has no reading-mode controls, and Branches hides completion indicators.
  * In use mode the arrow keys, the controls and swipes in fullscreen move between pages. The arrow keys leave
  * text entry, Alt and Meta combinations alone. Every thumbnail and tab has a button that selects its page;
  * in edit mode Space or Enter on the thumbnail itself picks it up for reordering.
  *
  * Set `orientation="portrait"` for a 9:16 page, or use the default `landscape` for 16:9.
- * The orientation applies to both views, fullscreen, and preview cards.
+ * The orientation applies to all views, fullscreen, and preview cards.
  *
  * The widget follows the page theme: `--ww-text-color`, `--ww-font-family`, and `--ww-theme-accent-1` (the
  * selected thumbnail). On paper it prints all pages one after another and leaves out the controls.
@@ -62,6 +69,8 @@ type Labelled = { msg: MsgFn };
  * @part tabs - The strip of tabs and controls above the page.
  * @part thumbnail - One page thumbnail in the strip.
  * @part tab - One tab in the tab strip.
+ * @part branch-editor - The editing-only Scene graph in Branches view.
+ * @part branch-controls - The bottom pane of choices and continuation controls in Branches view.
  */
 @customElement("webwriter-pages")
 export class WebwriterPages extends LitElementWw {
@@ -70,6 +79,7 @@ export class WebwriterPages extends LitElementWw {
     static scopedElements = {
         "sl-icon-button": SlIconButton,
         "sl-icon": SlIcon,
+        "pages-branches": PagesBranches,
     };
 
     static convertFrom = { section: "loadSections" };
@@ -82,6 +92,7 @@ export class WebwriterPages extends LitElementWw {
             options: [
                 { value: "tabs", label: (widget: Labelled) => widget.msg("Tabs") },
                 { value: "pages", label: (widget: Labelled) => widget.msg("Slides") },
+                { value: "branches", label: (widget: Labelled) => widget.msg("Branches") },
             ],
         },
         completionIndicators: {
@@ -111,15 +122,20 @@ export class WebwriterPages extends LitElementWw {
      * Defines the type of view for the sequence of pages.
      * - "pages": Show the Slides view with preview cards.
      * - "tabs": Show content using tabs.
+     * - "branches": Edit a page graph; read by following choices.
      */
     @property({
         type: String,
         attribute: true,
         reflect: true,
         useDefault: true,
-        converter: { fromAttribute: (value: string | null) => value === "pages" ? "pages" : "tabs" },
+        converter: { fromAttribute: (value: string | null) => value === "pages" || value === "branches" ? value : "tabs" },
     })
-    public accessor type: "tabs" | "pages" = "tabs";
+    public accessor type: "tabs" | "pages" | "branches" = "tabs";
+
+    /** Stable key of the first page in Branches; an absent key starts at the first page. */
+    @property({ type: String, attribute: "start-page", reflect: true, useDefault: true })
+    accessor startPage = "";
 
     /** Mark pages read on leaving them after reaching their bottom. Reader-local; off by default. */
     @property({ type: Boolean, attribute: "completion-indicators", reflect: true, useDefault: true })
@@ -133,7 +149,7 @@ export class WebwriterPages extends LitElementWw {
      * All `webwriter-page` elements.
      * Represents the individual pages in the sequence of pages.
      */
-    @queryAssignedElements()
+    @queryAssignedElements({ selector: "webwriter-page" })
     protected accessor pages!: WebwriterPage[];
 
     /** Index of the currently active page. */
@@ -171,6 +187,7 @@ export class WebwriterPages extends LitElementWw {
     #completionResize?: ResizeObserver;
     #completionMutation?: MutationObserver;
     #completionFrame?: number;
+    #readingBranches = false;
 
     /** The drawer declarations with the availability of the page actions, which follows the pages. */
     get actions() {
@@ -224,7 +241,7 @@ export class WebwriterPages extends LitElementWw {
         this.addEventListener("load", this.#queueCompletionCheck, { capture: true, signal });
         this.addEventListener("error", this.#queueCompletionCheck, { capture: true, signal });
         document.addEventListener("visibilitychange", this.#queueCompletionCheck, { signal });
-        this.#pageAttributesObserver.observe(this, { attributes: true, attributeFilter: ["label", "style", "class"], subtree: true });
+        this.#pageAttributesObserver.observe(this, { attributes: true, attributeFilter: ["label", "style", "class", "page-key", "branches", "node-x", "node-y"], subtree: true });
         this.requestUpdate();
     }
 
@@ -243,12 +260,31 @@ export class WebwriterPages extends LitElementWw {
         this.requestUpdate();
     }
 
+    protected willUpdate(changed: PropertyValues<this>) {
+        super.willUpdate(changed);
+        const pages = this.pages ?? [];
+        if (this.type === "branches" && this.#permissions.editing && pages.length) {
+            const keys = pages.map(pageKey);
+            if (keys.some((key) => !key) || new Set(keys).size !== keys.length) {
+                transaction(this, () => ensurePageKeys(pages));
+            }
+        }
+    }
+
     /**
      * Lifecycle method called whenever the component is updated.
      * Updates each page's `active` property based on the current activePageIndex.
      */
     protected updated(changed: PropertyValues<this>) {
         super.updated(changed);
+        const readingBranches = this.type === "branches" && !this.#permissions.editing;
+        if (readingBranches && !this.#readingBranches) {
+            const start = this.pages.findIndex((page) => pageKey(page) === this.startPage && this.startPage);
+            const index = Math.max(0, start);
+            if (this.activePageIndex !== index) this.activePageIndex = index;
+        }
+        this.#readingBranches = readingBranches;
+        if (this.pages.length && this.activePageIndex >= this.pages.length) this.activePageIndex = this.pages.length - 1;
         if (changed.has("orientation") && changed.get("orientation") !== undefined && this.#permissions.editing) {
             this.changePage(this.activePageIndex);
         }
@@ -298,7 +334,7 @@ export class WebwriterPages extends LitElementWw {
         for (const page of this.#completedPages) {
             if (!this.pages.includes(page)) this.#completedPages.delete(page);
         }
-        const page = this.isConnected && this.completionIndicators && !this.#permissions.editing ? this.activePage : undefined;
+        const page = this.isConnected && this.type !== "branches" && this.completionIndicators && !this.#permissions.editing ? this.activePage : undefined;
         if (page !== this.#completionPage) {
             const previous = this.#completionPage;
             if (page && previous && this.pages.includes(previous)) {
@@ -397,6 +433,46 @@ export class WebwriterPages extends LitElementWw {
         });
     };
 
+    #setBranches = (page: WebwriterPage, branches: PageBranch[]) => {
+        if (!this.#permissions.editing || page.parentElement !== this) return;
+        transaction(this, () => {
+            writeBranches(page, branches);
+            this.requestUpdate();
+        });
+    };
+
+    #moveBranchPages = (items: MoveDetail["items"]) => {
+        if (!this.#permissions.editing) return;
+        transaction(this, () => {
+            for (const { key, x, y } of items) {
+                const page = this.pages.find((page) => pageKey(page) === key);
+                if (!page || !Number.isFinite(x) || !Number.isFinite(y)) continue;
+                page.setAttribute("node-x", String(x));
+                page.setAttribute("node-y", String(y));
+            }
+            this.requestUpdate();
+        });
+    };
+
+    #setStartPage = (page: WebwriterPage) => {
+        if (!this.#permissions.editing || page.parentElement !== this || !pageKey(page)) return;
+        transaction(this, () => this.setAttribute("start-page", pageKey(page)));
+    };
+
+    #followBranch = async (target: string) => {
+        const source = this.activePage;
+        if (!source || !readBranches(source).some((branch) => branch.target === target)) return;
+        const index = this.pages.findIndex((page) => pageKey(page) === target);
+        if (index < 0) return;
+        this.changePage(index);
+        await this.updateComplete;
+        const page = this.activePage;
+        if (!page || pageKey(page) !== target) return;
+        page.scrollTop = 0;
+        // The chosen button disappears; keep keyboard reading at the new page.
+        this.renderRoot.querySelector<HTMLElement>(".page-stage")?.focus({ preventScroll: true });
+    };
+
     /** Replaces the pages with the pages a `section` stands for; declines anything else. */
     loadSections(fragment: DocumentFragment): boolean {
         const source = fragment.firstElementChild;
@@ -456,6 +532,9 @@ export class WebwriterPages extends LitElementWw {
         if (!original) return;
 
         const clone = original.cloneNode(true) as WebwriterPage;
+        clone.removeAttribute("page-key");
+        clone.removeAttribute("node-x");
+        clone.removeAttribute("node-y");
         original.insertAdjacentElement("afterend", clone);
 
         this.changePage(this.pages.indexOf(clone));
@@ -475,6 +554,14 @@ export class WebwriterPages extends LitElementWw {
         transaction(this, async () => {
             const page = this.pages[pageIndex];
             if (this.pages.length <= 1 || !page) return;
+            const key = pageKey(page);
+            if (key) {
+                for (const other of this.pages) {
+                    const branches = readBranches(other);
+                    if (branches.some((branch) => branch.target === key)) writeBranches(other, branches.filter((branch) => branch.target !== key));
+                }
+                if (this.startPage === key) this.removeAttribute("start-page");
+            }
             page.remove();
             this.changePage(Math.min(this.activePageIndex, this.pages.length - 1));
             const active = this.activePage;
@@ -548,7 +635,7 @@ export class WebwriterPages extends LitElementWw {
      * Only possible in preview mode.
      */
     #handleKeyDown(e: KeyboardEvent) {
-        if (this.#permissions.editing || e.defaultPrevented || e.altKey || e.metaKey) return;
+        if (this.#permissions.editing || this.type === "branches" || e.defaultPrevented || e.altKey || e.metaKey) return;
         if (e.composedPath().some((node) => node instanceof HTMLElement && this.#takesText(node))) return;
 
         switch (e.key) {
@@ -573,7 +660,7 @@ export class WebwriterPages extends LitElementWw {
      * Only active in fullscreen mode.
      */
     #handleTouchStart(e: TouchEvent) {
-        if (!this.isFullscreen) return;
+        if (!this.isFullscreen || this.type === "branches") return;
         this.#touchStartX = e.touches[0].clientX;
         this.#touchStartY = e.touches[0].clientY;
         this.#touchTarget = e.target as Element;
@@ -601,7 +688,7 @@ export class WebwriterPages extends LitElementWw {
      * Ignores swipes on interactive elements or if the swipe distance is too small.
      */
     #handleTouchEnd(e: TouchEvent) {
-        if (!this.isFullscreen || this.#touchStartX === null) return;
+        if (!this.isFullscreen || this.type === "branches" || this.#touchStartX === null) return;
         const deltaX = e.changedTouches[0].clientX - this.#touchStartX;
         const deltaY = e.changedTouches[0].clientY - this.#touchStartY;
         const target = this.#touchTarget;
@@ -720,18 +807,25 @@ export class WebwriterPages extends LitElementWw {
      */
     render() {
         const view = this.#view();
+        const branches = this.type === "branches";
         return html`
-            <div class="pages-layout ${this.type === "pages" ? "pages-view" : "tabs-view"}">
-                ${this.type !== "pages" ? renderTabs(view) : html``}
+            <div class="pages-layout ${branches ? "branches-view" : this.type === "pages" ? "pages-view" : "tabs-view"}">
+                ${branches && view.editing ? html`<pages-branches part="branch-editor" contenteditable="false" data-ww-capture-selection="false"
+                    .view=${view} .startKey=${this.startPage || pageKey(view.pages[0])}
+                    .setBranches=${this.#setBranches} .movePages=${this.#moveBranchPages} .setStart=${this.#setStartPage}
+                ></pages-branches>` : html``}
+                ${branches && !view.editing ? html`<aside class="branch-topbar" contenteditable="false" data-ww-capture-selection="false"><div class="controls-rows">${renderControls(view, "none", false)}</div></aside>` : nothing}
+                ${this.type === "tabs" ? renderTabs(view) : html``}
                 <div class="page-viewport">
                     <div class="page-surface">
-                        <div class="page-stage"><slot></slot></div>
+                        <div class="page-stage" tabindex=${branches ? "-1" : nothing}><slot></slot></div>
                         ${this.type == "pages" && this.isFullscreen
                             ? html`<div class="controls-overlay" contenteditable="false">${renderControls(view)}</div>`
                             : html``}
                     </div>
                 </div>
                 ${this.type == "pages" && !this.isFullscreen ? renderThumbs(view) : html``}
+                ${branches ? renderBranchChoices(view, this.#setBranches, this.#followBranch) : nothing}
             </div>
         `;
     }

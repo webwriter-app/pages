@@ -1,9 +1,9 @@
 {
   ".": {
     "description": {
-      "_": "Present content as pages or tabs.",
-      "en": "Present content as pages or tabs.",
-      "de": "Inhalte als Seiten oder Tabs darstellen."
+      "_": "Present content as tabs, slides, or branching pages.",
+      "en": "Present content as tabs, slides, or branching pages.",
+      "de": "Inhalte als Tabs, Folien oder verzweigte Seiten darstellen."
     },
     "label": {
       "_": "Pages",
@@ -37,6 +37,13 @@
       "_": "Page",
       "en": "Page",
       "de": "Seite"
+    }
+  },
+  "./snippets/branching-scenario": {
+    "label": {
+      "_": "Branching Scenario",
+      "en": "Branching Scenario",
+      "de": "Verzweigtes Szenario"
     }
   }
 }
