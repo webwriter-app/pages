@@ -76,8 +76,9 @@ export class PagesBranches extends LitElementWw {
 
     protected updated(changed: PropertyValues<this>) {
         const previous = changed.get("view") as PagesView | undefined;
+        const previousPage = previous?.pages[previous.activePageIndex];
         const page = this.view?.pages[this.view.activePageIndex];
-        if (previous && page && previous.pages[previous.activePageIndex] !== page) {
+        if (previousPage && page && previousPage !== page) {
             this.selectedNode = pageKey(page);
             this.selectedPath = "";
             const { x, y } = readNodePosition(page, this.view.activePageIndex);
@@ -146,14 +147,17 @@ export class PagesBranches extends LitElementWw {
                 </div>
             </div>
             <ww-scene id="graph" select="single" connect-click grid="10" background="dots" background-spacing="20"
-                data-ww-viewport="canvas" data-ww-viewport-fit="none" data-ww-viewport-zoom="0.4 1.5"
+                data-ww-viewport="canvas" data-ww-viewport-fit="content" data-ww-viewport-fit-padding="12" data-ww-viewport-zoom="0.4 1.5"
                 aria-label=${view.msg("Page branches")} @ww-select=${this.#select} @ww-activate=${this.#select}
-                @ww-ready=${() => this.#viewport.fit({ follow: "none" })}
+                @ww-ready=${async () => {
+                    await this.updateComplete;
+                    await this.#viewport.fit({ follow: "none" });
+                }}
                 @ww-connect=${this.#onConnect} @ww-move=${(event: CustomEvent<MoveDetail>) => this.movePages(event.detail.items)}
                 @keydown=${this.#keydown}>
                 ${view.pages.flatMap((source) => readBranches(source).filter((branch) => this.#page(branch.target)).map((branch) => html`
                     <ww-path data-ww-key=${`path:${pageKey(source)}:${branch.target}`} from=${`${pageKey(source)}:out`} to=${`${branch.target}:in`}
-                        route="curve" marker-end="arrow" aria-label=${branch.label || this.#label(this.#page(branch.target)!)} selectable ?selected=${this.selectedPath === `path:${pageKey(source)}:${branch.target}`}>
+                        route="avoid" marker-end="arrow" aria-label=${branch.label || this.#label(this.#page(branch.target)!)} selectable ?selected=${this.selectedPath === `path:${pageKey(source)}:${branch.target}`}>
                     </ww-path>`))}
                 ${repeat(view.pages, pageKey, (node, index) => {
                     const position = readNodePosition(node, index), key = pageKey(node);

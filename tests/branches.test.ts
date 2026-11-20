@@ -285,6 +285,74 @@ describe("Pages Branches view", function () {
         await until(() => readBranches(widget.children[0]).length === 0);
     });
 
+    it("routes connectors around nodes and reroutes after unrelated obstacles move", async function () {
+        const widget = await mount(authorSnippet());
+        const graph = await editor(widget), scene = control<any>(graph, "ww-scene");
+        await scene.ready;
+        await frame(3);
+        const extent = scene.extent(), frameBox = scene.getBoundingClientRect();
+        const top = scene.toClient(extent.x, extent.y), bottom = scene.toClient(extent.x + extent.width, extent.y + extent.height);
+        assert.isAtLeast(top.x, frameBox.left, "return routes fit inside the initial viewport");
+        assert.isAtLeast(top.y, frameBox.top);
+        assert.isAtMost(bottom.x, frameBox.right);
+        assert.isAtMost(bottom.y, frameBox.bottom);
+        const paths = [...scene.querySelectorAll("ww-path")] as any[];
+        assert.isTrue(paths.every(path => path.route === "avoid"), "uses the SDK's optional avoidance route");
+        const clear = () => {
+            for (const path of paths) {
+                const drawing = scene.drawingOf(path);
+                assert.isAbove(drawing.points.length, 1);
+                for (const node of scene.querySelectorAll("ww-node")) {
+                    const rect = node.getBoundingClientRect();
+                    const topLeft = scene.toScene(rect.left, rect.top), bottomRight = scene.toScene(rect.right, rect.bottom);
+                    const box = { x: topLeft.x, y: topLeft.y, width: bottomRight.x - topLeft.x, height: bottomRight.y - topLeft.y };
+                    for (let i = 1; i < drawing.points.length; i++) {
+                        // Ports sit inside the node's one-pixel border; their
+                        // own terminal segment is allowed to leave/enter it.
+                        const ends = scene.endsOf(path);
+                        if ((i === 1 && node === ends.from?.node) || (i === drawing.points.length - 1 && node === ends.to?.node)) continue;
+                        const a = drawing.points[i - 1], b = drawing.points[i];
+                        const crosses = Math.max(a.x, b.x) > box.x + 0.01 && Math.min(a.x, b.x) < box.x + box.width - 0.01
+                            && Math.max(a.y, b.y) > box.y + 0.01 && Math.min(a.y, b.y) < box.y + box.height - 0.01;
+                        assert.isFalse(crosses, `connector ${path.key} enters ${node.key}: ${JSON.stringify({ a, b, box })}`);
+                    }
+                }
+            }
+        };
+        clear();
+        const scope = { customElementRegistry: (graph.shadowRoot as any).customElementRegistry } as ElementCreationOptions;
+        const blocker = document.createElement("ww-node", scope);
+        blocker.setAttribute("data-ww-key", "obstacle");
+        blocker.setAttribute("x", "265");
+        blocker.setAttribute("y", "110");
+        blocker.style.cssText = "inline-size: 40px; min-block-size: 100px; padding: 0";
+        const group = document.createElement("ww-group", scope);
+        group.setAttribute("x", "265");
+        group.setAttribute("y", "110");
+        group.setAttribute("scale", "0.75");
+        blocker.setAttribute("x", "0");
+        blocker.setAttribute("y", "0");
+        group.append(blocker);
+        scene.append(group);
+        await frame(3);
+        clear();
+        const routed = paths.map(path => scene.drawingOf(path).d);
+        group.setAttribute("y", "-150");
+        await frame(3);
+        clear();
+        assert.notDeepEqual(paths.map(path => scene.drawingOf(path).d), routed, "unattached obstacle invalidates routes");
+        group.remove();
+        await frame(3);
+        clear();
+        const stable = paths.map(path => scene.drawingOf(path).d);
+        const searches = scene.stats.routed;
+        for (let i = 0; i < 3; i++) { scene.restyle(); scene.flush(); }
+        assert.equal(scene.stats.routed, searches, "style-only refreshes reuse cached route searches");
+        assert.deepEqual(paths.map(path => scene.drawingOf(path).d), stable, "refreshes do not drift into new lanes");
+        const snapshot = await scene.toSVG();
+        for (const d of stable) assert.include(snapshot, d, "snapshot uses the same route geometry");
+    });
+
     it("persists Scene moves as one undo step and restores the graph from HTML", async function () {
         const widget = await mount(authorSnippet());
         const graph = await editor(widget), scene = control(graph, "ww-scene");
