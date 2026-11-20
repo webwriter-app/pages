@@ -455,6 +455,16 @@ export const pages_styles = css`
         display: none !important;
     }
 
+    /* The opaque graph covers these inert pages. Keep their real layout available
+       to the shared thumbnail capture without cloning or changing authored nodes. */
+    @media screen {
+        slot.graph-preview-pages::slotted(webwriter-page) {
+            display: block !important;
+            position: absolute;
+            inset: 0;
+        }
+    }
+
     slot:not([name]) {
         display: block;
         position: absolute;

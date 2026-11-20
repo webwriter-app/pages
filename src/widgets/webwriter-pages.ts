@@ -894,7 +894,7 @@ export class WebwriterPages extends LitElementWw {
 
                 const page = this.pages[index];
                 const view = this.type;
-                // Branches has no previews; generating one would create an unrelated undo step.
+                // Branch graph captures stay private to its overlay; only the strip writes thumbnails.
                 if (!page || view === "branches") return;
                 const ratio = this.#pageRatio;
                 if (this.aspectPreview !== null) return;
@@ -986,10 +986,10 @@ export class WebwriterPages extends LitElementWw {
                 ${this.type === "tabs" ? renderTabs(view) : html``}
                 <div class="page-viewport">
                     <div class="page-surface">
-                        <div class="page-stage" tabindex=${branches ? "-1" : nothing}><slot ?inert=${branches && view.editing && this.branchGraphExpanded}></slot>
+                        <div class="page-stage" tabindex=${branches ? "-1" : nothing}><slot class=${branches && view.editing && this.branchGraphExpanded ? "graph-preview-pages" : ""} ?inert=${branches && view.editing && this.branchGraphExpanded}></slot>
                             ${branches && view.editing ? html`<pages-branches id="branch-editor" part="branch-editor" contenteditable="false"
                                 ?hidden=${!this.branchGraphExpanded} .collapsed=${!this.branchGraphExpanded}
-                                .view=${view} .startKey=${this.startPage || pageKey(view.pages[0])}
+                                .view=${view} .pageRatio=${ratio} .startKey=${this.startPage || pageKey(view.pages[0])}
                                 .setBranches=${this.#setBranches} .movePages=${this.#moveBranchPages} .setStart=${this.#setStartPage} .addPageAt=${this.#addBranchPage} .openPage=${this.#openBranchPage}
                             ></pages-branches>` : nothing}
                             ${view.editing ? html`<div class="page-aspect-handle ${edge}" role="separator" tabindex="0" contenteditable="false"

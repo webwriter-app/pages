@@ -13,7 +13,9 @@ import SlIcon from "@shoelace-style/shoelace/dist/components/icon/icon.component
 import plusIcon from "@tabler/icons/outline/plus.svg";
 import removeIcon from "@tabler/icons/outline/trash.svg";
 import fitIcon from "@tabler/icons/outline/zoom-scan.svg";
-import openIcon from "@tabler/icons/outline/arrow-right.svg";
+import startIcon from "@tabler/icons/outline/flag.svg";
+import openIcon from "@tabler/icons/outline/share-3.svg";
+import { captureThumbnail } from "./page-thumbnail";
 
 /** An editing-only Scene over the same authored pages that the reader sees. */
 export class PagesBranches extends LitElementWw {
@@ -29,11 +31,22 @@ export class PagesBranches extends LitElementWw {
     @state() private accessor selectedPath = "";
     @state() private accessor selectedNode: string | undefined = undefined;
     @property({ attribute: false }) accessor collapsed = false;
+    @property({ attribute: false }) accessor pageRatio = 16 / 9;
+
+    // Captures are private UI state: refreshing a graph must not create authored undo steps.
+    #previews = new Map<WebwriterPage, string>();
+    #dirtyPreviews = new Set<WebwriterPage>();
+    #previewOwner?: HTMLElement;
+    #previewObserver?: MutationObserver;
+    #previewResize?: ResizeObserver;
+    #previewTimer?: ReturnType<typeof setTimeout>;
+    #previewEpoch = 0;
+    #previewRunning = false;
 
     #viewport: Viewport = new Viewport(this, {
         wheel: "page",
         bounds: () => this.#scene.extent(),
-        start: () => ({ x: 12, y: 12, scale: 0.85 }),
+        start: "fit",
         can: () => !this.#scene.marquee,
     });
     #scene: SceneController = new SceneController(this, {
@@ -51,9 +64,13 @@ export class PagesBranches extends LitElementWw {
         .view-controls button { min-inline-size: 28px; min-block-size: 28px; padding: 0 4px; border: 0; background: transparent; }
         .icon-button { display: grid; place-items: center; min-inline-size: 32px; min-block-size: 32px; padding: 0; }
         .add-node { position: absolute; inset-inline-start: 10px; inset-block-start: 10px; z-index: 10; box-shadow: 0 1px 4px rgb(0 0 0 / 0.12); }
-        .node-open, .remove-node { position: absolute; inset-inline-end: -6px; min-inline-size: 24px; min-block-size: 24px; border-radius: 50%; box-shadow: 0 1px 3px #0002; }
-        .node-open { inset-block-start: -8px; }
-        .remove-node { inset-block-end: -8px; visibility: hidden; }
+        .node-open, .node-start, .remove-node { position: absolute; inset-inline-end: -6px; min-inline-size: 24px; min-block-size: 24px; border-radius: 50%; box-shadow: 0 1px 3px #0002; }
+        .node-open { inset-block-start: -8px; --ww-control-origin: left top; }
+        .node-start { inset-inline-start: -6px; inset-inline-end: auto; inset-block-end: -8px; visibility: hidden; --ww-control-origin: right bottom; }
+        .remove-node { inset-block-end: -8px; visibility: hidden; --ww-control-origin: left bottom; }
+        :host(:dir(rtl)) .node-open { --ww-control-origin: right top; }
+        :host(:dir(rtl)) .node-start { --ww-control-origin: left bottom; }
+        :host(:dir(rtl)) .remove-node { --ww-control-origin: right bottom; }
         ww-node[selected] .remove-node { visibility: visible; }
         sl-icon { font-size: 16px; pointer-events: none; }
         button, input, select { font: inherit; font-size: 13px; color: inherit; min-block-size: 32px; }
@@ -63,14 +80,19 @@ export class PagesBranches extends LitElementWw {
         input { inline-size: 14rem; max-inline-size: 100%; }
         button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--ww-theme-accent-1, #0284c7); outline-offset: 2px; }
         ww-scene { display: block; block-size: 100%; background: var(--sl-panel-background-color); --ww-scene-selection: var(--ww-theme-accent-1, #0284c7); }
-        ww-node { inline-size: 200px; min-block-size: 84px; padding: 18px 20px; background: var(--sl-panel-background-color); border: 1px solid var(--sl-color-neutral-400); border-radius: 8px; color: inherit; cursor: pointer; }
-        ww-node[selected] { border-color: var(--ww-theme-accent-1, #0284c7); background: var(--sl-color-primary-50); }
+        ww-node { inline-size: min(200px, calc(200px * var(--_page-ratio, 16 / 9))); padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; }
+        .node-card { position: relative; inline-size: 100%; aspect-ratio: var(--_page-ratio, 16 / 9); border: 1px solid var(--sl-color-neutral-400); border-radius: 8px; background: var(--sl-panel-background-color); }
+        ww-node[selected] { outline: none; }
+        ww-node[selected] .node-card, ww-node:focus-visible .node-card { border-color: var(--ww-theme-accent-1, #0284c7); outline: 2px solid var(--ww-theme-accent-1, #0284c7); outline-offset: 2px; }
+        .node-preview { position: absolute; inset: 0; display: block; inline-size: 100%; block-size: 100%; object-fit: contain; border-radius: inherit; pointer-events: none; user-select: none; }
+        /* Normal flow makes the label part of Scene's measured routing obstacle. */
+        .node-label-overlay { margin-block-end: 8px; padding: 2px 6px; border-radius: 4px; background: color-mix(in srgb, var(--sl-panel-background-color, white) 80%, transparent); }
         .node-label, .node-label-input { display: block; inline-size: 100%; min-inline-size: 0; min-block-size: 0; block-size: 1.5em; padding: 0; border: 0; border-radius: 0; background: transparent; font: inherit; font-weight: 600; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .node-label-input::placeholder { color: inherit; opacity: 1; }
-        .node-start { display: block; visibility: hidden; margin-block-start: 6px; min-block-size: 24px; padding: 1px 5px; font-size: 11px; }
         ww-node[selected] .node-start, .node-start:disabled { visibility: visible; }
+        .node-start:disabled { opacity: 1; color: var(--ww-theme-accent-1, #0284c7); background: var(--sl-color-primary-50); }
         .node-kind { display: block; margin-block-start: 5px; font-size: 12px; color: var(--sl-color-neutral-500); }
-        .port { position: absolute; inset-block-start: 28px; inline-size: 24px; block-size: 24px; border: 6px solid transparent; border-radius: 50%; background: var(--ww-theme-accent-1, #0284c7); background-clip: padding-box; }
+        .port { position: absolute; inset-block-start: calc(50% - 12px); inline-size: 24px; block-size: 24px; border: 6px solid transparent; border-radius: 50%; background: var(--ww-theme-accent-1, #0284c7); background-clip: padding-box; }
         /* Mask the node border, but leave the outward half clear for the connector. */
         .port::before { content: ""; position: absolute; inset: -6px; border: 6px solid var(--sl-panel-background-color); border-radius: 50%; clip-path: inset(0 0 0 50%); pointer-events: none; }
         .output::before { clip-path: inset(0 50% 0 0); }
@@ -103,6 +125,7 @@ export class PagesBranches extends LitElementWw {
                 if (this.isConnected && !this.collapsed) return this.#viewport.fit({ follow: "none" });
             });
         }
+        this.#syncPreviews(changed.has("pageRatio"));
         const buttons = this.renderRoot.querySelectorAll<HTMLButtonElement>(".view-controls button");
         if (!("focusGroup" in HTMLElement.prototype) && !Array.from(buttons).some(button => button.hasAttribute("tabindex"))) {
             buttons.forEach((button, index) => button.tabIndex = index ? -1 : 0);
@@ -115,9 +138,94 @@ export class PagesBranches extends LitElementWw {
             this.selectedPath = "";
             const { x, y } = readNodePosition(page, this.view.activePageIndex);
             const view = this.#viewport;
+            const node = this.renderRoot.querySelector<HTMLElement>(`ww-node[data-ww-key="${pageKey(page)}"]`);
+            const width = node?.offsetWidth ?? 200, height = node?.offsetHeight ?? 200 / this.pageRatio;
             const left = x * view.scale + view.x, top = y * view.scale + view.y;
-            if (left < 0 || top < 0 || left + 200 * view.scale > view.width || top + 84 * view.scale > view.height) {
-                void view.centerOn({ x: x + 100, y: y + 42 });
+            if (left < 0 || top < 0 || left + width * view.scale > view.width || top + height * view.scale > view.height) {
+                void view.centerOn({ x: x + width / 2, y: y + height / 2 });
+            }
+        }
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.#stopPreviews();
+        this.#previews.clear();
+    }
+
+    #stopPreviews() {
+        this.#previewEpoch++;
+        clearTimeout(this.#previewTimer);
+        this.#previewObserver?.disconnect();
+        this.#previewResize?.disconnect();
+        this.#previewOwner?.removeEventListener("load", this.#previewLoaded, true);
+        this.#previewOwner = undefined;
+        this.#dirtyPreviews.clear();
+    }
+
+    #previewLoaded = (event: Event) => {
+        const page = this.view.pages.find(page => event.target instanceof Node && page.contains(event.target));
+        if (page) this.#queuePreviews([page]);
+    };
+
+    #syncPreviews(resized: boolean) {
+        for (const page of this.#previews.keys()) if (!this.view?.pages.includes(page)) this.#previews.delete(page);
+        const owner = this.view?.pages[0]?.parentElement;
+        if (this.collapsed || !this.view?.editing || !owner) {
+            if (this.#previewOwner) this.#stopPreviews();
+            return;
+        }
+        if (owner !== this.#previewOwner) {
+            this.#stopPreviews();
+            this.#previewOwner = owner;
+            this.#previewObserver = new MutationObserver(records => {
+                const pages = this.view.pages.filter(page => records.some(record => {
+                    if (record.target !== page && !page.contains(record.target)) return false;
+                    return record.type !== "attributes" || record.target !== page
+                        || !["label", "page-key", "branches", "node-x", "node-y", "active", "thumbnail"].includes(record.attributeName!);
+                }));
+                if (pages.length) this.#queuePreviews(pages);
+            });
+            this.#previewObserver.observe(owner, { attributes: true, childList: true, characterData: true, subtree: true });
+            this.#previewResize = new ResizeObserver(() => this.#queuePreviews(this.view.pages));
+            this.#previewResize.observe(owner);
+            owner.addEventListener("load", this.#previewLoaded, true);
+            this.#queuePreviews(this.view.pages);
+        } else {
+            const missing = this.view.pages.filter(page => !this.#previews.has(page) && !this.#dirtyPreviews.has(page));
+            if (resized || missing.length) this.#queuePreviews(resized ? this.view.pages : missing);
+        }
+    }
+
+    #queuePreviews(pages: WebwriterPage[]) {
+        if (!this.#previewOwner) return;
+        for (const page of pages) this.#dirtyPreviews.add(page);
+        this.#previewEpoch++;
+        clearTimeout(this.#previewTimer);
+        this.#previewTimer = setTimeout(() => void this.#capturePreviews(), 100);
+    }
+
+    async #capturePreviews() {
+        if (this.#previewRunning || !this.#previewOwner) return;
+        this.#previewRunning = true;
+        const epoch = this.#previewEpoch;
+        try {
+            for (const page of [...this.#dirtyPreviews]) {
+                if (!this.view.pages.includes(page)) { this.#dirtyPreviews.delete(page); continue; }
+                try {
+                    const thumbnail = await captureThumbnail(page);
+                    if (epoch !== this.#previewEpoch || !this.#previewOwner || !page.isConnected) return;
+                    this.#previews.set(page, thumbnail);
+                    this.requestUpdate();
+                } catch { /* A failed capture leaves the page label and navigation usable. */ }
+                if (epoch !== this.#previewEpoch || !this.#previewOwner) return;
+                this.#dirtyPreviews.delete(page);
+            }
+        } finally {
+            this.#previewRunning = false;
+            if (this.#previewOwner && this.#dirtyPreviews.size) {
+                clearTimeout(this.#previewTimer);
+                this.#previewTimer = setTimeout(() => void this.#capturePreviews(), 100);
             }
         }
     }
@@ -263,18 +371,23 @@ export class PagesBranches extends LitElementWw {
                     const position = readNodePosition(node, index), key = pageKey(node);
                     return html`<ww-node data-ww-key=${key} x=${position.x} y=${position.y} selectable movable ?selected=${!this.selectedPath && (this.selectedNode === undefined ? node === page : this.selectedNode === key)}
                         aria-label=${this.#label(node)}>
-                        <span class="port input" data-ww-port="in" data-ww-accept="page" data-ww-side="left" data-ww-control aria-label=${view.msg("Connect to page")}></span>
-                        ${node === page ? html`<input class="node-label-input" aria-label=${view.msg("Page label")} .value=${live(node.getAttribute("label") ?? "")}
+                        <div class="node-label-overlay">${node === page ? html`<input class="node-label-input" aria-label=${view.msg("Page label")} .value=${live(node.getAttribute("label") ?? "")}
                             placeholder=${this.#label(node)} @input=${(event: InputEvent) => view.setPageLabel(node, (event.target as HTMLInputElement).value)}>`
-                            : html`<span class="node-label">${this.#label(node)}</span>`}
-                        <button type="button" class="node-start" data-ww-control ?disabled=${key === this.startKey}
-                            @click=${() => this.setStart(node)}>${key === this.startKey ? view.msg("Start page") : view.msg("Set as start")}</button>
+                            : html`<span class="node-label">${this.#label(node)}</span>`}</div>
+                        <div class="node-card">
+                        ${this.#previews.has(node) ? html`<img class="node-preview" src=${this.#previews.get(node)!} alt="" draggable="false">` : nothing}
+                        <span class="port input" data-ww-port="in" data-ww-accept="page" data-ww-side="left" data-ww-control aria-label=${view.msg("Connect to page")}></span>
                         <button type="button" class="node-open icon-button" data-ww-control title=${`${view.msg("Go to page")}: ${this.#label(node)}`} aria-label=${`${view.msg("Go to page")}: ${this.#label(node)}`}
                             @click=${() => this.openPage(this.view.pages.indexOf(node))}><sl-icon src=${openIcon} aria-hidden="true"></sl-icon></button>
+                        <button type="button" class="node-start icon-button" data-ww-control ?disabled=${key === this.startKey}
+                            title=${key === this.startKey ? view.msg("Start page") : view.msg("Set as start")}
+                            aria-label=${key === this.startKey ? view.msg("Start page") : view.msg("Set as start")}
+                            @click=${() => this.setStart(node)}><sl-icon src=${startIcon} aria-hidden="true"></sl-icon></button>
                         <button type="button" class="remove-node icon-button" data-ww-control ?disabled=${view.pages.length <= 1}
                             title=${view.msg("Remove page")} aria-label=${view.msg("Remove page")}
                             @click=${() => view.removePage(this.view.pages.indexOf(node))}><sl-icon src=${removeIcon} aria-hidden="true"></sl-icon></button>
                         <span class="port output" data-ww-port="out" data-ww-link="page" data-ww-side="right" data-ww-control aria-label=${view.msg("Connect from page")}></span>
+                        </div>
                     </ww-node>`;
                 })}
             </ww-scene>

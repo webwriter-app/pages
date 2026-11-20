@@ -142,6 +142,51 @@ describe("Pages Branches view", function () {
         }
     });
 
+    it("fills proportional cards with private previews, routing-aware labels and start bubbles", async function () {
+        this.timeout(20000);
+        const widget = await mount(authorSnippet()), graph = await editor(widget);
+        const original = widget.innerHTML;
+        const first = control<HTMLElement>(graph, 'ww-node[data-ww-key="start"]');
+        await until(() => graph.shadowRoot!.querySelectorAll(".node-preview").length === 3, "all pages previewed", 15000);
+        for (const node of graph.shadowRoot!.querySelectorAll<HTMLElement>("ww-node")) {
+            const box = node.querySelector<HTMLElement>(".node-card")!.getBoundingClientRect(), image = node.querySelector<HTMLImageElement>(".node-preview")!;
+            await image.decode();
+            assert.closeTo(box.width / box.height, 16 / 9, 0.02, "card matches the page ratio");
+            assert.closeTo(image.naturalWidth / image.naturalHeight, 16 / 9, 0.02, "capture matches the page ratio");
+            assert.closeTo(image.getBoundingClientRect().height, box.height - 2, 3, "preview fills the card");
+            const start = node.querySelector<HTMLElement>(".node-start")!, label = node.querySelector<HTMLElement>(".node-label-overlay")!;
+            assert.equal(getComputedStyle(start).position, "absolute");
+            assert.isBelow(start.getBoundingClientRect().left, box.left + 2, "start action overlaps bottom left");
+            assert.isAbove(start.getBoundingClientRect().bottom, box.bottom, "start action overlaps bottom edge");
+            assert.equal(start.textContent!.trim(), "", "start action is icon-only");
+            assert.isNotNull(start.querySelector("sl-icon"));
+            assert.isAtMost(label.getBoundingClientRect().bottom, box.top, "label sits above the preview");
+            const outer = node.getBoundingClientRect(), labelBox = label.getBoundingClientRect();
+            assert.isAtMost(outer.top, labelBox.top, "routing box contains the label");
+            assert.isAtLeast(outer.bottom, box.bottom, "routing box contains the preview");
+            assert.include(getComputedStyle(label).backgroundColor, "0.8", "label background is translucent");
+            assert.include(decodeURIComponent(node.querySelector(".node-open sl-icon")!.getAttribute("src")!), "icon-tabler-share-3", "open icon matches advance organizer");
+        }
+        assert.equal(widget.innerHTML, original, "captures never write authored markup");
+        const before = first.querySelector<HTMLImageElement>(".node-preview")!.src;
+        widget.children[0].querySelector("h2")!.textContent = "A changed heading";
+        await until(() => first.querySelector<HTMLImageElement>(".node-preview")!.src !== before, "content edit refreshes preview");
+        widget.pageAspectRatio = 4 / 3;
+        await widget.updateComplete;
+        await until(async () => {
+            const image = first.querySelector<HTMLImageElement>(".node-preview")!;
+            await image.decode();
+            return Math.abs(image.naturalWidth / image.naturalHeight - 4 / 3) < 0.02;
+        }, "ratio change refreshes captures");
+        const card = first.querySelector<HTMLElement>(".node-card")!.getBoundingClientRect();
+        assert.closeTo(card.width / card.height, 4 / 3, 0.02);
+        const hidden = widget.children[1] as HTMLElement;
+        assert.equal(getComputedStyle(hidden).display, "block", "inactive pages are laid out behind the inert graph");
+        control<HTMLButtonElement>(widget, ".graph-toggle").click();
+        await widget.updateComplete;
+        assert.equal(getComputedStyle(hidden).display, "none", "closing restores inactive page hiding");
+    });
+
     it("starts collapsed and overlays the page without moving choices or changing widget height", async function () {
         const widget = await mount(authorSnippet());
         const graph = await until(() => widget.shadowRoot!.querySelector<PagesBranches>("pages-branches"));
@@ -202,16 +247,37 @@ describe("Pages Branches view", function () {
         assert.deepEqual(readBranches(widget.children[0]).map((branch) => branch.target), ["first-path", "second-path"]);
     });
 
+    it("fits the initial narrow graph and keeps its nodes visible after reopening", async function () {
+        const widget = await mount(authorSnippet());
+        widget.parentElement!.style.width = "360px";
+        await frame(2);
+        const graph = await editor(widget), scene = control<any>(graph, "ww-scene");
+        await frame(4);
+        const boxes = () => [...scene.querySelectorAll("ww-node")].map((node: Element) => {
+            const box = node.getBoundingClientRect(), frame = scene.getBoundingClientRect();
+            assert.isAtLeast(box.left, frame.left - 0.5);
+            assert.isAtMost(box.right, frame.right + 0.5);
+            assert.isAtLeast(box.top, frame.top - 0.5);
+            assert.isAtMost(box.bottom, frame.bottom + 0.5);
+            return [box.x, box.y, box.width, box.height];
+        });
+        const initial = boxes();
+        control<HTMLButtonElement>(widget, ".graph-toggle").click();
+        await frame(2);
+        control<HTMLButtonElement>(widget, ".graph-toggle").click();
+        await frame(4);
+        assert.deepEqual(boxes(), initial, "reopening uses the same fitted view");
+    });
+
     it("opens pages only through node bubbles and leaves single and double activation in the graph", async function () {
         const widget = await mount(authorSnippet()), graph = await editor(widget), scene = control(graph, "ww-scene");
-        const icon = control(widget, ".choice-goto").querySelector("sl-icon")!.getAttribute("src");
         for (const node of graph.shadowRoot!.querySelectorAll("ww-node")) {
             const open = node.querySelector<HTMLButtonElement>(".node-open")!;
             assert.equal(getComputedStyle(open).visibility, "visible", "every page can be opened without selecting it");
             assert.isNotEmpty(open.getAttribute("aria-label")!);
             assert.equal(open.textContent!.trim(), "", "open bubble is icon-only");
-            assert.equal(open.querySelector("sl-icon")!.getAttribute("src"), icon, "same arrow as the choice navigation bubble");
-            const box = node.getBoundingClientRect(), bubble = open.getBoundingClientRect();
+            assert.include(decodeURIComponent(open.querySelector("sl-icon")!.getAttribute("src")!), "icon-tabler-share-3", "same open-page icon as advance organizer");
+            const box = node.querySelector<HTMLElement>(".node-card")!.getBoundingClientRect(), bubble = open.getBoundingClientRect();
             assert.isAbove(bubble.left, box.left + box.width / 2, "open bubble is on the right");
             assert.isBelow(bubble.top, box.top + box.height / 2, "open bubble is at the top");
         }
@@ -539,12 +605,14 @@ describe("Pages Branches view", function () {
         const scope = { customElementRegistry: (graph.shadowRoot as any).customElementRegistry } as ElementCreationOptions;
         const blocker = document.createElement("ww-node", scope);
         blocker.setAttribute("data-ww-key", "obstacle");
-        blocker.setAttribute("x", "265");
-        blocker.setAttribute("y", "110");
         blocker.style.cssText = "inline-size: 40px; min-block-size: 100px; padding: 0";
         const group = document.createElement("ww-group", scope);
-        group.setAttribute("x", "265");
-        group.setAttribute("y", "110");
+        const segment = paths.flatMap(path => {
+            const points = scene.drawingOf(path).points;
+            return points.slice(1).map((point: any, index: number) => ({ a: points[index], b: point }));
+        }).sort((a, b) => Math.hypot(b.b.x - b.a.x, b.b.y - b.a.y) - Math.hypot(a.b.x - a.a.x, a.b.y - a.a.y))[0];
+        group.setAttribute("x", String((segment.a.x + segment.b.x) / 2 - 15));
+        group.setAttribute("y", String((segment.a.y + segment.b.y) / 2 - 37.5));
         group.setAttribute("scale", "0.75");
         blocker.setAttribute("x", "0");
         blocker.setAttribute("y", "0");
@@ -567,6 +635,33 @@ describe("Pages Branches view", function () {
         assert.deepEqual(paths.map(path => scene.drawingOf(path).d), stable, "refreshes do not drift into new lanes");
         const snapshot = await scene.toSVG();
         for (const d of stable) assert.include(snapshot, d, "snapshot uses the same route geometry");
+    });
+
+    it("routes around an above-card label even when the preview does not block the direct path", async function () {
+        const widget = await mount(authorSnippet());
+        const [source, target, obstacle] = [...widget.children];
+        source.setAttribute("branches", '[{"target":"first-path","label":"Continue"}]');
+        target.removeAttribute("branches"); obstacle.removeAttribute("branches");
+        for (const [page, x, y] of [[source, 40, 100], [target, 600, 100], [obstacle, 320, 184]] as const) {
+            page.setAttribute("node-x", String(x)); page.setAttribute("node-y", String(y));
+        }
+        const graph = await editor(widget), scene = control<any>(graph, "ww-scene");
+        await scene.ready; await frame(3);
+        const path = scene.querySelector("ww-path"), drawing = scene.drawingOf(path);
+        const node = control<HTMLElement>(graph, 'ww-node[data-ww-key="second-path"]');
+        const rect = node.querySelector<HTMLElement>(".node-label-overlay")!.getBoundingClientRect();
+        const topLeft = scene.toScene(rect.left, rect.top), bottomRight = scene.toScene(rect.right, rect.bottom);
+        const pageTop = scene.toScene(0, node.querySelector<HTMLElement>(".node-card")!.getBoundingClientRect().top).y;
+        const start = drawing.points[0], end = drawing.points.at(-1);
+        assert.closeTo(start.y, end.y, 0.1, "endpoints share a baseline");
+        assert.isAbove(start.y, topLeft.y, "direct path would enter the label");
+        assert.isBelow(start.y, bottomRight.y);
+        assert.isBelow(start.y, pageTop, "preview itself is below the direct path");
+        for (let index = 1; index < drawing.points.length; index++) {
+            const a = drawing.points[index - 1], b = drawing.points[index];
+            assert.isFalse(Math.max(a.x, b.x) > topLeft.x && Math.min(a.x, b.x) < bottomRight.x
+                && Math.max(a.y, b.y) > topLeft.y && Math.min(a.y, b.y) < bottomRight.y, "connector avoids the label");
+        }
     });
 
     it("persists Scene moves as one undo step and restores the graph from HTML", async function () {
