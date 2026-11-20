@@ -60,6 +60,21 @@ describe("Pages Branches view", function () {
         assert.deepEqual([...widget.children].map((page) => [page.getAttribute("page-key"), page.getAttribute("branches")]), routing);
     });
 
+    it("keeps page activation out of authored markup and editor history", async function () {
+        const widget = await mount(authorSnippet()), graph = await editor(widget), scene = control(graph, "ww-scene");
+        const mutations: MutationRecord[] = [];
+        const observer = new MutationObserver(records => mutations.push(...records));
+        observer.observe(widget, { attributes: true, subtree: true, attributeFilter: ["active", "thumbnail"] });
+        sceneEvent(scene, "ww-activate", { key: "second-path", via: "keyboard", count: 1 });
+        await until(() => widget.activePageIndex === 2);
+        await frame(3);
+        await new Promise(resolve => setTimeout(resolve, 200));
+        assert.isTrue(widget.activePage.matches(":state(ww-page-active)"));
+        assert.isFalse((widget.children[0] as HTMLElement).matches(":state(ww-page-active)"));
+        assert.isEmpty([...mutations, ...observer.takeRecords()], "navigation and unused previews produce no authored attribute writes");
+        observer.disconnect();
+    });
+
     it("uses Scene nodes in edit mode and navigates only on activation", async function () {
         const widget = await mount(authorSnippet());
         const graph = await editor(widget);

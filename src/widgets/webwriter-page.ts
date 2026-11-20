@@ -15,8 +15,10 @@ import "../components/page-media.css";
  */
 @customElement("webwriter-page")
 export class WebwriterPage extends LitElementWw {
+    #internals = this.attachInternals();
+
     /** Indicates whether the page is currently active/visible. */
-    @property({ type: Boolean, attribute: true, reflect: true })
+    @property({ type: Boolean, attribute: true })
     accessor active = false;
 
     /** Plaintext tab label. An empty label shows the page-number placeholder. */
@@ -62,6 +64,12 @@ export class WebwriterPage extends LitElementWw {
         }
 
     `;
+
+    protected updated() {
+        // Page navigation is local display state, not an authored edit or undo step.
+        if (this.active) this.#internals.states.add("ww-page-active");
+        else this.#internals.states.delete("ww-page-active");
+    }
 
     render(): unknown {
         return html`<slot></slot>`;

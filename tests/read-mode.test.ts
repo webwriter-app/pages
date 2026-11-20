@@ -362,7 +362,7 @@ describe("<webwriter-pages> in read mode", function () {
       await frame(2);
       const rect = widget.getBoundingClientRect();
       assert.isAtMost(rect.width, 2100, `max at ${width}`);
-      const page = widget.querySelector("webwriter-page[active]")!.getBoundingClientRect();
+      const page = widget.activePage.getBoundingClientRect();
       assert.closeTo(page.width / page.height, 16 / 9, 0.01, `page ratio at ${width}`);
       assert.isAtMost(widget.scrollWidth, rect.width + 1, `no sideways overflow at ${width}`);
     }
@@ -379,7 +379,7 @@ describe("<webwriter-pages> in read mode", function () {
         for(const width of [300, 720, 1100]) {
           widget.parentElement!.style.width = `${width}px`;
           await frame(2);
-          const page = widget.querySelector("webwriter-page[active]")!.getBoundingClientRect();
+          const page = widget.activePage.getBoundingClientRect();
           const ratio = orientation === "portrait" ? 9 / 16 : 16 / 9;
           assert.closeTo(page.width / page.height, ratio, 0.01, `${type}/${orientation}/${width}`);
           for(const card of items(widget, ".page-thumb")) {
@@ -443,7 +443,7 @@ describe("<webwriter-pages> in read mode", function () {
           const context = `${type}/${orientation}/${width}`;
           const host = widget.getBoundingClientRect();
           const stage = items(widget, ".page-stage")[0].getBoundingClientRect();
-          const page = widget.querySelector("webwriter-page[active]")!.getBoundingClientRect();
+          const page = widget.activePage.getBoundingClientRect();
           assert.closeTo(host.width, width, 1, `outer widget is resized: ${context}`);
           assert.closeTo(page.width, stage.width, 1, `page fills the available column: ${context}`);
           assert.closeTo(page.width / page.height, orientation === "portrait" ? 9 / 16 : 16 / 9, 0.01, `page ratio: ${context}`);
@@ -472,7 +472,7 @@ describe("<webwriter-pages> in read mode", function () {
         await frame(2);
         const host = widget.getBoundingClientRect();
         const toolbar = pane.getBoundingClientRect();
-        const page = widget.querySelector("webwriter-page[active]")!.getBoundingClientRect();
+        const page = widget.activePage.getBoundingClientRect();
         const tabs = items(widget, ".page-tabs-row")[0].getBoundingClientRect();
         const controls = items(widget, ".controls-rows")[0].getBoundingClientRect();
         const active = items(widget, ".page-tab.active")[0].getBoundingClientRect();
@@ -510,7 +510,7 @@ describe("<webwriter-pages> in read mode", function () {
           await frame(2);
           const context = `${direction}/${orientation}/${width}x${height}`;
           const host = widget.getBoundingClientRect();
-          const page = widget.querySelector("webwriter-page[active]")!.getBoundingClientRect();
+          const page = widget.activePage.getBoundingClientRect();
           const controls = items(widget, ".controls-overlay")[0].getBoundingClientRect();
           assert.isAbove(controls.width, 0, `controls are visible: ${context}`);
           assert.isAbove(controls.height, 0, `controls are visible: ${context}`);
@@ -562,7 +562,7 @@ describe("<webwriter-pages> in read mode", function () {
     await frame(2);
     const strip = items(widget, ".page-thumbs")[0];
     const pane = items(widget, '[part="actions"]')[0];
-    const page = widget.querySelector("webwriter-page[active]")!;
+    const page = widget.activePage;
     assert.closeTo(pane.getBoundingClientRect().left, page.getBoundingClientRect().right, 1);
     assert.closeTo(pane.getBoundingClientRect().height, page.getBoundingClientRect().height, 1);
     assert.isAbove(strip.scrollHeight, strip.clientHeight, "preview list overflows vertically");
@@ -575,7 +575,7 @@ describe("<webwriter-pages> in read mode", function () {
     assert.closeTo(pane.getBoundingClientRect().bottom, widget.getBoundingClientRect().bottom, 1);
     widget.parentElement!.style.width = "720px";
     await frame(2);
-    assert.closeTo(pane.getBoundingClientRect().top, widget.querySelector("webwriter-page[active]")!.getBoundingClientRect().bottom, 1);
+    assert.closeTo(pane.getBoundingClientRect().top, widget.activePage.getBoundingClientRect().bottom, 1);
     assert.isAbove(strip.scrollWidth, strip.clientWidth, "preview list now scrolls horizontally");
   });
 

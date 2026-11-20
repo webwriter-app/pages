@@ -88,7 +88,7 @@ describe("<webwriter-pages> in edit mode", function () {
       await frame(2);
       const host = widget.getBoundingClientRect();
       const header = pane.getBoundingClientRect();
-      const page = widget.querySelector("webwriter-page[active]")!.getBoundingClientRect();
+      const page = widget.activePage.getBoundingClientRect();
       const active = items(widget, ".page-tab.active")[0];
       const inactive = items(widget, ".page-tab:not(.active)")[0];
       assert.closeTo(header.width, host.width, 1, `full pane width at ${width}`);

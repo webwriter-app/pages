@@ -394,7 +394,7 @@ export const pages_styles = css`
         gap: 0.5ch;
     }
 
-    ::slotted(webwriter-page:not([active])) {
+    ::slotted(webwriter-page:not(:state(ww-page-active))) {
         display: none !important;
     }
 
@@ -1065,7 +1065,7 @@ export const pages_styles = css`
             block-size: auto !important;
         }
 
-        ::slotted(webwriter-page:not([active])),
+        ::slotted(webwriter-page:not(:state(ww-page-active))),
         ::slotted(webwriter-page) {
             display: block !important;
             height: auto !important;
