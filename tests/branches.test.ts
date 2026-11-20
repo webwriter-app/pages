@@ -146,7 +146,8 @@ describe("Pages Branches view", function () {
         assert.equal(toggle.getAttribute("aria-expanded"), "false");
         assert.equal(toggle.getAttribute("aria-label"), "Expand graph");
         assert.isBelow(widget.getBoundingClientRect().height, height - 200, "closed graph releases its space");
-        assert.equal(control(graph, ".toolbar").getBoundingClientRect().height, 0, "toolbar is also hidden");
+        assert.isNull(graph.shadowRoot!.querySelector(".toolbar"), "old toolbar is removed");
+        assert.equal(control(graph, ".view-controls").getBoundingClientRect().height, 0, "floating controls are also hidden");
         assert.equal(control(graph, "ww-scene").getBoundingClientRect().height, 0, "scene is also hidden");
         assert.isAbove(control(widget, "#fullscreen").getBoundingClientRect().height, 0, "fullscreen remains visible");
         control(widget, ".choice-goto").click();
@@ -320,8 +321,89 @@ describe("Pages Branches view", function () {
         assert.isFalse(sceneEvent(scene, "ww-connect", { from: `${from}:out`, to: `${from}:in` }));
         sceneEvent(scene, "ww-select", { keys: [`path:${from}:${to}`], items: [] });
         await graph.updateComplete;
-        control(graph, ".remove-connection").click();
+        assert.isNull(graph.shadowRoot!.querySelector(".remove-connection"), "no separate connection-delete control");
+        scene.dispatchEvent(new KeyboardEvent("keydown", { key: "Delete", bubbles: true, composed: true }));
         await until(() => readBranches(widget.children[0]).length === 0);
+    });
+
+    it("floats viewport controls and limits delete bubbles to the selected node", async function () {
+        const widget = await mount(authorSnippet()), graph = await editor(widget);
+        await until(() => graph.shadowRoot!.querySelectorAll("[data-ww-viewport-action]").length === 4);
+        const scene = control(graph, "ww-scene"), bar = control(graph, ".view-controls"), add = control(graph, ".add-node");
+        assert.isNull(graph.shadowRoot!.querySelector(".toolbar"));
+        assert.equal(bar.getAttribute("role"), "toolbar");
+        assert.equal(getComputedStyle(bar).position, "absolute");
+        assert.equal(getComputedStyle(bar).flexDirection, "row");
+        assert.closeTo(bar.getBoundingClientRect().right, scene.getBoundingClientRect().right - 10, 1, "top-right controls");
+        assert.closeTo(bar.getBoundingClientRect().top, scene.getBoundingClientRect().top + 10, 1);
+        assert.isNotNull(bar.querySelector('[data-ww-viewport-action="fit"] sl-icon'), "fit uses a zoom-to-area icon");
+        assert.isAtLeast(scene.getBoundingClientRect().height, 340, "canvas takes the former toolbar's space");
+        assert.isNotNull(add.querySelector("sl-icon"));
+        assert.equal(add.textContent!.trim(), "", "icon-only add");
+        for(const key of ["start", "first-path"]) {
+            sceneEvent(scene, "ww-select", { keys: [key], items: [] });
+            await graph.updateComplete;
+            for(const node of graph.shadowRoot!.querySelectorAll("ww-node")) {
+                const remove = node.querySelector<HTMLElement>(".remove-node")!;
+                assert.equal(getComputedStyle(remove).visibility, node.getAttribute("data-ww-key") === key ? "visible" : "hidden");
+            }
+        }
+        control(graph, 'ww-node[data-ww-key="first-path"] .remove-node').click();
+        await until(() => widget.children.length === 2);
+        assert.isFalse([...widget.children].some(page => pageKey(page) === "first-path"));
+        assert.isFalse(readBranches(widget.children[0]).some(branch => branch.target === "first-path"), "incoming choices are removed too");
+    });
+
+    it("adds pages at double-click and touch long-press positions as single transactions", async function () {
+        const widget = await mount(authorSnippet()), graph = await editor(widget), scene = control(graph, "ww-scene");
+        const background = (gesture: string, pointerType: string) => sceneEvent(scene, "ww-background", { gesture, pointerType, point: { x: 713, y: 277 } });
+        background("click", "mouse");
+        background("longpress", "mouse");
+        assert.equal(widget.children.length, 3, "ordinary clicks and mouse holds do not insert");
+        for(const [gesture, pointerType] of [["dblclick", "mouse"], ["longpress", "touch"]]) {
+            const count = widget.children.length, log = steps(widget);
+            background(gesture, pointerType);
+            await until(() => widget.children.length === count + 1 && widget.activePageIndex === count);
+            await frame(2);
+            const page = widget.children[count];
+            assert.equal(page.getAttribute("node-x"), "610");
+            assert.equal(page.getAttribute("node-y"), "230");
+            assert.isNotEmpty(pageKey(page));
+            assert.equal(page.firstElementChild!.localName, "p");
+            assert.deepEqual(log.stop(), ["transactionstart", "transactionend"]);
+        }
+    });
+
+    it("reconnects either end, preserves choice data, and rejects invalid or duplicate destinations", async function () {
+        const widget = await mount(authorSnippet()), graph = await editor(widget), scene = control(graph, "ww-scene");
+        const source = widget.children[0], next = widget.children[1], third = widget.children[2];
+        source.setAttribute("branches", '[{"target":"first-path","label":"Keep this label","custom":{"value":7}},{"target":"second-path","label":"Other"}]');
+        await until(() => readBranches(source)[0].label === "Keep this label");
+        await frame(2);
+        const path = () => control<any>(graph, 'ww-path[data-ww-key="path:start:first-path"]');
+        const rewire = (from: string, to: string) => sceneEvent(path(), "ww-reconnect", {
+            path: path(), previous: { from: "start:out", to: "first-path:in" }, from, to,
+        });
+        assert.isFalse(rewire("start:out", "second-path:in"), "duplicate refused");
+        assert.isFalse(rewire("first-path:out", "first-path:in"), "self-connection refused");
+        assert.isFalse(rewire("missing:out", "first-path:in"));
+        assert.isTrue(rewire("second-path:out", "first-path:in"), "source can move");
+        await until(() => readBranches(third).some(branch => branch.target === "first-path"));
+        assert.deepEqual(readBranches(third).at(-1), { target: "first-path", label: "Keep this label", custom: { value: 7 } });
+        assert.deepEqual(readBranches(source).map(branch => branch.target), ["second-path"]);
+        await frame(2);
+        const moved = control<any>(graph, 'ww-path[data-ww-key="path:second-path:first-path"]');
+        assert.equal(moved.getAttribute("rewire"), "from to", "only the selected connection exposes both endpoints");
+        assert.isFalse(sceneEvent(moved, "ww-reconnect", { path: moved, previous: { from: "second-path:out", to: "first-path:in" }, from: "second-path:out", to: "start:in" }), "existing target refused");
+        // Free a target, then reconnect the other end without losing the label or unfamiliar data.
+        third.setAttribute("branches", JSON.stringify(readBranches(third).filter(branch => branch.target !== "start")));
+        assert.isTrue(sceneEvent(moved, "ww-reconnect", { path: moved, previous: { from: "second-path:out", to: "first-path:in" }, from: "second-path:out", to: "start:in" }));
+        await until(() => readBranches(third)[0]?.target === "start");
+        assert.equal(readBranches(next)[0].target, "start", "other pages are untouched");
+        await frame(2);
+        const final = control<any>(graph, 'ww-path[data-ww-key="path:second-path:start"]');
+        assert.isTrue(sceneEvent(final, "ww-disconnect", { path: final, from: "second-path:out", to: "start:in" }));
+        await until(() => readBranches(third).length === 0);
     });
 
     it("routes connectors around nodes and reroutes after unrelated obstacles move", async function () {
@@ -484,7 +566,7 @@ describe("Pages Branches view", function () {
         const widget = await mount(authorSnippet());
         widget.parentElement!.lang = "de";
         const graph = await editor(widget);
-        await until(() => control(graph, ".add-node").textContent!.includes("Seite hinzufügen"), "German node controls");
+        await until(() => control(graph, ".add-node").getAttribute("aria-label") === "Seite hinzufügen", "German node controls");
         assert.equal(control<HTMLInputElement>(graph, ".node-label-input").getAttribute("aria-label"), "Seitenbeschriftung");
         await until(() => widget.shadowRoot!.querySelector(".branch-choices")?.getAttribute("aria-label") === "Seitenauswahl", "German choices navigation");
         assert.isFalse(widget.hasAttribute("lang"), "inherited language stays inherited");

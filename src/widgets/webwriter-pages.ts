@@ -452,6 +452,19 @@ export class WebwriterPages extends LitElementWw {
         });
     };
 
+    #addBranchPage = (point: { x: number; y: number }) => {
+        if (!this.#permissions.editing || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
+        transaction(this, () => {
+            const page = this.#createPage();
+            page.setAttribute("node-x", String(Math.round((point.x - 100) / 10) * 10));
+            page.setAttribute("node-y", String(Math.round((point.y - 46) / 10) * 10));
+            ensurePageKeys(this.pages);
+            this.changePage(this.pages.indexOf(page));
+            this.requestUpdate();
+            return this.updateComplete;
+        });
+    };
+
     #moveBranchPages = (items: MoveDetail["items"]) => {
         if (!this.#permissions.editing) return;
         transaction(this, () => {
@@ -757,11 +770,13 @@ export class WebwriterPages extends LitElementWw {
             });
 
             const page = this.pages[index];
-            if (!page) return;
+            const view = this.type;
+            // Branches has no previews; generating one would create an unrelated undo step.
+            if (!page || view === "branches") return;
             const orientation = this.orientation;
             const thumbnail = await captureThumbnail(page);
             // Only keep the capture if the page has not changed in the meantime.
-            if (!this.isConnected || this.activePage !== page || this.orientation !== orientation) return;
+            if (!this.isConnected || this.activePage !== page || this.orientation !== orientation || this.type !== view) return;
             page.thumbnail = thumbnail;
             this.requestUpdate();
         }, 100);
@@ -840,7 +855,7 @@ export class WebwriterPages extends LitElementWw {
                 ${branches && view.editing ? html`<pages-branches id="branch-editor" part="branch-editor" contenteditable="false"
                     ?hidden=${!this.branchGraphExpanded} .collapsed=${!this.branchGraphExpanded}
                     .view=${view} .startKey=${this.startPage || pageKey(view.pages[0])}
-                    .setBranches=${this.#setBranches} .movePages=${this.#moveBranchPages} .setStart=${this.#setStartPage}
+                    .setBranches=${this.#setBranches} .movePages=${this.#moveBranchPages} .setStart=${this.#setStartPage} .addPageAt=${this.#addBranchPage}
                 ></pages-branches>` : nothing}
             </div>
         `;

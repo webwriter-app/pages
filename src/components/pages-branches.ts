@@ -3,22 +3,27 @@ import { property, state } from "lit/decorators.js";
 import { live } from "lit/directives/live.js";
 import { repeat } from "lit/directives/repeat.js";
 import { LitElementWw } from "@webwriter/lit";
-import { SceneController, type ActivateDetail, type ConnectDetail, type MoveDetail, type SelectDetail } from "@webwriter/lit/scene";
+import { SceneController, type ActivateDetail, type BackgroundDetail, type ConnectDetail, type DisconnectDetail, type MoveDetail, type ReconnectDetail, type SelectDetail } from "@webwriter/lit/scene";
 import { Viewport } from "@webwriter/lit/viewport";
 import { sceneElements } from "@webwriter/widget/scene";
 import type { PagesView } from "../model/pages-view";
 import type { WebwriterPage } from "../widgets/webwriter-page";
 import { pageKey, readBranches, readNodePosition, type PageBranch } from "../model/page-branches";
+import SlIcon from "@shoelace-style/shoelace/dist/components/icon/icon.component.js";
+import plusIcon from "@tabler/icons/outline/plus.svg";
+import removeIcon from "@tabler/icons/outline/x.svg";
+import fitIcon from "@tabler/icons/outline/zoom-scan.svg";
 
 /** An editing-only Scene over the same authored pages that the reader sees. */
 export class PagesBranches extends LitElementWw {
-    static scopedElements = sceneElements;
+    static scopedElements = { ...sceneElements, "sl-icon": SlIcon };
 
     @property({ attribute: false }) accessor view!: PagesView;
     @property({ attribute: false }) accessor startKey = "";
     @property({ attribute: false }) accessor setBranches!: (page: WebwriterPage, branches: PageBranch[]) => void;
     @property({ attribute: false }) accessor movePages!: (items: MoveDetail["items"]) => void;
     @property({ attribute: false }) accessor setStart!: (page: WebwriterPage) => void;
+    @property({ attribute: false }) accessor addPageAt!: (point: { x: number; y: number }) => void;
     @state() private accessor selectedPath = "";
     @state() private accessor selectedNode = "";
     @property({ attribute: false }) accessor collapsed = false;
@@ -39,17 +44,21 @@ export class PagesBranches extends LitElementWw {
         :host { display: block; position: relative; color: var(--ww-text-color, inherit); font-family: var(--ww-font-family, inherit); }
         * { box-sizing: border-box; }
         :host([hidden]) { display: none; }
-        .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-        .toolbar { padding: 10px 12px; background: var(--sl-color-neutral-50); }
-        .toolbar { border-bottom: 1px solid var(--sl-panel-border-color); }
-        .tools { display: flex; gap: 4px; margin-inline-start: auto; }
+        .graph { position: relative; }
+        .view-controls { position: absolute; inset-inline-end: 10px; inset-block-start: 10px; z-index: 10; display: flex; }
+        .view-controls button { min-inline-size: 28px; min-block-size: 28px; padding: 0 4px; border: 0; background: transparent; }
+        .icon-button { display: grid; place-items: center; min-inline-size: 32px; min-block-size: 32px; padding: 0; }
+        .add-node { position: absolute; inset-inline-start: 10px; inset-block-start: 10px; z-index: 10; box-shadow: 0 1px 4px rgb(0 0 0 / 0.12); }
+        .remove-node { position: absolute; inset-inline-end: -12px; inset-block-start: -12px; min-inline-size: 24px; min-block-size: 24px; border-radius: 50%; visibility: hidden; }
+        ww-node[selected] .remove-node { visibility: visible; }
+        sl-icon { font-size: 16px; pointer-events: none; }
         button, input, select { font: inherit; font-size: 13px; color: inherit; min-block-size: 32px; }
         button { padding: 4px 10px; border: 1px solid var(--sl-panel-border-color); border-radius: 5px; background: var(--sl-panel-background-color); cursor: pointer; }
         button:disabled { opacity: 0.45; cursor: default; }
         input, select { padding: 4px 7px; border: 1px solid var(--sl-panel-border-color); border-radius: 4px; background: var(--sl-panel-background-color); min-inline-size: 0; }
         input { inline-size: 14rem; max-inline-size: 100%; }
         button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--ww-theme-accent-1, #0284c7); outline-offset: 2px; }
-        ww-scene { display: block; block-size: 280px; background: var(--sl-panel-background-color); --ww-scene-selection: var(--ww-theme-accent-1, #0284c7); }
+        ww-scene { display: block; block-size: 340px; background: var(--sl-panel-background-color); --ww-scene-selection: var(--ww-theme-accent-1, #0284c7); }
         ww-node { inline-size: 200px; min-block-size: 84px; padding: 18px 20px; background: var(--sl-panel-background-color); border: 1px solid var(--sl-color-neutral-400); border-radius: 8px; color: inherit; cursor: pointer; }
         ww-node[selected] { border-color: var(--ww-theme-accent-1, #0284c7); background: var(--sl-color-primary-50); }
         .node-label, .node-label-input { display: block; inline-size: 100%; min-inline-size: 0; min-block-size: 0; block-size: 1.5em; padding: 0; border: 0; border-radius: 0; background: transparent; font: inherit; font-weight: 600; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -65,11 +74,13 @@ export class PagesBranches extends LitElementWw {
         .output { inset-inline-end: -12px; }
         .port[data-ww-port-candidate], .port[data-ww-port-over] { outline: 2px solid var(--ww-theme-accent-1, #0284c7); }
         ww-path { stroke: var(--sl-color-neutral-500); stroke-width: 2px; }
+        ww-path:state(rewiring) { opacity: 0.3; }
         ww-text { fill: var(--ww-text-color, #374151); font-size: 12px; }
         @media (hover: hover) {
             button:not(:disabled):hover { border-color: var(--sl-color-neutral-500); background: var(--sl-color-neutral-100); }
+            .remove-node:not(:disabled):hover { color: var(--sl-color-danger-600); border-color: currentColor; }
         }
-        @media (pointer: coarse) { button, input:not(.node-label-input), select { min-block-size: 44px; } }
+        @media (pointer: coarse) { button, input:not(.node-label-input), select { min-block-size: 44px; } .icon-button, .view-controls button { min-inline-size: 44px; min-block-size: 44px; } }
     `;
 
     #label(page: WebwriterPage) {
@@ -79,6 +90,10 @@ export class PagesBranches extends LitElementWw {
     #page(key: string) { return this.view.pages.find((page) => pageKey(page) === key); }
 
     protected updated(changed: PropertyValues<this>) {
+        const buttons = this.renderRoot.querySelectorAll<HTMLButtonElement>(".view-controls button");
+        if (!("focusGroup" in HTMLElement.prototype) && !Array.from(buttons).some(button => button.hasAttribute("tabindex"))) {
+            buttons.forEach((button, index) => button.tabIndex = index ? -1 : 0);
+        }
         const previous = changed.get("view") as PagesView | undefined;
         const previousPage = previous?.pages[previous.activePageIndex];
         const page = this.view?.pages[this.view.activePageIndex];
@@ -117,6 +132,70 @@ export class PagesBranches extends LitElementWw {
         if (!this.#connect(event.detail.from.split(":")[0], event.detail.to.split(":")[0])) event.preventDefault();
     };
 
+    #background = (event: CustomEvent<BackgroundDetail>) => {
+        const { gesture, point, pointerType } = event.detail;
+        if (gesture === "dblclick" || gesture === "longpress" && pointerType === "touch") this.addPageAt(point);
+    };
+
+    #addNode() {
+        const scene = this.renderRoot.querySelector("ww-scene");
+        if (!scene) return;
+        const rect = scene.getBoundingClientRect();
+        this.addPageAt(this.#scene.toScene(rect.left + rect.width / 2, rect.top + rect.height / 2));
+    }
+
+    #reconnect = (event: CustomEvent<ReconnectDetail>) => {
+        const { path, previous, from, to } = event.detail;
+        const source = this.#page(previous.from.split(":")[0]), target = this.#page(from.split(":")[0]);
+        const destination = this.#page(to.split(":")[0]);
+        const branches = source && readBranches(source), index = branches?.findIndex(branch => branch.target === previous.to.split(":")[0]) ?? -1;
+        if (!this.view.editing || !path.isConnected || path.parentElement !== this.renderRoot.querySelector("ww-scene")
+            || path.getAttribute("from") !== previous.from || path.getAttribute("to") !== previous.to
+            || !source || !target || !destination || target === destination || index < 0
+            || from !== `${pageKey(target)}:out` || to !== `${pageKey(destination)}:in`
+            || readBranches(target).some((branch, i) => branch.target === pageKey(destination) && (source !== target || i !== index))) {
+            event.preventDefault();
+            return;
+        }
+        const branch = { ...branches![index], target: pageKey(destination) };
+        if (source === target) this.setBranches(source, branches!.map((current, i) => i === index ? branch : current));
+        else {
+            this.setBranches(source, branches!.filter((_, i) => i !== index));
+            this.setBranches(target, [...readBranches(target), branch]);
+        }
+        this.selectedPath = `path:${pageKey(target)}:${pageKey(destination)}`;
+    };
+
+    #disconnect = (event: CustomEvent<DisconnectDetail>) => {
+        const { path, from, to } = event.detail;
+        const source = this.#page(from.split(":")[0]);
+        if (!this.view.editing || !path.isConnected || path.parentElement !== this.renderRoot.querySelector("ww-scene")
+            || path.getAttribute("from") !== from || path.getAttribute("to") !== to || !source) {
+            event.preventDefault();
+            return;
+        }
+        this.setBranches(source, readBranches(source).filter(branch => branch.target !== to.split(":")[0]));
+        this.selectedPath = "";
+    };
+
+    #toolbarFocus(event: FocusEvent) {
+        if ("focusGroup" in HTMLElement.prototype) return;
+        for (const button of (event.currentTarget as HTMLElement).querySelectorAll("button")) button.tabIndex = button === event.target ? 0 : -1;
+    }
+
+    #toolbarKey(event: KeyboardEvent) {
+        if ("focusGroup" in HTMLElement.prototype) return;
+        const buttons = [...(event.currentTarget as HTMLElement).querySelectorAll("button")];
+        const index = buttons.indexOf(event.target as HTMLButtonElement);
+        const rtl = getComputedStyle(event.currentTarget as HTMLElement).direction === "rtl";
+        const step = event.key === "ArrowRight" ? (rtl ? -1 : 1) : event.key === "ArrowLeft" ? (rtl ? 1 : -1) : 0;
+        const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1
+            : step ? (index + step + buttons.length) % buttons.length : -1;
+        if (next < 0) return;
+        event.preventDefault();
+        buttons[next]?.focus();
+    }
+
     #removePath() {
         const [, from, to] = this.selectedPath.split(":");
         const page = this.#page(from);
@@ -140,28 +219,31 @@ export class PagesBranches extends LitElementWw {
         if (!view?.editing) return nothing;
         const page = view.pages[view.activePageIndex];
         return html`
-            <div class="toolbar">
-                <button type="button" class="add-node" @click=${() => view.addPage()}><span aria-hidden="true">＋</span> ${view.msg("Add page")}</button>
-                <button type="button" class="remove-node" ?disabled=${view.pages.length <= 1} @click=${() => view.removePage(view.activePageIndex)}>${view.msg("Remove")}</button>
-                <button type="button" class="remove-connection" ?disabled=${!this.selectedPath} @click=${() => this.#removePath()}>${view.msg("Remove connection")}</button>
-                <div class="tools">
-                    <button type="button" title=${view.msg("Zoom out")} aria-label=${view.msg("Zoom out")} @click=${() => this.#viewport.zoomBy(1 / 1.2)}>−</button>
-                    <button type="button" title=${view.msg("Zoom in")} aria-label=${view.msg("Zoom in")} @click=${() => this.#viewport.zoomBy(1.2)}>+</button>
-                    <button type="button" @click=${() => this.#viewport.fit({ follow: "none" })}>${view.msg("Fit graph")}</button>
-                </div>
+            <div class="graph">
+            <button type="button" class="add-node icon-button" title=${view.msg("Add page")} aria-label=${view.msg("Add page")} @click=${this.#addNode}>
+                <sl-icon src=${plusIcon} aria-hidden="true"></sl-icon>
+            </button>
+            <div class="view-controls" data-ww-viewport-controls role="toolbar" aria-label=${view.msg("Page branches")} aria-controls="graph" focusgroup="toolbar wrap"
+                @focusin=${this.#toolbarFocus} @keydown=${this.#toolbarKey}>
+                <button type="button" data-ww-viewport-action="out" aria-keyshortcuts="-">−</button>
+                <button type="button" data-ww-viewport-action="in" aria-keyshortcuts="+">+</button>
+                <button type="button" data-ww-viewport-action="reset"></button>
+                <button type="button" data-ww-viewport-action="fit" aria-keyshortcuts="0"><sl-icon src=${fitIcon} aria-hidden="true"></sl-icon></button>
             </div>
             <ww-scene id="graph" select="single" connect-click grid="10" background="dots" background-spacing="20"
-                data-ww-viewport="canvas" data-ww-viewport-fit="content" data-ww-viewport-fit-padding="12" data-ww-viewport-zoom="0.4 1.5"
+                data-ww-viewport="canvas" data-ww-viewport-fit="content" data-ww-viewport-fit-padding="24" data-ww-viewport-fit-inset="48 0 0 0" data-ww-viewport-zoom="0.4 1.5"
                 aria-label=${view.msg("Page branches")} @ww-select=${this.#select} @ww-activate=${this.#select}
                 @ww-ready=${async () => {
                     await this.updateComplete;
                     await this.#viewport.fit({ follow: "none" });
                 }}
-                @ww-connect=${this.#onConnect} @ww-move=${(event: CustomEvent<MoveDetail>) => this.movePages(event.detail.items)}
+                @ww-connect=${this.#onConnect} @ww-reconnect=${this.#reconnect} @ww-disconnect=${this.#disconnect} @ww-background=${this.#background}
+                @ww-move=${(event: CustomEvent<MoveDetail>) => this.movePages(event.detail.items)}
                 @keydown=${this.#keydown}>
                 ${view.pages.flatMap((source) => readBranches(source).filter((branch) => this.#page(branch.target)).map((branch) => html`
                     <ww-path data-ww-key=${`path:${pageKey(source)}:${branch.target}`} from=${`${pageKey(source)}:out`} to=${`${branch.target}:in`}
-                        route="avoid" aria-label=${branch.label || this.#label(this.#page(branch.target)!)} selectable ?selected=${this.selectedPath === `path:${pageKey(source)}:${branch.target}`}>
+                        route="avoid" rewire=${this.selectedPath === `path:${pageKey(source)}:${branch.target}` ? "from to" : nothing}
+                        aria-label=${branch.label || this.#label(this.#page(branch.target)!)} selectable ?selected=${this.selectedPath === `path:${pageKey(source)}:${branch.target}`}>
                     </ww-path>`))}
                 ${repeat(view.pages, pageKey, (node, index) => {
                     const position = readNodePosition(node, index), key = pageKey(node);
@@ -173,10 +255,14 @@ export class PagesBranches extends LitElementWw {
                             : html`<span class="node-label">${this.#label(node)}</span>`}
                         <button type="button" class="node-start" data-ww-control ?disabled=${key === this.startKey}
                             @click=${() => this.setStart(node)}>${key === this.startKey ? view.msg("Start page") : view.msg("Set as start")}</button>
+                        <button type="button" class="remove-node icon-button" data-ww-control ?disabled=${view.pages.length <= 1}
+                            title=${view.msg("Remove page")} aria-label=${view.msg("Remove page")}
+                            @click=${() => view.removePage(this.view.pages.indexOf(node))}><sl-icon src=${removeIcon} aria-hidden="true"></sl-icon></button>
                         <span class="port output" data-ww-port="out" data-ww-link="page" data-ww-side="right" data-ww-control aria-label=${view.msg("Connect from page")}></span>
                     </ww-node>`;
                 })}
             </ww-scene>
+            </div>
         `;
     }
 }
