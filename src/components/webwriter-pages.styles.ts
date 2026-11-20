@@ -258,6 +258,10 @@ export const pages_styles = css`
         gap: var(--sl-spacing-2x-small);
     }
 
+    .pages-view .controls-section:has(> .completion-overview) {
+        flex-direction: column;
+    }
+
     .completion-bubble {
         display: inline-flex;
         align-items: center;
