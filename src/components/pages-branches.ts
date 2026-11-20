@@ -15,7 +15,7 @@ import removeIcon from "@tabler/icons/outline/trash.svg";
 import fitIcon from "@tabler/icons/outline/zoom-scan.svg";
 import startIcon from "@tabler/icons/outline/flag.svg";
 import openIcon from "@tabler/icons/outline/share-3.svg";
-import { captureThumbnail } from "./page-thumbnail";
+import { captureThumbnail, nodePreviewResolution } from "./page-thumbnail";
 import { resolveBranchNodeLayout, type BranchNodePosition } from "../model/branch-node-layout";
 
 /** An editing-only Scene over the same authored pages that the reader sees. */
@@ -36,6 +36,7 @@ export class PagesBranches extends LitElementWw {
 
     // Captures are private UI state: refreshing a graph must not create authored undo steps.
     #previews = new Map<WebwriterPage, string>();
+    #previewResolutions = new Map<WebwriterPage, number>();
     #dirtyPreviews = new Set<WebwriterPage>();
     #previewOwner?: HTMLElement;
     #previewObserver?: MutationObserver;
@@ -169,6 +170,7 @@ export class PagesBranches extends LitElementWw {
         super.disconnectedCallback();
         this.#stopPreviews();
         this.#previews.clear();
+        this.#previewResolutions.clear();
         this.#cancelFit();
     }
 
@@ -250,7 +252,10 @@ export class PagesBranches extends LitElementWw {
     };
 
     #syncPreviews(resized: boolean) {
-        for (const page of this.#previews.keys()) if (!this.view?.pages.includes(page)) this.#previews.delete(page);
+        for (const page of this.#previews.keys()) if (!this.view?.pages.includes(page)) {
+            this.#previews.delete(page);
+            this.#previewResolutions.delete(page);
+        }
         const owner = this.view?.pages[0]?.parentElement;
         if (this.collapsed || !this.view?.editing || !owner) {
             if (this.#previewOwner) this.#stopPreviews();
@@ -273,9 +278,15 @@ export class PagesBranches extends LitElementWw {
             owner.addEventListener("load", this.#previewLoaded, true);
             this.#queuePreviews(this.view.pages);
         } else {
-            const missing = this.view.pages.filter(page => !this.#previews.has(page) && !this.#dirtyPreviews.has(page));
+            const missing = this.view.pages.filter(page => !this.#dirtyPreviews.has(page)
+                && this.#previewResolutions.get(page) !== this.#previewResolution(page));
             if (resized || missing.length) this.#queuePreviews(resized ? this.view.pages : missing);
         }
+    }
+
+    #previewResolution(page: WebwriterPage) {
+        const card = this.renderRoot.querySelector<HTMLElement>(`ww-node[data-ww-key="${pageKey(page)}"] .node-card`);
+        return nodePreviewResolution(card?.offsetWidth ?? 200, this.#viewport.scale, this.ownerDocument.defaultView?.devicePixelRatio ?? 1);
     }
 
     #queuePreviews(pages: WebwriterPage[]) {
@@ -294,9 +305,12 @@ export class PagesBranches extends LitElementWw {
             for (const page of [...this.#dirtyPreviews]) {
                 if (!this.view.pages.includes(page)) { this.#dirtyPreviews.delete(page); continue; }
                 try {
-                    const thumbnail = await captureThumbnail(page);
+                    const resolution = this.#previewResolution(page);
+                    const thumbnail = await captureThumbnail(page, resolution);
                     if (epoch !== this.#previewEpoch || !this.#previewOwner || !page.isConnected) return;
+                    if (resolution !== this.#previewResolution(page)) return;
                     this.#previews.set(page, thumbnail);
+                    this.#previewResolutions.set(page, resolution);
                     this.requestUpdate();
                 } catch { /* A failed capture leaves the page label and navigation usable. */ }
                 if (epoch !== this.#previewEpoch || !this.#previewOwner) return;

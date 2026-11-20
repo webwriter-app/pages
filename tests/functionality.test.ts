@@ -7,12 +7,22 @@ import type { SelectOptionDeclaration } from "@webwriter/widget";
 import { frame, mount, unmountAll, until } from "./helpers"
 import type { WebwriterPages } from "../src/widgets/webwriter-pages";
 import "../src/widgets/webwriter-pages";
-import { captureThumbnail } from "../src/components/page-thumbnail";
+import { captureThumbnail, nodePreviewResolution } from "../src/components/page-thumbnail";
 import introductionSnippet from "../snippets/what-is-webwriter.html";
 
 mocha.setup(getMochaConfig())
 
 describe("<webwriter-pages>", function () {
+
+  it("uses three node preview resolutions for canvas zoom and display density", function () {
+    assert.equal(nodePreviewResolution(200, 0.5), 160);
+    assert.equal(nodePreviewResolution(200, 0.8), 160);
+    assert.equal(nodePreviewResolution(200, 0.81), 320);
+    assert.equal(nodePreviewResolution(200, 1.5), 320);
+    assert.equal(nodePreviewResolution(200, 1, 2), 640);
+    assert.equal(nodePreviewResolution(200, 8, 2), 640, "capture work is bounded");
+    assert.equal(nodePreviewResolution(100, 1.5, 2), 320, "portrait nodes use their narrower width");
+  });
 
   it("keeps all introduction images embedded and decodable after saving and reopening", async function () {
     try {

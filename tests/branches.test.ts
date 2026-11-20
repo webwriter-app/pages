@@ -11,6 +11,7 @@ import { pageKey, readBranches } from "../src/model/page-branches";
 import snippet from "../snippets/branching-scenario.html";
 import { testBranchModel } from "./branches-model";
 import { testBranchNodeLayout } from "./branch-node-layout";
+import { nodePreviewResolution } from "../src/components/page-thumbnail";
 
 mocha.setup(getMochaConfig());
 testBranchModel();
@@ -247,6 +248,25 @@ describe("Pages Branches view", function () {
         assert.equal(toggle.getAttribute("aria-expanded"), "true");
         assert.equal(graph.shadowRoot!.querySelectorAll("ww-node").length, 3);
         assert.deepEqual(readBranches(widget.children[0]).map((branch) => branch.target), ["first-path", "second-path"]);
+    });
+
+    it("refreshes node captures when zoom crosses a resolution breakpoint", async function () {
+        this.timeout(20000);
+        const widget = await mount(authorSnippet()), graph = await editor(widget), scene = control<any>(graph, "ww-scene");
+        await frame(20);
+        const saved = [...widget.children].map(page => page.getAttribute("thumbnail"));
+        control(graph, '[data-ww-viewport-action="reset"]').click();
+        const ready = () => [...graph.shadowRoot!.querySelectorAll<HTMLElement>("ww-node")].every(node => {
+            const image = node.querySelector<HTMLImageElement>(".node-preview");
+            return image?.complete && image.naturalWidth === nodePreviewResolution(node.querySelector<HTMLElement>(".node-card")!.offsetWidth, scene.view.k, devicePixelRatio);
+        });
+        await until(ready, "captures match the reset zoom");
+        const initial = control<HTMLImageElement>(graph, ".node-preview").naturalWidth;
+        for (let step = 0; step < 7; step++) control(graph, '[data-ww-viewport-action="out"]').click();
+        await until(() => ready() && control<HTMLImageElement>(graph, ".node-preview").naturalWidth < initial, "lower zoom refreshes smaller captures");
+        for (let step = 0; step < 10; step++) control(graph, '[data-ww-viewport-action="in"]').click();
+        await until(() => ready() && control<HTMLImageElement>(graph, ".node-preview").naturalWidth === initial, "higher zoom refreshes sharper captures");
+        assert.deepEqual([...widget.children].map(page => page.getAttribute("thumbnail")), saved, "zoom captures stay private to the graph");
     });
 
     it("fits the initial narrow graph and keeps its nodes visible after reopening", async function () {
