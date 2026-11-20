@@ -52,9 +52,10 @@ export class PagesBranches extends LitElementWw {
         ww-scene { display: block; block-size: 280px; background: var(--sl-panel-background-color); --ww-scene-selection: var(--ww-theme-accent-1, #0284c7); }
         ww-node { inline-size: 200px; min-block-size: 84px; padding: 18px 20px; background: var(--sl-panel-background-color); border: 1px solid var(--sl-color-neutral-400); border-radius: 8px; color: inherit; cursor: pointer; }
         ww-node[selected] { border-color: var(--ww-theme-accent-1, #0284c7); background: var(--sl-color-primary-50); }
-        .node-label { display: block; font-weight: 600; overflow-wrap: anywhere; }
-        .node-label-input { inline-size: 100%; min-inline-size: 0; padding: 0; border: 0; background: transparent; font-weight: 600; }
-        .node-start { display: block; margin-block-start: 6px; min-block-size: 24px; padding: 1px 5px; font-size: 11px; }
+        .node-label, .node-label-input { display: block; inline-size: 100%; min-inline-size: 0; min-block-size: 0; block-size: 1.5em; padding: 0; border: 0; border-radius: 0; background: transparent; font: inherit; font-weight: 600; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .node-label-input::placeholder { color: inherit; opacity: 1; }
+        .node-start { display: block; visibility: hidden; margin-block-start: 6px; min-block-size: 24px; padding: 1px 5px; font-size: 11px; }
+        ww-node[selected] .node-start, .node-start:disabled { visibility: visible; }
         .node-kind { display: block; margin-block-start: 5px; font-size: 12px; color: var(--sl-color-neutral-500); }
         .port { position: absolute; inset-block-start: 28px; inline-size: 24px; block-size: 24px; border: 6px solid transparent; border-radius: 50%; background: var(--ww-theme-accent-1, #0284c7); background-clip: padding-box; }
         /* Mask the node border, but leave the outward half clear for the connector. */
@@ -68,7 +69,7 @@ export class PagesBranches extends LitElementWw {
         @media (hover: hover) {
             button:not(:disabled):hover { border-color: var(--sl-color-neutral-500); background: var(--sl-color-neutral-100); }
         }
-        @media (pointer: coarse) { button, input, select { min-block-size: 44px; } }
+        @media (pointer: coarse) { button, input:not(.node-label-input), select { min-block-size: 44px; } }
     `;
 
     #label(page: WebwriterPage) {

@@ -82,6 +82,45 @@ describe("Pages Branches view", function () {
         await until(() => control<HTMLInputElement>(graph, '.node-label-input').value === "A different ending");
     });
 
+    it("keeps labels and node geometry stable while selection reveals the start action", async function () {
+        const widget = await mount(authorSnippet());
+        const graph = await editor(widget), scene = control<any>(graph, "ww-scene");
+        await scene.ready;
+        await frame(3);
+        const node = control(graph, 'ww-node[data-ww-key="first-path"]');
+        const start = control(graph, 'ww-node[data-ww-key="start"] .node-start');
+        const button = node.querySelector<HTMLElement>(".node-start")!;
+        const snapshot = () => {
+            const label = node.querySelector<HTMLElement>(".node-label, .node-label-input")!;
+            const box = node.getBoundingClientRect(), rect = label.getBoundingClientRect();
+            const style = getComputedStyle(label);
+            return { width: box.width, height: box.height, left: rect.left - box.left, top: rect.top - box.top,
+                labelWidth: rect.width, labelHeight: rect.height, font: style.font, color: style.color };
+        };
+        for (const label of ["A long page label that exceeds the node width", ""]) {
+            widget.children[1].setAttribute("label", label);
+            sceneEvent(scene, "ww-activate", { key: "start", via: "keyboard", count: 1 });
+            await until(() => widget.activePageIndex === 0);
+            await graph.updateComplete;
+            await frame(2);
+            const before = snapshot();
+            assert.equal(getComputedStyle(button).visibility, "hidden", "unselected non-start action is hidden");
+            sceneEvent(scene, "ww-select", { keys: ["first-path"], items: [] });
+            await graph.updateComplete;
+            assert.equal(getComputedStyle(button).visibility, "visible", "selection reveals the action");
+            assert.deepEqual(snapshot(), before, "selection changes neither the label nor node geometry");
+            assert.equal(getComputedStyle(start).visibility, "visible", "start page indicator stays visible while unselected");
+            sceneEvent(scene, "ww-activate", { key: "first-path", via: "keyboard", count: 1 });
+            await until(() => widget.activePageIndex === 1);
+            await graph.updateComplete;
+            await frame(2);
+            assert.deepEqual(snapshot(), before, "editable label has identical typography and geometry");
+            const input = node.querySelector<HTMLInputElement>(".node-label-input")!;
+            assert.equal(getComputedStyle(input, "::placeholder").color, before.color, "default labels keep the same color");
+            assert.equal(getComputedStyle(input, "::placeholder").opacity, "1");
+        }
+    });
+
     it("keeps choices between the page and collapsible graph, with fullscreen at the end", async function () {
         const widget = await mount(authorSnippet());
         const graph = await editor(widget);
