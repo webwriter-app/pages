@@ -43,7 +43,7 @@ export class PagesBranches extends LitElementWw {
     static styles = css`
         :host { display: block; position: relative; color: var(--ww-text-color, inherit); font-family: var(--ww-font-family, inherit); }
         * { box-sizing: border-box; }
-        .graph-toggle { display: inline-flex; align-items: center; justify-content: center; inline-size: 32px; padding: 0; }
+        .graph-toggle { display: inline-flex; align-items: center; justify-content: center; inline-size: 32px; padding: 0; border: 0; background: transparent; }
         .graph-toggle sl-icon { font-size: 16px; }
         .graph-toggle:dir(rtl) sl-icon { transform: scaleX(-1); }
         .fullscreen-controls { display: flex; align-items: center; }
@@ -72,7 +72,10 @@ export class PagesBranches extends LitElementWw {
         .port[data-ww-port-candidate], .port[data-ww-port-over] { outline: 2px solid var(--ww-theme-accent-1, #0284c7); }
         ww-path { stroke: var(--sl-color-neutral-500); stroke-width: 2px; }
         ww-text { fill: var(--ww-text-color, #374151); font-size: 12px; }
-        @media (hover: hover) { button:not(:disabled):hover { border-color: var(--sl-color-neutral-500); background: var(--sl-color-neutral-100); } }
+        @media (hover: hover) {
+            button:not(:disabled):hover { border-color: var(--sl-color-neutral-500); background: var(--sl-color-neutral-100); }
+            .graph-toggle:not(:disabled):hover { border-color: transparent; background: transparent; color: var(--ww-theme-accent-1, #0284c7); }
+        }
         @media (pointer: coarse) { button, input, select { min-block-size: 44px; } .graph-toggle { inline-size: 44px; } }
     `;
 

@@ -100,7 +100,7 @@ describe("Pages Branches view", function () {
         assert.equal(toggle.getAttribute("aria-label"), "Expand graph");
         assert.isBelow(graph.getBoundingClientRect().height, height - 200, "closed graph releases its space");
         assert.isAbove(control(graph, "#fullscreen").getBoundingClientRect().height, 0, "fullscreen remains visible");
-        choices(widget)[0].click();
+        control(widget, ".choice-goto").click();
         await until(() => widget.activePageIndex === 1);
         await frame(2);
         assert.isTrue(scene.hidden, "page navigation does not reopen the graph");
@@ -137,20 +137,71 @@ describe("Pages Branches view", function () {
         assert.isNotNull(widget.children[0].querySelector("p"));
     });
 
-    it("adds and edits choices through the destination menu", async function () {
-        const widget = await mount(`<webwriter-pages type="branches" contenteditable="true">${pages(2)}</webwriter-pages>`);
-        const graph = await editor(widget);
+    it("adds and edits choices in button popovers without navigating", async function () {
+        const widget = await mount(`<webwriter-pages type="branches" contenteditable="true">${pages(3)}</webwriter-pages>`);
+        await editor(widget);
+        const open = () => control<HTMLDialogElement>(widget, ".choice-popover:popover-open");
         control(widget, ".add-choice").click();
-        await until(() => readBranches(widget.children[0]).length === 1, "choice saved");
+        const popup = open();
+        assert.isNotNull(popup);
+        assert.lengthOf(readBranches(widget.children[0]), 0, "opening + does not save a choice");
+        popup.querySelector<HTMLInputElement>('input')!.value = "Continue to the activity";
+        popup.querySelector<HTMLButtonElement>(".choice-save")!.click();
+        await until(() => choices(widget).length === 1, "choice saved");
         assert.equal(readBranches(widget.children[0])[0].target, pageKey(widget.children[1]));
-        await graph.updateComplete;
-        const label = control<HTMLInputElement>(widget, '.branch-choice-edit input');
-        label.value = "Continue to the activity";
-        label.dispatchEvent(new Event("change", { bubbles: true }));
-        await until(() => readBranches(widget.children[0])[0].label === "Continue to the activity");
+        assert.equal(widget.activePageIndex, 0);
+        assert.equal(control(widget, ".branch-choices").lastElementChild!.previousElementSibling!.className, "add-choice", "+ follows all choice buttons");
+        choices(widget)[0].click();
+        const edit = open();
+        assert.equal(edit.querySelector<HTMLInputElement>("input")!.value, "Continue to the activity");
+        edit.querySelector<HTMLInputElement>("input")!.value = "See the ending";
+        edit.querySelector<HTMLSelectElement>("select")!.value = pageKey(widget.children[2]);
+        edit.querySelector<HTMLButtonElement>(".choice-save")!.click();
+        await until(() => readBranches(widget.children[0])[0].target === pageKey(widget.children[2]));
+        assert.equal(readBranches(widget.children[0])[0].label, "See the ending");
+        assert.equal(widget.activePageIndex, 0, "editing never navigates");
         widget.removeAttribute("contenteditable");
         await until(() => !widget.shadowRoot!.querySelector("pages-branches"));
-        assert.equal(choices(widget)[0].textContent!.trim(), "Continue to the activity");
+        assert.isNull(widget.shadowRoot!.querySelector(".choice-popover, .choice-goto, .add-choice"));
+        choices(widget)[0].click();
+        await until(() => widget.activePageIndex === 2, "reader buttons navigate directly");
+    });
+
+    it("keeps choice drafts transient, resets them on reopening and removes via the popup", async function () {
+        const widget = await mount(authorSnippet());
+        await editor(widget);
+        const page = widget.children[0], before = page.getAttribute("branches");
+        choices(widget)[0].click();
+        const popup = control<HTMLDialogElement>(widget, ".choice-popover:popover-open");
+        popup.querySelector<HTMLInputElement>("input")!.value = "Unsaved draft";
+        widget.requestUpdate();
+        await widget.updateComplete;
+        assert.equal(popup.querySelector<HTMLInputElement>("input")!.value, "Unsaved draft", "render preserves draft");
+        popup.querySelector<HTMLButtonElement>(".choice-close")!.click();
+        assert.equal(page.getAttribute("branches"), before);
+        await frame();
+        assert.equal(widget.shadowRoot!.activeElement, choices(widget)[0], "closing restores focus");
+        choices(widget)[0].click();
+        assert.equal(popup.querySelector<HTMLInputElement>("input")!.value, "Explore the first path");
+        popup.querySelector<HTMLButtonElement>(".remove-choice")!.click();
+        await until(() => choices(widget).length === 1);
+        assert.equal(readBranches(page)[0].target, "second-path");
+        assert.equal(widget.activePageIndex, 0);
+        await frame();
+        assert.equal(widget.shadowRoot!.activeElement, control(widget, ".add-choice"), "removing restores focus to the newly enabled +");
+    });
+
+    it("navigates using the circular overlay without opening the choice editor", async function () {
+        const widget = await mount(authorSnippet());
+        await editor(widget);
+        const go = control<HTMLButtonElement>(widget, ".choice-goto");
+        assert.equal(go.textContent!.trim(), "", "icon only");
+        assert.include(go.getAttribute("aria-label")!, "First path");
+        go.click();
+        await until(() => widget.activePageIndex === 1);
+        assert.isNull(widget.shadowRoot!.querySelector(":popover-open"));
+        await frame();
+        assert.equal(widget.shadowRoot!.activeElement, control(widget, ".page-stage"), "navigation focuses page content");
     });
 
     it("saves Scene connections and rejects duplicate, missing and self targets", async function () {

@@ -174,6 +174,22 @@
         <source>Collapse graph</source>
         <target>Graph einklappen</target>
       </trans-unit>
+      <trans-unit id="s143cbd1b77c5d1f0">
+        <source>Edit choice</source>
+        <target>Auswahl bearbeiten</target>
+      </trans-unit>
+      <trans-unit id="se682f076f6506f9b">
+        <source>Go to page</source>
+        <target>Zur Seite</target>
+      </trans-unit>
+      <trans-unit id="s33f85f24c0f5f008">
+        <source>Save</source>
+        <target>Speichern</target>
+      </trans-unit>
+      <trans-unit id="s5e8250fb85d64c23">
+        <source>Close</source>
+        <target>Schließen</target>
+      </trans-unit>
 </body>
   </file>
 </xliff>

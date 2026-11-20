@@ -65,16 +65,16 @@ export const pages_styles = css`
         user-select: none;
     }
 
-    .branch-choices, .branch-choice-edit, .branch-new-choice {
+    .branch-choices {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        gap: var(--sl-spacing-x-small);
+        gap: var(--sl-spacing-small);
+        padding-block-start: 4px;
     }
 
-    .branch-choice-edit { flex: 1 1 100%; }
-    .branch-choice-edit input { flex: 1 1 12rem; }
-    .branch-new-choice select { flex: 1 1 12rem; }
+    .branch-choice-wrap { position: relative; max-inline-size: 100%; }
+    .branch-choice-wrap .branch-choice { padding-inline-end: 24px; }
 
     .branch-controls button, .branch-controls input, .branch-controls select {
         box-sizing: border-box;
@@ -91,12 +91,86 @@ export const pages_styles = css`
 
     .branch-controls button { cursor: pointer; overflow-wrap: anywhere; }
     .branch-controls button:disabled { opacity: 0.45; cursor: default; }
+    .branch-controls sl-icon { font-size: 16px; pointer-events: none; }
+    .branch-controls .choice-goto, .branch-controls .choice-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        inline-size: 24px;
+        min-block-size: 24px;
+        block-size: 24px;
+        padding: 0;
+        border-radius: 50%;
+    }
+    .choice-goto {
+        position: absolute;
+        inset-block-start: -8px;
+        inset-inline-end: -6px;
+        box-shadow: 0 1px 3px #0002;
+    }
+    .branch-controls .add-choice { display: inline-flex; align-items: center; justify-content: center; inline-size: 36px; padding: 0; }
+    .choice-popover {
+        inline-size: 20rem;
+        max-inline-size: calc(100vw - 24px);
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        overflow: visible;
+    }
+    .choice-bubble {
+        position: relative;
+        padding: 12px;
+        background: var(--sl-panel-background-color, white);
+        border: 1px solid var(--sl-panel-border-color, #ddd);
+        border-radius: var(--sl-border-radius-medium, 6px);
+        box-shadow: 0 4px 20px #0002;
+    }
+    .choice-popover-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-block-end: 12px; font-weight: 600; }
+    .choice-form { display: grid; gap: 12px; max-block-size: calc(100dvh - 110px); overflow: auto; }
+    .choice-form label { display: grid; gap: 4px; font-size: 0.9em; }
+    .choice-form :is(input, select) { inline-size: 100%; }
+    .choice-popover-actions { display: flex; flex-wrap: wrap; justify-content: end; gap: 8px; }
+    .choice-popover-actions .remove-choice { margin-inline-end: auto; }
+    @supports (position-area: block-start) {
+        .choice-popover:popover-open {
+            inset: auto;
+            margin: 12px 0;
+            position-area: block-start span-inline-end;
+            justify-self: start;
+            position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+        }
+    }
+    @supports (container-type: anchored) {
+        .choice-popover:popover-open { container-type: anchored; }
+        .choice-popover:popover-open .choice-bubble::after { content: ""; }
+        .choice-bubble::after {
+            position: absolute;
+            inline-size: 10px;
+            block-size: 10px;
+            inset-inline-start: 12px;
+            inset-block-end: -6px;
+            background: inherit;
+            border-inline-end: inherit;
+            border-block-end: inherit;
+            transform: rotate(45deg);
+        }
+        @container anchored(fallback: flip-block) or anchored(fallback: flip-block flip-inline) {
+            .choice-bubble::after { inset-block-start: -6px; inset-block-end: auto; transform: rotate(225deg); }
+        }
+        @container anchored(fallback: flip-inline) or anchored(fallback: flip-block flip-inline) {
+            .choice-bubble::after { inset-inline-start: auto; inset-inline-end: 12px; }
+        }
+    }
     .branch-controls :is(button, input, select):focus-visible {
         outline: var(--sl-focus-ring-width) solid var(--_accent);
         outline-offset: var(--sl-focus-ring-offset);
     }
 
-    @media (hover: hover) { .branch-controls button:not(:disabled):hover { border-color: var(--_accent); } }
+    @media (hover: hover) {
+        .branch-controls button:not(:disabled):hover { border-color: var(--_accent); }
+        .choice-popover-actions .remove-choice:hover { color: var(--sl-color-danger-600); border-color: currentColor; }
+    }
     @media (pointer: coarse) { .branch-controls :is(button, input, select) { min-block-size: 44px; } }
 
     :host([type="branches"]) ::slotted(webwriter-page) {
