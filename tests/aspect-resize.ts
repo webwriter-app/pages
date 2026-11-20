@@ -1,6 +1,6 @@
 /// <reference types="mocha" />
 import { assert } from "chai";
-import { MAX_PAGE_ASPECT_RATIO, MIN_PAGE_ASPECT_RATIO, PageAspectResize, normalizePageAspectRatio, ratioFromPageAspectDrag, type PageAspectResizeState } from "../src/components/page-aspect-resize";
+import { MAX_PAGE_ASPECT_RATIO, MIN_PAGE_ASPECT_RATIO, PAGE_ASPECT_RATIO_STEP, PageAspectResize, formatPageAspectRatio, normalizePageAspectRatio, ratioFromPageAspectDrag, type PageAspectResizeState } from "../src/components/page-aspect-resize";
 
 const frame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 const tick = async () => { await frame(); await frame(); };
@@ -60,11 +60,40 @@ export function testAspectResize() {
             assert.equal(ratioFromPageAspectDrag({ ...bottom, width: Infinity }, 10, 10), 2);
         });
 
+        it("snaps a drag to exact 16:9 through both expanded snap boundaries, then returns to ordinary steps", function () {
+            const exact = 16 / 9, reach = 1.5 * PAGE_ASPECT_RATIO_STEP;
+            for (const offset of [-reach, -PAGE_ASPECT_RATIO_STEP, 0, PAGE_ASPECT_RATIO_STEP, reach]) {
+                const raw = exact + offset;
+                assert.equal(ratioFromPageAspectDrag(bottom, 0, bottom.width / raw - bottom.height), exact);
+                assert.equal(ratioFromPageAspectDrag({ ...bottom, edge: "inline-end" }, raw * bottom.height - bottom.width, 0), exact);
+            }
+            assert.equal(ratioFromPageAspectDrag(bottom, 0, bottom.width / (exact - reach - 0.0001) - bottom.height), 1.7);
+            assert.equal(ratioFromPageAspectDrag(bottom, 0, bottom.width / (exact + reach + 0.0001) - bottom.height), 1.85);
+        });
+
+        it("formats familiar exact and nearby ratios as small whole-number fractions", function () {
+            for (const [ratio, label] of [[16 / 9, "16:9"], [4 / 3, "4:3"], [1.35, "4:3"], [3 / 2, "3:2"], [5 / 4, "5:4"], [9 / 16, "9:16"], [1.6, "8:5"], [0.75, "3:4"]] as const) {
+                assert.equal(formatPageAspectRatio(ratio), label);
+            }
+            assert.equal(formatPageAspectRatio(-20), "1:2");
+            assert.equal(formatPageAspectRatio(20), "3:1");
+            assert.equal(formatPageAspectRatio(NaN), "16:9");
+            assert.equal(formatPageAspectRatio(Infinity), "16:9");
+            for (const ratio of [0.53, 0.7, 1.1, 1.95, 2.71]) {
+                const label = formatPageAspectRatio(ratio);
+                assert.match(label, /^[1-9]\d?:[1-9]\d?$/);
+                const [width, height] = label.split(":").map(Number);
+                assert.isAtMost(width, 36);
+                assert.isAtMost(height, 16);
+                assert.closeTo(width / height, ratio, 0.05, "bounded fractions stay close to the live ratio");
+            }
+        });
+
         it("previews without authored writes and commits only once on release", async function () {
             pointer("pointerdown");
             pointer("pointermove", 20, 70);
             await tick();
-            assert.closeTo(previews.at(-1)!, 1.7, 1e-10);
+            assert.equal(previews.at(-1), 16 / 9, "raw 600/350 enters the expanded 16:9 snap range");
             assert.deepEqual(commits, []);
             assert.isFalse(handle.hasAttribute("page-aspect-ratio"));
             pointer("pointermove", 20, 120);
@@ -126,6 +155,16 @@ export function testAspectResize() {
             current = { ...bottom, ratio: MAX_PAGE_ASPECT_RATIO };
             key("End");
             assert.equal(commits.length, count, "bounds are a no-op");
+        });
+
+        it("keeps keyboard steps unsnapped inside the drag magnet", function () {
+            current = { ...bottom, ratio: 1.75 };
+            key("ArrowUp");
+            assert.equal(commits.at(-1), 1.8);
+            current = { ...bottom, ratio: 1.85 };
+            key("ArrowDown");
+            assert.equal(commits.at(-1), 1.8);
+            assert.notEqual(commits.at(-1), 16 / 9);
         });
     });
 }

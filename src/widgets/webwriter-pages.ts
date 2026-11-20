@@ -30,7 +30,7 @@ import { PagesBranches } from "../components/pages-branches";
 import { renderBranchChoices } from "../components/pages-branch-choices";
 import { ensurePageKeys, pageKey, readBranches, writeBranches, type PageBranch } from "../model/page-branches";
 import type { MoveDetail } from "@webwriter/lit/scene";
-import { MAX_PAGE_ASPECT_RATIO, MIN_PAGE_ASPECT_RATIO, PageAspectResize, normalizePageAspectRatio } from "../components/page-aspect-resize";
+import { MAX_PAGE_ASPECT_RATIO, MIN_PAGE_ASPECT_RATIO, PageAspectResize, formatPageAspectRatio, normalizePageAspectRatio } from "../components/page-aspect-resize";
 
 type Labelled = { msg: MsgFn };
 
@@ -199,6 +199,20 @@ export class WebwriterPages extends LitElementWw {
             this.#aspectResize.disconnect();
             this.aspectWide = wide;
         }
+    }
+
+    #positionAspectLabel(event: PointerEvent) {
+        const handle = event.currentTarget as HTMLElement;
+        const rect = handle.getBoundingClientRect();
+        const vertical = this.#aspectEdge === "inline-end";
+        const position = vertical ? event.clientY - rect.top : event.clientX - rect.left;
+        const length = vertical ? rect.height : rect.width;
+        handle.style.setProperty("--_aspect-pointer", `${Math.max(32, Math.min(length - 32, position))}px`);
+    }
+
+    #resizePagePointerDown(event: PointerEvent) {
+        this.#positionAspectLabel(event);
+        void this.#aspectResize.pointerdown(event);
     }
 
     /** Restore the exact orientation default by removing the authored override. */
@@ -981,9 +995,11 @@ export class WebwriterPages extends LitElementWw {
                             ${view.editing ? html`<div class="page-aspect-handle ${edge}" role="separator" tabindex="0" contenteditable="false"
                                 aria-label=${this.msg("Resize page aspect ratio")} title=${this.msg("Resize page aspect ratio")}
                                 aria-orientation=${edge === "inline-end" ? "vertical" : "horizontal"}
-                                aria-valuemin=${MIN_PAGE_ASPECT_RATIO} aria-valuemax=${MAX_PAGE_ASPECT_RATIO} aria-valuenow=${ratio}
+                                aria-valuemin=${MIN_PAGE_ASPECT_RATIO} aria-valuemax=${MAX_PAGE_ASPECT_RATIO} aria-valuenow=${ratio} aria-valuetext=${formatPageAspectRatio(ratio)}
                                 ?data-resizing=${this.aspectPreview !== null}
-                                @pointerdown=${this.#aspectResize.pointerdown} @keydown=${this.#aspectResize.keydown}></div>` : nothing}
+                                @pointerdown=${this.#resizePagePointerDown} @pointermove=${(event: PointerEvent) => { if (this.aspectPreview !== null) this.#positionAspectLabel(event); }} @keydown=${this.#aspectResize.keydown}>
+                                ${this.aspectPreview !== null ? html`<span class="page-aspect-label" aria-hidden="true">${formatPageAspectRatio(ratio)}</span>` : nothing}
+                            </div>` : nothing}
                         </div>
                         ${this.type == "pages" && this.isFullscreen
                             ? html`<div class="controls-overlay" contenteditable="false">${renderControls(view)}</div>`

@@ -11,6 +11,28 @@ export function normalizePageAspectRatio(value: number, fallback = 16 / 9): numb
 }
 
 const stepped = (ratio: number) => normalizePageAspectRatio(Math.round(ratio / PAGE_ASPECT_RATIO_STEP) / (1 / PAGE_ASPECT_RATIO_STEP));
+const landscapeRatio = 16 / 9;
+const dragged = (ratio: number) => Math.abs(ratio - landscapeRatio) <= 1.5 * PAGE_ASPECT_RATIO_STEP + Number.EPSILON
+    ? landscapeRatio : stepped(ratio);
+
+/** Round the feedback to a familiar ratio, otherwise a fraction with a denominator of at most 12. */
+export function formatPageAspectRatio(value: number): string {
+    const ratio = normalizePageAspectRatio(value);
+    const common = [[1, 2], [9, 16], [1, 1], [5, 4], [4, 3], [3, 2], [16, 9], [2, 1], [3, 1]];
+    const nearest = common.reduce((best, pair) => Math.abs(pair[0] / pair[1] - ratio) < Math.abs(best[0] / best[1] - ratio) ? pair : best);
+    if (Math.abs(nearest[0] / nearest[1] - ratio) <= PAGE_ASPECT_RATIO_STEP / 2 + Number.EPSILON) return nearest.join(":");
+    let numerator = 1, denominator = 1, error = Infinity;
+    for (let candidate = 1; candidate <= 12; candidate++) {
+        const rounded = Math.round(ratio * candidate);
+        const difference = Math.abs(rounded / candidate - ratio);
+        if (difference < error - 1e-10) {
+            numerator = rounded;
+            denominator = candidate;
+            error = difference;
+        }
+    }
+    return `${numerator}:${denominator}`;
+}
 
 export interface PageAspectResizeState {
     ratio: number;
@@ -23,9 +45,9 @@ export interface PageAspectResizeState {
 export function ratioFromPageAspectDrag(state: PageAspectResizeState, dx: number, dy: number): number {
     if (!Number.isFinite(dx) || !Number.isFinite(dy) || !(state.width > 0) || !(state.height > 0)
         || !Number.isFinite(state.width) || !Number.isFinite(state.height)) return normalizePageAspectRatio(state.ratio);
-    if (state.edge === "inline-end") return stepped((state.width + (state.rtl ? -dx : dx)) / state.height);
+    if (state.edge === "inline-end") return dragged((state.width + (state.rtl ? -dx : dx)) / state.height);
     const height = state.height + (state.edge === "top" ? -dy : dy);
-    return height <= 0 ? MAX_PAGE_ASPECT_RATIO : stepped(state.width / height);
+    return height <= 0 ? MAX_PAGE_ASPECT_RATIO : dragged(state.width / height);
 }
 
 export interface PageAspectResizeOptions {

@@ -268,6 +268,31 @@ export const pages_styles = css`
 
     .page-aspect-handle:is(:hover, :focus-visible, [data-resizing])::after { opacity: 1; }
 
+    .page-aspect-label {
+        position: absolute;
+        left: var(--_aspect-pointer, 50%);
+        inset-block-end: calc(100% + 4px);
+        translate: -50% 0;
+        padding: 2px 6px;
+        border: 1px solid var(--sl-panel-border-color);
+        border-radius: var(--sl-border-radius-small);
+        background: var(--sl-panel-background-color);
+        color: var(--ww-text-color, inherit);
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+        box-shadow: 0 1px 4px rgb(0 0 0 / 0.15);
+        pointer-events: none;
+    }
+
+    .page-aspect-handle.top .page-aspect-label { inset-block-end: auto; inset-block-start: calc(100% + 4px); }
+    .page-aspect-handle.inline-end .page-aspect-label {
+        left: auto;
+        inset-inline-end: calc(100% + 4px);
+        inset-block: var(--_aspect-pointer, 50%) auto;
+        translate: 0 -50%;
+    }
+
     .page-viewport {
         display: contents;
     }

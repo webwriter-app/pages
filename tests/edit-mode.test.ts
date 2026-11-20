@@ -124,6 +124,32 @@ describe("<webwriter-pages> in edit mode", function () {
       assert.equal(widget.pageAspectRatio, 1.25, "mode change cancels");
     });
 
+    it("holds the extra 16:9 snap step and shows a rounded fraction only during dragging", async function () {
+      const widget = await mount(`<webwriter-pages contenteditable="">${pages(1)}</webwriter-pages>`);
+      widget.parentElement!.style.width = "720px";
+      await frame(2);
+      const handle = separator(widget), start = begin(handle);
+      pointer(window, "pointermove", start.x, start.y + 13);
+      await frame(2);
+      assert.equal(items(widget, ".page-aspect-label")[0].textContent, "16:9");
+      const rect = stage(widget).getBoundingClientRect();
+      assert.closeTo(rect.width / rect.height, 16 / 9, 0.001, "extra snap range holds the exact default");
+      assert.isFalse(widget.hasAttribute("page-aspect-ratio"), "snapping remains a local preview");
+      pointer(window, "pointerup", start.x, start.y + 13);
+      await frame(2);
+      assert.isEmpty(items(widget, ".page-aspect-label"));
+      assert.isFalse(widget.hasAttribute("page-aspect-ratio"), "unchanged snapped ratio needs no authored edit");
+      widget.pageAspectRatio = 4 / 3;
+      await widget.updateComplete;
+      const second = begin(handle);
+      pointer(window, "pointermove", second.x, second.y + 4);
+      await frame(2);
+      assert.equal(items(widget, ".page-aspect-label")[0].textContent, "4:3");
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+      await frame(2);
+      assert.isEmpty(items(widget, ".page-aspect-label"));
+    });
+
     it("uses keyboard steps and limits, and resets to the exact current orientation", async function () {
       const widget = await mount(`<webwriter-pages contenteditable="" page-aspect-ratio="2">${pages(1)}</webwriter-pages>`);
       const handle = separator(widget);
