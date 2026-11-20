@@ -50,7 +50,7 @@ type Labelled = { msg: MsgFn };
  * Signals: `page` is the number of the current page, starting at 1; `count` is the number of pages.
  * Both change when readers or authors move to another page.
  *
- * Enable `completion-indicators` to mark pages read when opened and scrolled to the bottom.
+ * Enable `completion-indicators` to mark pages read after switching away, once opened and scrolled to the bottom.
  * A checkmark on each read tab/preview and an aggregate checkmark in the controls show progress.
  * Progress is local to this widget instance, is not saved in authored HTML, and does not advance in edit mode.
  *
@@ -121,7 +121,7 @@ export class WebwriterPages extends LitElementWw {
     })
     public accessor type: "tabs" | "pages" = "tabs";
 
-    /** Mark pages read after opening them and reaching their bottom. Reader-local; off by default. */
+    /** Mark pages read on leaving them after reaching their bottom. Reader-local; off by default. */
     @property({ type: Boolean, attribute: "completion-indicators", reflect: true, useDefault: true })
     accessor completionIndicators = false;
 
@@ -166,6 +166,7 @@ export class WebwriterPages extends LitElementWw {
     #completedPages = new Set<WebwriterPage>();
     #completionPage?: WebwriterPage;
     #completionVisible = false;
+    #completionReachedBottom = false;
     #completionIntersection?: IntersectionObserver;
     #completionResize?: ResizeObserver;
     #completionMutation?: MutationObserver;
@@ -289,6 +290,7 @@ export class WebwriterPages extends LitElementWw {
         this.#completionFrame = undefined;
         this.#completionPage = undefined;
         this.#completionVisible = false;
+        this.#completionReachedBottom = false;
     }
 
     #syncCompletionTracking() {
@@ -298,6 +300,16 @@ export class WebwriterPages extends LitElementWw {
         }
         const page = this.isConnected && this.completionIndicators && !this.#permissions.editing ? this.activePage : undefined;
         if (page !== this.#completionPage) {
+            const previous = this.#completionPage;
+            if (page && previous && this.pages.includes(previous)) {
+                // Sample once more before the old page is hidden: a scroll and navigation
+                // can happen before the scheduled animation-frame check.
+                this.#checkCompletion();
+                if (this.#completionReachedBottom && !this.#completedPages.has(previous)) {
+                    this.#completedPages.add(previous);
+                    this.requestUpdate();
+                }
+            }
             this.#stopCompletionTracking();
             this.#completionPage = page;
             if (page) {
@@ -327,18 +339,21 @@ export class WebwriterPages extends LitElementWw {
         if (!this.#completionPage || this.#completionFrame !== undefined) return;
         this.#completionFrame = requestAnimationFrame(() => {
             this.#completionFrame = undefined;
-            const page = this.#completionPage;
-            if (!page || !this.isConnected || !this.completionIndicators || this.#permissions.editing ||
-                page !== this.activePage || !this.#completionVisible || document.hidden ||
-                this.#completedPages.has(page) || page.clientHeight === 0) return;
-            // Wait for pending images before deciding that the content fits without scrolling.
-            if (Array.from(page.querySelectorAll("img")).some((image) => !image.complete && image.getClientRects().length)) return;
-            // scrollTop can be fractional, whereas the dimensions are rounded by the browser.
-            if (page.scrollHeight - page.clientHeight - Math.max(0, page.scrollTop) > 1) return;
-            this.#completedPages.add(page);
-            this.requestUpdate();
+            this.#checkCompletion();
         });
     };
+
+    #checkCompletion() {
+        const page = this.#completionPage;
+        if (!page || !this.isConnected || !this.completionIndicators || this.#permissions.editing ||
+            !this.#completionVisible || document.hidden || this.#completionReachedBottom ||
+            this.#completedPages.has(page) || page.clientHeight === 0) return;
+        // Wait for pending images before deciding that the content fits without scrolling.
+        if (Array.from(page.querySelectorAll("img")).some((image) => !image.complete && image.getClientRects().length)) return;
+        // scrollTop can be fractional, whereas the dimensions are rounded by the browser.
+        if (page.scrollHeight - page.clientHeight - Math.max(0, page.scrollTop) > 1) return;
+        this.#completionReachedBottom = true;
+    }
 
     #updateTabScroll = () => {
         const tabs = this.renderRoot.querySelector<HTMLElement>('[part="tabs"]');

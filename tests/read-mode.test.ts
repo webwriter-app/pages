@@ -32,11 +32,15 @@ describe("<webwriter-pages> in read mode", function () {
       assert.isFalse(widget.hasAttribute("completion-indicators"));
       assert.isUndefined(overview(widget));
       widget.completionIndicators = true;
-      await until(() => completed(widget) === 1, "initial visible page completes");
+      await frame(4);
+      assert.equal(completed(widget), 0, "opening a page is not completion");
       await open(widget, 1);
+      await until(() => completed(widget) === 1, "first page completes on leaving");
+      await open(widget, 0);
       await until(() => overview(widget).classList.contains("complete"), "all pages complete");
       const saved = await mount(widget.outerHTML);
-      await until(() => completed(saved) === 1, "reopened first page");
+      await frame(4);
+      assert.equal(completed(saved), 0, "reopening starts fresh, including the active page");
       assert.isTrue(saved.completionIndicators);
       assert.isFalse(overview(saved).classList.contains("complete"), "second page is unread for the new reader");
       assert.isTrue([...widget.children].every(page => !page.hasAttribute("completed")), "progress stays out of authored pages");
@@ -45,11 +49,15 @@ describe("<webwriter-pages> in read mode", function () {
     for (const type of ["tabs", "pages"]) {
       it(`shows page bubbles and an aggregate check in the ${type} controls`, async function () {
         const widget = await mount(`<webwriter-pages type="${type}" completion-indicators>${pages(3)}</webwriter-pages>`);
-        await until(() => completed(widget) === 1, "first page read");
-        assert.equal(overview(widget).getAttribute("aria-label"), "Pages completed: 1 / 3");
+        await frame(4);
+        await open(widget, 0);
+        assert.equal(completed(widget), 0, "selecting the same page is not leaving it");
+        assert.equal(overview(widget).getAttribute("aria-label"), "Pages completed: 0 / 3");
         assert.isFalse(overview(widget).classList.contains("complete"));
         for (const index of [1, 2]) await open(widget, index);
-        await until(() => completed(widget) === 3, "every opened page read");
+        assert.equal(completed(widget), 2, "last page remains pending while active");
+        await open(widget, 0);
+        await until(() => completed(widget) === 3, "every read page has been left");
         assert.isTrue(overview(widget).classList.contains("complete"));
         assert.equal(overview(widget).title, "Pages completed: 3 / 3");
         const pane = overview(widget).closest("aside")!;
@@ -70,42 +78,60 @@ describe("<webwriter-pages> in read mode", function () {
       await frame(3);
       assert.equal(completed(widget), 0, "halfway is not finished");
       await open(widget, 1);
-      await until(() => completed(widget) === 1, "short page complete");
+      assert.equal(completed(widget), 0, "unread long page and active short page are incomplete");
       page.scrollTop = page.scrollHeight;
       page.dispatchEvent(new Event("scroll"));
       await frame(3);
-      assert.equal(completed(widget), 1, "a hidden page cannot complete");
+      assert.equal(completed(widget), 0, "a hidden page cannot complete");
       await open(widget, 0);
+      await until(() => completed(widget) === 1, "short page completes after leaving");
       page.scrollTop = page.scrollHeight;
-      await until(() => completed(widget) === 2, "bottom reached");
+      await frame(3);
+      assert.equal(completed(widget), 1, "bottom reached but page is still active");
       page.scrollTop = 0;
       widget.type = "pages";
       await frame(3);
+      assert.equal(completed(widget), 1, "changing layout is not leaving the page");
+      await open(widget, 1);
       assert.equal(completed(widget), 2, "completion survives returning to the top and switching layouts");
     });
 
+    it("counts a page when scrolling to the bottom and switching before the next animation frame", async function () {
+      const widget = await mount('<webwriter-pages completion-indicators><webwriter-page><p style="height:1800px">Long page</p></webwriter-page><webwriter-page><p>Next</p></webwriter-page></webwriter-pages>');
+      await frame(4);
+      const page = widget.children[0] as HTMLElement;
+      page.scrollTop = page.scrollHeight;
+      items<HTMLButtonElement>(widget, "button.page-select")[1].click();
+      await until(() => completed(widget) === 1, "departure samples the final scroll position");
+      assert.equal(overview(widget).title, "Pages completed: 1 / 2");
+    });
+
     it("rechecks overflow after direct content changes and container resizing", async function () {
-      const widget = await mount('<webwriter-pages completion-indicators><webwriter-page><p style="height:1800px">Long</p></webwriter-page></webwriter-pages>');
+      const widget = await mount('<webwriter-pages completion-indicators><webwriter-page><p style="height:1800px">Long</p></webwriter-page><webwriter-page><p style="height:400px">Resize</p></webwriter-page></webwriter-pages>');
+      widget.parentElement!.style.width = "320px";
       const page = widget.children[0] as HTMLElement;
       await frame(4);
       assert.equal(completed(widget), 0);
       page.querySelector("p")!.style.height = "1px";
-      await until(() => completed(widget) === 1, "updated content now fits");
-      page.insertAdjacentHTML("afterend", '<webwriter-page><p style="height:400px">Resize</p></webwriter-page>');
-      widget.parentElement!.style.width = "320px";
-      await until(() => items(widget, ".page-tab").length === 2, "new page appears");
+      await frame(3);
+      assert.equal(completed(widget), 0, "updated content fits but is still active");
       await open(widget, 1);
       assert.equal(completed(widget), 1, "new page overflows");
       widget.parentElement!.style.width = "900px";
-      await until(() => completed(widget) === 2, "resized page now fits");
+      await frame(3);
+      assert.equal(completed(widget), 1, "resizing alone does not complete it");
+      await open(widget, 0);
+      await until(() => completed(widget) === 2, "resized page completes after leaving");
     });
 
     it("counts current page identities through reordering, removal and duplication", async function () {
       const widget = await mount(`<webwriter-pages completion-indicators>${pages(3)}</webwriter-pages>`);
-      await until(() => completed(widget) === 1, "first page complete");
+      await frame(4);
+      await open(widget, 1);
+      await until(() => completed(widget) === 1, "first page complete after leaving");
       const first = widget.children[0];
       widget.append(first);
-      await until(() => overview(widget).getAttribute("aria-label") === "Pages completed: 2 / 3", "new first page and moved completed page");
+      await until(() => overview(widget).getAttribute("aria-label") === "Pages completed: 2 / 3", "previous page and moved completed page");
       assert.isNotNull(items(widget, ".page-tab")[2].querySelector(".page-completion"), "mark follows moved page");
       first.remove();
       await until(() => overview(widget).getAttribute("aria-label") === "Pages completed: 1 / 2", "removed page excluded");
@@ -120,7 +146,9 @@ describe("<webwriter-pages> in read mode", function () {
       await frame(4);
       assert.equal(completed(widget), 0, "authoring is not reading");
       widget.removeAttribute("contenteditable");
-      await until(() => completed(widget) === 1, "switch to read mode");
+      await until(() => items(widget, ".page-label-input").length === 0, "switch to read mode");
+      await frame(3);
+      assert.equal(completed(widget), 0, "mode switch is not completion");
       widget.completionIndicators = false;
       await widget.updateComplete;
       await open(widget, 1);
@@ -131,15 +159,23 @@ describe("<webwriter-pages> in read mode", function () {
       await frame(3);
       assert.isNull(widget.parentElement);
       parent.append(widget);
-      await until(() => completed(widget) === 2, "tracking resumes on reconnect");
+      await frame(4);
+      assert.equal(completed(widget), 0, "disconnecting or reconnecting is not completion");
+      await open(widget, 0);
+      await until(() => completed(widget) === 1, "tracking resumes and counts after leaving");
     });
 
     it("does not count a page before the widget is visible", async function () {
       const widget = await mount(`<webwriter-pages style="display:none" completion-indicators>${pages(2)}</webwriter-pages>`);
       await frame(4);
       assert.equal(completed(widget), 0);
+      await open(widget, 1);
+      assert.equal(completed(widget), 0, "leaving a hidden page does not count");
       widget.style.display = "block";
-      await until(() => completed(widget) === 1, "visible page complete");
+      await frame(4);
+      assert.equal(completed(widget), 0, "visible active page is still pending");
+      await open(widget, 0);
+      await until(() => completed(widget) === 1, "visible page completes after leaving");
       assert.isFalse(overview(widget).classList.contains("complete"), "unopened page stays unread");
     });
   });
