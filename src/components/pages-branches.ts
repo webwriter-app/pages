@@ -7,6 +7,9 @@ import { SceneController, type ActivateDetail, type ConnectDetail, type MoveDeta
 import { Viewport } from "@webwriter/lit/viewport";
 import { sceneElements } from "@webwriter/widget/scene";
 import SlIconButton from "@shoelace-style/shoelace/dist/components/icon-button/icon-button.component.js";
+import SlIcon from "@shoelace-style/shoelace/dist/components/icon/icon.component.js";
+import chevronDown from "@tabler/icons/outline/chevron-down.svg";
+import chevronRight from "@tabler/icons/outline/chevron-right.svg";
 import { renderControls } from "./pages-controls";
 import type { PagesView } from "../model/pages-view";
 import type { WebwriterPage } from "../widgets/webwriter-page";
@@ -14,7 +17,7 @@ import { pageKey, readBranches, readNodePosition, type PageBranch } from "../mod
 
 /** An editing-only Scene over the same authored pages that the reader sees. */
 export class PagesBranches extends LitElementWw {
-    static scopedElements = { ...sceneElements, "sl-icon-button": SlIconButton };
+    static scopedElements = { ...sceneElements, "sl-icon-button": SlIconButton, "sl-icon": SlIcon };
 
     @property({ attribute: false }) accessor view!: PagesView;
     @property({ attribute: false }) accessor startKey = "";
@@ -23,6 +26,7 @@ export class PagesBranches extends LitElementWw {
     @property({ attribute: false }) accessor setStart!: (page: WebwriterPage) => void;
     @state() private accessor selectedPath = "";
     @state() private accessor selectedNode = "";
+    @state() private accessor collapsed = false;
 
     #viewport: Viewport = new Viewport(this, {
         wheel: "page",
@@ -32,16 +36,17 @@ export class PagesBranches extends LitElementWw {
     });
     #scene: SceneController = new SceneController(this, {
         viewport: this.#viewport.core,
-        can: () => Boolean(this.view?.editing && this.renderRoot.querySelector<HTMLDetailsElement>("details")?.open),
+        can: () => Boolean(this.view?.editing && !this.collapsed),
         undoHost: () => (this.getRootNode() as ShadowRoot).host as HTMLElement,
     });
 
     static styles = css`
         :host { display: block; position: relative; color: var(--ww-text-color, inherit); font-family: var(--ww-font-family, inherit); }
         * { box-sizing: border-box; }
-        summary { min-block-size: 44px; padding: 10px 56px 10px 12px; line-height: 24px; font-size: 13px; background: var(--sl-color-neutral-50); cursor: pointer; }
-        summary:focus-visible { outline: 2px solid var(--ww-theme-accent-1, #0284c7); outline-offset: -2px; }
-        .fullscreen-controls { position: absolute; inset-block-start: 6px; inset-inline-end: 8px; }
+        .graph-toggle { display: inline-flex; align-items: center; justify-content: center; inline-size: 32px; padding: 0; }
+        .graph-toggle sl-icon { font-size: 16px; }
+        .graph-toggle:dir(rtl) sl-icon { transform: scaleX(-1); }
+        .fullscreen-controls { display: flex; align-items: center; }
         .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
         .toolbar { padding: 10px 12px; background: var(--sl-color-neutral-50); }
         .toolbar { border-bottom: 1px solid var(--sl-panel-border-color); }
@@ -53,6 +58,7 @@ export class PagesBranches extends LitElementWw {
         input { inline-size: 14rem; max-inline-size: 100%; }
         button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--ww-theme-accent-1, #0284c7); outline-offset: 2px; }
         ww-scene { display: block; block-size: 280px; background: var(--sl-panel-background-color); --ww-scene-selection: var(--ww-theme-accent-1, #0284c7); }
+        ww-scene[hidden] { display: none; }
         ww-node { inline-size: 200px; min-block-size: 84px; padding: 18px 20px; background: var(--sl-panel-background-color); border: 1px solid var(--sl-color-neutral-400); border-radius: 8px; color: inherit; cursor: pointer; }
         ww-node[selected] { border-color: var(--ww-theme-accent-1, #0284c7); background: var(--sl-color-primary-50); }
         .node-label { display: block; font-weight: 600; overflow-wrap: anywhere; }
@@ -67,7 +73,7 @@ export class PagesBranches extends LitElementWw {
         ww-path { stroke: var(--sl-color-neutral-500); stroke-width: 2px; }
         ww-text { fill: var(--ww-text-color, #374151); font-size: 12px; }
         @media (hover: hover) { button:not(:disabled):hover { border-color: var(--sl-color-neutral-500); background: var(--sl-color-neutral-100); } }
-        @media (pointer: coarse) { button, input, select { min-block-size: 44px; } }
+        @media (pointer: coarse) { button, input, select { min-block-size: 44px; } .graph-toggle { inline-size: 44px; } }
     `;
 
     #label(page: WebwriterPage) {
@@ -136,20 +142,22 @@ export class PagesBranches extends LitElementWw {
         const view = this.view;
         if (!view?.editing) return nothing;
         const page = view.pages[view.activePageIndex];
+        const toggleLabel = this.collapsed ? view.msg("Expand graph") : view.msg("Collapse graph");
         return html`
-            <details open>
-            <summary>${view.msg("Graph editor")}</summary>
             <div class="toolbar">
+                <button type="button" class="graph-toggle" aria-expanded=${String(!this.collapsed)} aria-controls="graph" aria-label=${toggleLabel} title=${toggleLabel}
+                    @click=${() => this.collapsed = !this.collapsed}><sl-icon src=${this.collapsed ? chevronRight : chevronDown} aria-hidden="true"></sl-icon></button>
                 <button type="button" class="add-node" @click=${() => view.addPage()}><span aria-hidden="true">＋</span> ${view.msg("Add page")}</button>
                 <button type="button" class="remove-node" ?disabled=${view.pages.length <= 1} @click=${() => view.removePage(view.activePageIndex)}>${view.msg("Remove")}</button>
                 <button type="button" class="remove-connection" ?disabled=${!this.selectedPath} @click=${() => this.#removePath()}>${view.msg("Remove connection")}</button>
                 <div class="tools">
-                    <button type="button" title=${view.msg("Zoom out")} aria-label=${view.msg("Zoom out")} @click=${() => this.#viewport.zoomBy(1 / 1.2)}>−</button>
-                    <button type="button" title=${view.msg("Zoom in")} aria-label=${view.msg("Zoom in")} @click=${() => this.#viewport.zoomBy(1.2)}>+</button>
-                    <button type="button" @click=${() => this.#viewport.fit({ follow: "none" })}>${view.msg("Fit graph")}</button>
+                    <button type="button" title=${view.msg("Zoom out")} aria-label=${view.msg("Zoom out")} ?disabled=${this.collapsed} @click=${() => this.#viewport.zoomBy(1 / 1.2)}>−</button>
+                    <button type="button" title=${view.msg("Zoom in")} aria-label=${view.msg("Zoom in")} ?disabled=${this.collapsed} @click=${() => this.#viewport.zoomBy(1.2)}>+</button>
+                    <button type="button" ?disabled=${this.collapsed} @click=${() => this.#viewport.fit({ follow: "none" })}>${view.msg("Fit graph")}</button>
+                    <div class="fullscreen-controls">${renderControls(view, "none", false)}</div>
                 </div>
             </div>
-            <ww-scene select="single" connect-click grid="10" background="dots" background-spacing="20"
+            <ww-scene id="graph" ?hidden=${this.collapsed} select="single" connect-click grid="10" background="dots" background-spacing="20"
                 data-ww-viewport="canvas" data-ww-viewport-fit="none" data-ww-viewport-zoom="0.4 1.5"
                 aria-label=${view.msg("Page branches")} @ww-select=${this.#select} @ww-activate=${this.#select}
                 @ww-ready=${() => this.#viewport.fit({ follow: "none" })}
@@ -173,8 +181,6 @@ export class PagesBranches extends LitElementWw {
                     </ww-node>`;
                 })}
             </ww-scene>
-            </details>
-            <div class="fullscreen-controls">${renderControls(view, "none", false)}</div>
         `;
     }
 }

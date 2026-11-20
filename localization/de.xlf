@@ -166,9 +166,13 @@
         <source>Continue</source>
         <target>Fortfahren</target>
       </trans-unit>
-      <trans-unit id="scd1c2bb091075898">
-        <source>Graph editor</source>
-        <target>Graph-Editor</target>
+      <trans-unit id="sa56acbd42caca821">
+        <source>Expand graph</source>
+        <target>Graph ausklappen</target>
+      </trans-unit>
+      <trans-unit id="sb58a788e39e31092">
+        <source>Collapse graph</source>
+        <target>Graph einklappen</target>
       </trans-unit>
 </body>
   </file>

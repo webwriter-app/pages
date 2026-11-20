@@ -82,25 +82,32 @@ describe("Pages Branches view", function () {
         await until(() => control<HTMLInputElement>(graph, '.node-label-input').value === "A different ending");
     });
 
-    it("collapses the graph natively while keeping fullscreen and choices available", async function () {
+    it("collapses the graph with an icon in the toolbar while keeping fullscreen and choices available", async function () {
         const widget = await mount(authorSnippet());
         const graph = await editor(widget);
         assert.isNull(graph.shadowRoot!.querySelector(".help"), "no permanent editing hint");
-        const details = control<HTMLDetailsElement>(graph, "details");
+        const toggle = control<HTMLButtonElement>(graph, ".toolbar .graph-toggle");
+        const scene = control(graph, "ww-scene");
         const height = graph.getBoundingClientRect().height;
-        assert.isTrue(details.open, "graph starts expanded");
-        control(graph, "summary").click();
+        assert.isNull(graph.shadowRoot!.querySelector("summary"), "no separate labelled row");
+        assert.equal(toggle.textContent!.trim(), "", "icon-only toggle");
+        assert.isNotNull(toggle.querySelector('sl-icon[aria-hidden="true"]'));
+        assert.equal(toggle.getAttribute("aria-expanded"), "true");
+        toggle.click();
         await frame(2);
-        assert.isFalse(details.open);
+        assert.isTrue(scene.hidden);
+        assert.equal(toggle.getAttribute("aria-expanded"), "false");
+        assert.equal(toggle.getAttribute("aria-label"), "Expand graph");
         assert.isBelow(graph.getBoundingClientRect().height, height - 200, "closed graph releases its space");
         assert.isAbove(control(graph, "#fullscreen").getBoundingClientRect().height, 0, "fullscreen remains visible");
         choices(widget)[0].click();
         await until(() => widget.activePageIndex === 1);
         await frame(2);
-        assert.isFalse(details.open, "page navigation does not reopen the graph");
-        control(graph, "summary").click();
+        assert.isTrue(scene.hidden, "page navigation does not reopen the graph");
+        toggle.click();
         await frame(3);
-        assert.isTrue(details.open);
+        assert.isFalse(scene.hidden);
+        assert.equal(toggle.getAttribute("aria-expanded"), "true");
         assert.equal(graph.shadowRoot!.querySelectorAll("ww-node").length, 3);
         assert.deepEqual(readBranches(widget.children[0]).map((branch) => branch.target), ["first-path", "second-path"]);
     });
