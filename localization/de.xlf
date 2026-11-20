@@ -82,6 +82,18 @@
         <source>Portrait</source>
         <target>Hochformat</target>
       </trans-unit>
+      <trans-unit id="s15244f583d260178">
+        <source>Show completion indicators</source>
+        <target>Abschlussanzeigen anzeigen</target>
+      </trans-unit>
+      <trans-unit id="s55bc1af31c3cc9d7">
+        <source>Page completed</source>
+        <target>Seite abgeschlossen</target>
+      </trans-unit>
+      <trans-unit id="s4fe74cac2ffde0fa">
+        <source>Pages completed</source>
+        <target>Abgeschlossene Seiten</target>
+      </trans-unit>
 </body>
   </file>
 </xliff>

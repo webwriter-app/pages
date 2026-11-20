@@ -2,7 +2,7 @@ import { html, nothing } from "lit";
 import { live } from "lit/directives/live.js";
 import { styleMap } from "lit/directives/style-map.js";
 import type { PagesView } from "../model/pages-view";
-import { renderAddPage, renderControls, renderPageButtons } from "./pages-controls";
+import { renderAddPage, renderControls, renderPageButtons, renderPageCompletion } from "./pages-controls";
 
 /** The tab strip with its controls, shown in the "tabs" view. */
 export function renderTabs(view: PagesView) {
@@ -17,7 +17,7 @@ export function renderTabs(view: PagesView) {
                             const background = index === view.activePageIndex ? getComputedStyle(page).backgroundColor : undefined;
                             return html`
                             <div
-                                class="page-tab ${index === view.activePageIndex ? "active" : ""}"
+                                class="page-tab ${index === view.activePageIndex ? "active" : ""} ${view.completionIndicators && view.completedPages.has(page) ? "completed" : ""}"
                                 data-ww-capture-selection="false"
                                 part="tab"
                                 style=${styleMap({ "--_page-background": background === "rgba(0, 0, 0, 0)" ? undefined : background })}
@@ -55,6 +55,7 @@ export function renderTabs(view: PagesView) {
                                 ><span class=${label ? "" : "page-label-placeholder"}>${label || placeholder}</span></button>`}
 
                                 ${renderPageButtons(view, index)}
+                                ${renderPageCompletion(view, index)}
                             </div>
                             `;
                         }
@@ -98,6 +99,7 @@ export function renderThumbs(view: PagesView) {
                             <div class="page-number">${index + 1}</div>
                         </div>
                         ${renderPageButtons(view, index)}
+                        ${renderPageCompletion(view, index)}
                     </div>
                 `
             )}

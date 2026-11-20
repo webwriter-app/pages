@@ -5,7 +5,27 @@ import chevronLeftIcon from "@tabler/icons/outline/chevron-left.svg";
 import chevronRightIcon from "@tabler/icons/outline/chevron-right.svg";
 import removeIcon from "@tabler/icons/outline/x.svg";
 import plusIcon from "@tabler/icons/outline/plus.svg";
+import checkIcon from "@tabler/icons/outline/check.svg";
 import type { PagesView } from "../model/pages-view";
+
+/** Read status is transient UI, never an attribute on authored pages. */
+export function renderPageCompletion(view: PagesView, index: number) {
+    if (!view.completionIndicators || !view.completedPages.has(view.pages[index])) return nothing;
+    const label = view.msg("Page completed");
+    return html`<span class="completion-bubble page-completion complete" role="img" aria-label=${label} title=${label}>
+        <sl-icon src=${checkIcon} aria-hidden="true"></sl-icon>
+    </span>`;
+}
+
+function renderCompletionOverview(view: PagesView) {
+    if (!view.completionIndicators) return nothing;
+    const count = view.pages.filter((page) => view.completedPages.has(page)).length;
+    const complete = view.pages.length > 0 && count === view.pages.length;
+    const label = `${view.msg("Pages completed")}: ${count} / ${view.pages.length}`;
+    return html`<span class="completion-bubble completion-overview ${complete ? "complete" : ""}" role="img" aria-label=${label} title=${label}>
+        <sl-icon src=${checkIcon} aria-hidden="true"></sl-icon>
+    </span>`;
+}
 
 /** Remove button of the active page in the tab or thumbnail strip. */
 export function renderPageButtons(view: PagesView, index: number) {
@@ -77,5 +97,6 @@ export function renderControls(view: PagesView, navigation: "pages" | "tabs" | "
                 src=${view.isFullscreen ? fullscreenExitIcon : fullscreenIcon}
                 @click=${() => view.toggleFullscreen()}
             ></sl-icon-button>
+            ${renderCompletionOverview(view)}
         </div>`;
 }

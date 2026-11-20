@@ -50,6 +50,10 @@ type Labelled = { msg: MsgFn };
  * Signals: `page` is the number of the current page, starting at 1; `count` is the number of pages.
  * Both change when readers or authors move to another page.
  *
+ * Enable `completion-indicators` to mark pages read when opened and scrolled to the bottom.
+ * A checkmark on each read tab/preview and an aggregate checkmark in the controls show progress.
+ * Progress is local to this widget instance, is not saved in authored HTML, and does not advance in edit mode.
+ *
  * Known limitation: in edit mode the drag module sets `touch-action: none` on the thumbnails, so on a touch
  * screen the thumbnail strip cannot be scrolled by dragging on a thumbnail; the select buttons still work.
  *
@@ -79,6 +83,10 @@ export class WebwriterPages extends LitElementWw {
                 { value: "tabs", label: (widget: Labelled) => widget.msg("Tabs") },
                 { value: "pages", label: (widget: Labelled) => widget.msg("Slides") },
             ],
+        },
+        completionIndicators: {
+            type: Boolean,
+            label: (widget: Labelled) => widget.msg("Show completion indicators"),
         },
     } satisfies Record<string, Declared<OptionDeclaration>>;
 
@@ -112,6 +120,10 @@ export class WebwriterPages extends LitElementWw {
         converter: { fromAttribute: (value: string | null) => value === "pages" ? "pages" : "tabs" },
     })
     public accessor type: "tabs" | "pages" = "tabs";
+
+    /** Mark pages read after opening them and reaching their bottom. Reader-local; off by default. */
+    @property({ type: Boolean, attribute: "completion-indicators", reflect: true, useDefault: true })
+    accessor completionIndicators = false;
 
     /** Page orientation: 16:9 landscape or 9:16 portrait. */
     @property({ type: String, reflect: true, useDefault: true })
@@ -151,6 +163,13 @@ export class WebwriterPages extends LitElementWw {
     #touchStartX: number | null = null;
     #touchStartY = 0;
     #touchTarget: Element | null = null;
+    #completedPages = new Set<WebwriterPage>();
+    #completionPage?: WebwriterPage;
+    #completionVisible = false;
+    #completionIntersection?: IntersectionObserver;
+    #completionResize?: ResizeObserver;
+    #completionMutation?: MutationObserver;
+    #completionFrame?: number;
 
     /** The drawer declarations with the availability of the page actions, which follows the pages. */
     get actions() {
@@ -198,6 +217,12 @@ export class WebwriterPages extends LitElementWw {
         document.addEventListener("selectionchange", () => this.#handleSelectionChange(), { passive: true, signal });
         this.addEventListener("touchstart", (e) => this.#handleTouchStart(e), { passive: true, signal });
         this.addEventListener("touchend", (e) => this.#handleTouchEnd(e), { passive: true, signal });
+        this.addEventListener("scroll", (e) => {
+            if (e.target === this.#completionPage) this.#queueCompletionCheck();
+        }, { capture: true, passive: true, signal });
+        this.addEventListener("load", this.#queueCompletionCheck, { capture: true, signal });
+        this.addEventListener("error", this.#queueCompletionCheck, { capture: true, signal });
+        document.addEventListener("visibilitychange", this.#queueCompletionCheck, { signal });
         this.#pageAttributesObserver.observe(this, { attributes: true, attributeFilter: ["label", "style", "class"], subtree: true });
         this.requestUpdate();
     }
@@ -210,6 +235,7 @@ export class WebwriterPages extends LitElementWw {
         this.#tabResizeObserver?.disconnect();
         this.#tabScroller = null;
         this.#pageAttributesObserver.disconnect();
+        this.#stopCompletionTracking();
     }
 
     protected firstUpdated(): void {
@@ -243,6 +269,7 @@ export class WebwriterPages extends LitElementWw {
         this.pages?.forEach(
             (page, i) => (page.active = i === this.activePageIndex)
         );
+        this.#syncCompletionTracking();
         this.#page.set(this.activePageIndex + 1);
         this.#count.set(this.pages?.length ?? 0);
         const duplicateDisabled = !this.activePage;
@@ -253,6 +280,65 @@ export class WebwriterPages extends LitElementWw {
             this.dispatchEvent(new Event("optionschange", { bubbles: true }));
         }
     }
+
+    #stopCompletionTracking() {
+        this.#completionIntersection?.disconnect();
+        this.#completionResize?.disconnect();
+        this.#completionMutation?.disconnect();
+        if (this.#completionFrame !== undefined) cancelAnimationFrame(this.#completionFrame);
+        this.#completionFrame = undefined;
+        this.#completionPage = undefined;
+        this.#completionVisible = false;
+    }
+
+    #syncCompletionTracking() {
+        // Keep progress attached to page identity through reordering, never to an index or clone.
+        for (const page of this.#completedPages) {
+            if (!this.pages.includes(page)) this.#completedPages.delete(page);
+        }
+        const page = this.isConnected && this.completionIndicators && !this.#permissions.editing ? this.activePage : undefined;
+        if (page !== this.#completionPage) {
+            this.#stopCompletionTracking();
+            this.#completionPage = page;
+            if (page) {
+                this.#completionIntersection = new IntersectionObserver((entries) => {
+                    if (this.#completionPage !== page) return;
+                    this.#completionVisible = entries.some((entry) => entry.isIntersecting);
+                    this.#queueCompletionCheck();
+                });
+                this.#completionIntersection.observe(page);
+                this.#completionResize = new ResizeObserver(this.#queueCompletionCheck);
+                const observeContent = () => {
+                    if (this.#completionPage !== page) return;
+                    this.#completionResize!.disconnect();
+                    this.#completionResize!.observe(page);
+                    for (const child of page.children) this.#completionResize!.observe(child);
+                    this.#queueCompletionCheck();
+                };
+                this.#completionMutation = new MutationObserver(observeContent);
+                this.#completionMutation.observe(page, { childList: true, subtree: true, characterData: true, attributes: true });
+                observeContent();
+            }
+        }
+        this.#queueCompletionCheck();
+    }
+
+    #queueCompletionCheck = () => {
+        if (!this.#completionPage || this.#completionFrame !== undefined) return;
+        this.#completionFrame = requestAnimationFrame(() => {
+            this.#completionFrame = undefined;
+            const page = this.#completionPage;
+            if (!page || !this.isConnected || !this.completionIndicators || this.#permissions.editing ||
+                page !== this.activePage || !this.#completionVisible || document.hidden ||
+                this.#completedPages.has(page) || page.clientHeight === 0) return;
+            // Wait for pending images before deciding that the content fits without scrolling.
+            if (Array.from(page.querySelectorAll("img")).some((image) => !image.complete && image.getClientRects().length)) return;
+            // scrollTop can be fractional, whereas the dimensions are rounded by the browser.
+            if (page.scrollHeight - page.clientHeight - Math.max(0, page.scrollTop) > 1) return;
+            this.#completedPages.add(page);
+            this.requestUpdate();
+        });
+    };
 
     #updateTabScroll = () => {
         const tabs = this.renderRoot.querySelector<HTMLElement>('[part="tabs"]');
@@ -589,6 +675,8 @@ export class WebwriterPages extends LitElementWw {
             pages: this.pages,
             activePageIndex: this.activePageIndex,
             editing: this.#permissions.editing,
+            completionIndicators: this.completionIndicators,
+            completedPages: this.#completedPages,
             isFullscreen: this.isFullscreen,
             hasPreviousPage: this.hasPreviousPage,
             hasNextPage: this.hasNextPage,

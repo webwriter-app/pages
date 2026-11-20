@@ -7,6 +7,8 @@ export interface PagesView {
     pages: WebwriterPage[];
     activePageIndex: number;
     editing: boolean;
+    completionIndicators: boolean;
+    completedPages: ReadonlySet<WebwriterPage>;
     isFullscreen: boolean;
     hasPreviousPage: boolean;
     hasNextPage: boolean;

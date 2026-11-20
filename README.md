@@ -40,6 +40,10 @@ Page labels become plaintext summaries; unlabeled pages use “Page n”. Page c
 Signals: `page` is the number of the current page, starting at 1; `count` is the number of pages.
 Both change when readers or authors move to another page.
 
+Enable `completion-indicators` to mark pages read when opened and scrolled to the bottom.
+A checkmark on each read tab/preview and an aggregate checkmark in the controls show progress.
+Progress is local to this widget instance, is not saved in authored HTML, and does not advance in edit mode.
+
 Known limitation: in edit mode the drag module sets `touch-action: none` on the thumbnails, so on a touch
 screen the thumbnail strip cannot be scrolled by dragging on a thumbnail; the select buttons still work.
 
@@ -70,10 +74,11 @@ npm install @webwriter/pages
 | `WebwriterPages.scopedElements` | `object` | - | `{ "sl-icon-button": SlIconButton, }` | ✗ |
 | `WebwriterPages.convertFrom` | `object` | - | `{ section: "loadSections" }` | ✗ |
 | `WebwriterPages.convertTo` | `object` | - | `{ details: "toDetails" }` | ✗ |
-| `WebwriterPages.options` | - | - | `{ type: { type: "select", label: (widget: Labelled) => widget.msg("View"), options: [ { value: "tabs", label: (widget: Labelled) => widget.msg("Tabs") }, { value: "pages", label: (widget: Labelled) => widget.msg("Slides") }, ], }, } satisfies Record<string, Declared<OptionDeclaration>>` | ✗ |
+| `WebwriterPages.options` | - | - | `{ type: { type: "select", label: (widget: Labelled) => widget.msg("View"), options: [ { value: "tabs", label: (widget: Labelled) => widget.msg("Tabs") }, { value: "pages", label: (widget: Labelled) => widget.msg("Slides") }, ], }, completionIndicators: { type: Boolean, label: (widget: Labelled) => widget.msg("Show completion indicators"), }, } satisfies Record<string, Declared<OptionDeclaration>>` | ✗ |
 | `WebwriterPages.actions` | - | - | `{ addPage: { label: (widget: Labelled) => widget.msg("Add"), buttonGroup: "pages", icon: "Plus", intent: "default" }, removeActivePage: { label: (widget: Labelled) => widget.msg("Remove"), buttonGroup: "pages", icon: "Delete", intent: "danger", disabled: true }, duplicateActivePage: { label: (widget: Labelled) => widget.msg("Duplicate"), buttonGroup: "pages", icon: "Copy", intent: "default", disabled: true }, } satisfies Record<string, Declared<ActionDeclaration>>` | ✗ |
 | `localize` | - | - | - | ✗ |
 | `type` (`type`) | `"tabs" \| "pages"` | Defines the type of view for the sequence of pages.<br>- "pages": Show the Slides view with preview cards.<br>- "tabs": Show content using tabs. | `"tabs"` | ✓ |
+| `completionIndicators` (`completion-indicators`) | `boolean` | Mark pages read after opening them and reaching their bottom. Reader-local; off by default. | `false` | ✓ |
 | `orientation` (`orientation`) | `"landscape" \| "portrait"` | Page orientation: 16:9 landscape or 9:16 portrait. The optional orientation attribute defaults to landscape when absent; the default is not added to existing markup. | `"landscape"` | ✓ |
 | `activePageIndex` | `number` | Index of the currently active page. | `0` | ✗ |
 | `signals` | `object` | Public signals: the current page number (from 1) and the number of pages. | `{ page: this.#page, count: this.#count }` | ✗ |

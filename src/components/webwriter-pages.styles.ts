@@ -258,6 +258,46 @@ export const pages_styles = css`
         gap: var(--sl-spacing-2x-small);
     }
 
+    .completion-bubble {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        inline-size: 20px;
+        block-size: 20px;
+        box-sizing: border-box;
+        border: 1px solid var(--sl-color-neutral-300);
+        border-radius: 50%;
+        background: var(--sl-panel-background-color);
+        color: var(--sl-color-neutral-400);
+        font-size: 14px;
+    }
+
+    .completion-bubble.complete {
+        color: var(--sl-color-success-700);
+        background: var(--sl-color-success-100);
+        border-color: var(--sl-color-success-600);
+    }
+
+    .page-completion {
+        position: absolute;
+        inset-inline-end: var(--sl-spacing-2x-small);
+        inset-block-end: var(--sl-spacing-2x-small);
+    }
+
+    .page-tab.completed {
+        padding-inline-end: calc(var(--sl-spacing-small) + 20px);
+    }
+
+    .page-tab .page-completion {
+        inset-block: 0;
+        margin-block: auto;
+    }
+
+    .page-tab .page-actions:has(+ .page-completion) {
+        inset-inline-end: calc(var(--sl-spacing-2x-small) + 24px);
+    }
+
     .tabs-scroll-backward:dir(rtl),
     .tabs-scroll-forward:dir(rtl) {
         transform: scaleX(-1);

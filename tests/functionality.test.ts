@@ -122,7 +122,8 @@ describe("<webwriter-pages>", function () {
     try {
       await waitForView(german, "Folien")
       assert.equal(view(english), "Slides")
-      assert.deepEqual(Object.keys(german.options!), ["type"], "View is the only setting");
+      assert.deepEqual(Object.keys(german.options!), ["type", "completionIndicators"]);
+      assert.equal(german.options!.completionIndicators.label, "Abschlussanzeigen anzeigen");
       const labels = (widget: WebwriterPages) => Object.values(widget.actions).map(action => action.label)
       assert.deepEqual(labels(english), ["Add", "Remove", "Duplicate"])
       assert.deepEqual(labels(german), ["Hinzufügen", "Entfernen", "Duplizieren"])
