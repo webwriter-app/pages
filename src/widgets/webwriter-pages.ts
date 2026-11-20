@@ -259,7 +259,7 @@ export class WebwriterPages extends LitElementWw {
     #completionMutation?: MutationObserver;
     #completionFrame?: number;
     #readingBranches = false;
-    @state() private accessor branchGraphExpanded = true;
+    @state() private accessor branchGraphExpanded = false;
 
     /** The drawer declarations with the availability of the page actions, which follows the pages. */
     get actions() {
@@ -576,6 +576,7 @@ export class WebwriterPages extends LitElementWw {
         if (!source || !readBranches(source).some((branch) => branch.target === target)) return;
         const index = this.pages.findIndex((page) => pageKey(page) === target);
         if (index < 0) return;
+        this.branchGraphExpanded = false;
         this.changePage(index);
         await this.updateComplete;
         const page = this.activePage;
@@ -583,6 +584,15 @@ export class WebwriterPages extends LitElementWw {
         page.scrollTop = 0;
         // The chosen button disappears; keep keyboard reading at the new page.
         this.renderRoot.querySelector<HTMLElement>(".page-stage")?.focus({ preventScroll: true });
+    };
+
+    #openBranchPage = async (index: number) => {
+        const page = this.pages[index];
+        if (!page || !this.#permissions.editing) return;
+        this.branchGraphExpanded = false;
+        this.changePage(index);
+        await this.updateComplete;
+        if (this.isConnected && this.activePage === page && !this.branchGraphExpanded) this.#selectPageStart(page);
     };
 
     /** Replaces the pages with the pages a `section` stands for; declines anything else. */
@@ -686,7 +696,8 @@ export class WebwriterPages extends LitElementWw {
             await this.updateComplete;
             await active?.updateComplete;
             if (this.isConnected && active && this.activePage === active && this.#permissions.editing) {
-                this.#selectPageStart(active);
+                if (this.type === "branches" && this.branchGraphExpanded) this.renderRoot.querySelector<PagesBranches>("pages-branches")?.focus({ preventScroll: true });
+                else this.#selectPageStart(active);
             }
         });
     }
@@ -961,7 +972,12 @@ export class WebwriterPages extends LitElementWw {
                 ${this.type === "tabs" ? renderTabs(view) : html``}
                 <div class="page-viewport">
                     <div class="page-surface">
-                        <div class="page-stage" tabindex=${branches ? "-1" : nothing}><slot></slot>
+                        <div class="page-stage" tabindex=${branches ? "-1" : nothing}><slot ?inert=${branches && view.editing && this.branchGraphExpanded}></slot>
+                            ${branches && view.editing ? html`<pages-branches id="branch-editor" part="branch-editor" contenteditable="false"
+                                ?hidden=${!this.branchGraphExpanded} .collapsed=${!this.branchGraphExpanded}
+                                .view=${view} .startKey=${this.startPage || pageKey(view.pages[0])}
+                                .setBranches=${this.#setBranches} .movePages=${this.#moveBranchPages} .setStart=${this.#setStartPage} .addPageAt=${this.#addBranchPage} .openPage=${this.#openBranchPage}
+                            ></pages-branches>` : nothing}
                             ${view.editing ? html`<div class="page-aspect-handle ${edge}" role="separator" tabindex="0" contenteditable="false"
                                 aria-label=${this.msg("Resize page aspect ratio")} title=${this.msg("Resize page aspect ratio")}
                                 aria-orientation=${edge === "inline-end" ? "vertical" : "horizontal"}
@@ -976,11 +992,6 @@ export class WebwriterPages extends LitElementWw {
                 </div>
                 ${this.type == "pages" && !this.isFullscreen ? renderThumbs(view) : html``}
                 ${branches ? renderBranchChoices(view, this.#setBranches, this.#followBranch, this.branchGraphExpanded, () => this.branchGraphExpanded = !this.branchGraphExpanded, this.#addPageChoice) : nothing}
-                ${branches && view.editing ? html`<pages-branches id="branch-editor" part="branch-editor" contenteditable="false"
-                    ?hidden=${!this.branchGraphExpanded} .collapsed=${!this.branchGraphExpanded}
-                    .view=${view} .startKey=${this.startPage || pageKey(view.pages[0])}
-                    .setBranches=${this.#setBranches} .movePages=${this.#moveBranchPages} .setStart=${this.#setStartPage} .addPageAt=${this.#addBranchPage}
-                ></pages-branches>` : nothing}
             </div>
         `;
     }

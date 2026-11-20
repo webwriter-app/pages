@@ -33,9 +33,12 @@ export const pages_styles = css`
     }
 
     [part="branch-editor"] {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        box-sizing: border-box;
         border: var(--sl-panel-border-width) solid var(--sl-panel-border-color);
-        border-block-start: 0;
-        border-radius: 0 0 var(--sl-border-radius-medium) var(--sl-border-radius-medium);
+        border-radius: var(--sl-border-radius-medium) var(--sl-border-radius-medium) 0 0;
         overflow: clip;
         user-select: none;
     }
@@ -66,7 +69,6 @@ export const pages_styles = css`
     .branch-choice-wrap { position: relative; max-inline-size: 100%; }
     .branch-choice-wrap .branch-choice { padding-inline-end: 24px; }
 
-    .branch-controls.graph-expanded { border-radius: 0; }
     .branch-tools {
         --_branch-tool-size: 24px;
         display: flex;
@@ -206,13 +208,6 @@ export const pages_styles = css`
     :host([type="branches"]) ::slotted(webwriter-page) {
         border-end-start-radius: 0;
         border-end-end-radius: 0;
-    }
-
-    :host(:fullscreen) [part="branch-editor"],
-    :host(.ww-fullscreen) [part="branch-editor"] {
-        max-block-size: 35vh;
-        overflow: auto;
-        flex: 0 0 auto;
     }
 
     :host(:fullscreen) .branch-controls,

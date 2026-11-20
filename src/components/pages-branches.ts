@@ -11,8 +11,9 @@ import type { WebwriterPage } from "../widgets/webwriter-page";
 import { pageKey, readBranches, readNodePosition, type PageBranch } from "../model/page-branches";
 import SlIcon from "@shoelace-style/shoelace/dist/components/icon/icon.component.js";
 import plusIcon from "@tabler/icons/outline/plus.svg";
-import removeIcon from "@tabler/icons/outline/x.svg";
+import removeIcon from "@tabler/icons/outline/trash.svg";
 import fitIcon from "@tabler/icons/outline/zoom-scan.svg";
+import openIcon from "@tabler/icons/outline/arrow-right.svg";
 
 /** An editing-only Scene over the same authored pages that the reader sees. */
 export class PagesBranches extends LitElementWw {
@@ -24,8 +25,9 @@ export class PagesBranches extends LitElementWw {
     @property({ attribute: false }) accessor movePages!: (items: MoveDetail["items"]) => void;
     @property({ attribute: false }) accessor setStart!: (page: WebwriterPage) => void;
     @property({ attribute: false }) accessor addPageAt!: (point: { x: number; y: number }) => void;
+    @property({ attribute: false }) accessor openPage!: (index: number) => void;
     @state() private accessor selectedPath = "";
-    @state() private accessor selectedNode = "";
+    @state() private accessor selectedNode: string | undefined = undefined;
     @property({ attribute: false }) accessor collapsed = false;
 
     #viewport: Viewport = new Viewport(this, {
@@ -41,15 +43,17 @@ export class PagesBranches extends LitElementWw {
     });
 
     static styles = css`
-        :host { display: block; position: relative; color: var(--ww-text-color, inherit); font-family: var(--ww-font-family, inherit); }
+        :host { display: block; position: relative; block-size: 100%; color: var(--ww-text-color, inherit); font-family: var(--ww-font-family, inherit); }
         * { box-sizing: border-box; }
         :host([hidden]) { display: none; }
-        .graph { position: relative; }
+        .graph { position: relative; block-size: 100%; }
         .view-controls { position: absolute; inset-inline-end: 10px; inset-block-start: 10px; z-index: 10; display: flex; }
         .view-controls button { min-inline-size: 28px; min-block-size: 28px; padding: 0 4px; border: 0; background: transparent; }
         .icon-button { display: grid; place-items: center; min-inline-size: 32px; min-block-size: 32px; padding: 0; }
         .add-node { position: absolute; inset-inline-start: 10px; inset-block-start: 10px; z-index: 10; box-shadow: 0 1px 4px rgb(0 0 0 / 0.12); }
-        .remove-node { position: absolute; inset-inline-end: -12px; inset-block-start: -12px; min-inline-size: 24px; min-block-size: 24px; border-radius: 50%; visibility: hidden; }
+        .node-open, .remove-node { position: absolute; inset-inline-end: -6px; min-inline-size: 24px; min-block-size: 24px; border-radius: 50%; box-shadow: 0 1px 3px #0002; }
+        .node-open { inset-block-start: -8px; }
+        .remove-node { inset-block-end: -8px; visibility: hidden; }
         ww-node[selected] .remove-node { visibility: visible; }
         sl-icon { font-size: 16px; pointer-events: none; }
         button, input, select { font: inherit; font-size: 13px; color: inherit; min-block-size: 32px; }
@@ -58,7 +62,7 @@ export class PagesBranches extends LitElementWw {
         input, select { padding: 4px 7px; border: 1px solid var(--sl-panel-border-color); border-radius: 4px; background: var(--sl-panel-background-color); min-inline-size: 0; }
         input { inline-size: 14rem; max-inline-size: 100%; }
         button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--ww-theme-accent-1, #0284c7); outline-offset: 2px; }
-        ww-scene { display: block; block-size: 340px; background: var(--sl-panel-background-color); --ww-scene-selection: var(--ww-theme-accent-1, #0284c7); }
+        ww-scene { display: block; block-size: 100%; background: var(--sl-panel-background-color); --ww-scene-selection: var(--ww-theme-accent-1, #0284c7); }
         ww-node { inline-size: 200px; min-block-size: 84px; padding: 18px 20px; background: var(--sl-panel-background-color); border: 1px solid var(--sl-color-neutral-400); border-radius: 8px; color: inherit; cursor: pointer; }
         ww-node[selected] { border-color: var(--ww-theme-accent-1, #0284c7); background: var(--sl-color-primary-50); }
         .node-label, .node-label-input { display: block; inline-size: 100%; min-inline-size: 0; min-block-size: 0; block-size: 1.5em; padding: 0; border: 0; border-radius: 0; background: transparent; font: inherit; font-weight: 600; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -89,7 +93,16 @@ export class PagesBranches extends LitElementWw {
 
     #page(key: string) { return this.view.pages.find((page) => pageKey(page) === key); }
 
+    focus(options?: FocusOptions) {
+        this.renderRoot.querySelector<HTMLElement>("ww-scene")?.focus(options);
+    }
+
     protected updated(changed: PropertyValues<this>) {
+        if (changed.has("collapsed") && !this.collapsed) {
+            void this.#scene.ready.then(() => {
+                if (this.isConnected && !this.collapsed) return this.#viewport.fit({ follow: "none" });
+            });
+        }
         const buttons = this.renderRoot.querySelectorAll<HTMLButtonElement>(".view-controls button");
         if (!("focusGroup" in HTMLElement.prototype) && !Array.from(buttons).some(button => button.hasAttribute("tabindex"))) {
             buttons.forEach((button, index) => button.tabIndex = index ? -1 : 0);
@@ -113,6 +126,7 @@ export class PagesBranches extends LitElementWw {
         const key = "keys" in event.detail ? event.detail.keys[0] : event.detail.key;
         this.selectedPath = key?.startsWith("path:") ? key : "";
         const page = key && this.#page(key);
+        if (!key) this.selectedNode = "";
         if (page) {
             this.selectedNode = key;
             if (event.type === "ww-activate") this.view.changePage(this.view.pages.indexOf(page));
@@ -209,8 +223,8 @@ export class PagesBranches extends LitElementWw {
         event.preventDefault();
         if (this.selectedPath) this.#removePath();
         else if (this.view.pages.length > 1) {
-            const page = this.#page(this.selectedNode) ?? this.view.pages[this.view.activePageIndex];
-            this.view.removePage(this.view.pages.indexOf(page));
+            const page = this.selectedNode === undefined ? this.view.pages[this.view.activePageIndex] : this.#page(this.selectedNode);
+            if (page) this.view.removePage(this.view.pages.indexOf(page));
         }
     }
 
@@ -235,7 +249,7 @@ export class PagesBranches extends LitElementWw {
                 aria-label=${view.msg("Page branches")} @ww-select=${this.#select} @ww-activate=${this.#select}
                 @ww-ready=${async () => {
                     await this.updateComplete;
-                    await this.#viewport.fit({ follow: "none" });
+                    if (!this.collapsed) await this.#viewport.fit({ follow: "none" });
                 }}
                 @ww-connect=${this.#onConnect} @ww-reconnect=${this.#reconnect} @ww-disconnect=${this.#disconnect} @ww-background=${this.#background}
                 @ww-move=${(event: CustomEvent<MoveDetail>) => this.movePages(event.detail.items)}
@@ -247,7 +261,7 @@ export class PagesBranches extends LitElementWw {
                     </ww-path>`))}
                 ${repeat(view.pages, pageKey, (node, index) => {
                     const position = readNodePosition(node, index), key = pageKey(node);
-                    return html`<ww-node data-ww-key=${key} x=${position.x} y=${position.y} selectable movable ?selected=${!this.selectedPath && (this.selectedNode ? this.selectedNode === key : node === page)}
+                    return html`<ww-node data-ww-key=${key} x=${position.x} y=${position.y} selectable movable ?selected=${!this.selectedPath && (this.selectedNode === undefined ? node === page : this.selectedNode === key)}
                         aria-label=${this.#label(node)}>
                         <span class="port input" data-ww-port="in" data-ww-accept="page" data-ww-side="left" data-ww-control aria-label=${view.msg("Connect to page")}></span>
                         ${node === page ? html`<input class="node-label-input" aria-label=${view.msg("Page label")} .value=${live(node.getAttribute("label") ?? "")}
@@ -255,6 +269,8 @@ export class PagesBranches extends LitElementWw {
                             : html`<span class="node-label">${this.#label(node)}</span>`}
                         <button type="button" class="node-start" data-ww-control ?disabled=${key === this.startKey}
                             @click=${() => this.setStart(node)}>${key === this.startKey ? view.msg("Start page") : view.msg("Set as start")}</button>
+                        <button type="button" class="node-open icon-button" data-ww-control title=${`${view.msg("Go to page")}: ${this.#label(node)}`} aria-label=${`${view.msg("Go to page")}: ${this.#label(node)}`}
+                            @click=${() => this.openPage(this.view.pages.indexOf(node))}><sl-icon src=${openIcon} aria-hidden="true"></sl-icon></button>
                         <button type="button" class="remove-node icon-button" data-ww-control ?disabled=${view.pages.length <= 1}
                             title=${view.msg("Remove page")} aria-label=${view.msg("Remove page")}
                             @click=${() => view.removePage(this.view.pages.indexOf(node))}><sl-icon src=${removeIcon} aria-hidden="true"></sl-icon></button>

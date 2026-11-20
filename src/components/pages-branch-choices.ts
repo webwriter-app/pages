@@ -4,7 +4,7 @@ import arrowRight from "@tabler/icons/outline/arrow-right.svg";
 import plusIcon from "@tabler/icons/outline/plus.svg";
 import removeIcon from "@tabler/icons/outline/x.svg";
 import chevronDown from "@tabler/icons/outline/chevron-down.svg";
-import chevronRight from "@tabler/icons/outline/chevron-right.svg";
+import chevronUp from "@tabler/icons/outline/chevron-up.svg";
 import { renderControls } from "./pages-controls";
 import type { PagesView } from "../model/pages-view";
 import type { WebwriterPage } from "../widgets/webwriter-page";
@@ -137,9 +137,9 @@ export function renderBranchChoices(view: PagesView, setBranches: (page: Webwrit
                 @click=${(event: MouseEvent) => fallbackPopup(event, addId, addition.prepare)}><sl-icon src=${plusIcon} aria-hidden="true"></sl-icon></button>${addition.content}` : nothing}
         </nav>
         <div class="branch-tools">
-            <div class="branch-fullscreen">${renderControls(view, "none", false)}</div>
             ${view.editing ? html`<button type="button" class="graph-toggle" aria-expanded=${String(graphExpanded)} aria-controls="branch-editor" aria-label=${toggleLabel} title=${toggleLabel}
-                @click=${toggleGraph}><sl-icon src=${graphExpanded ? chevronDown : chevronRight} aria-hidden="true"></sl-icon></button>` : nothing}
+                @click=${toggleGraph}><sl-icon src=${graphExpanded ? chevronDown : chevronUp} aria-hidden="true"></sl-icon></button>` : nothing}
+            <div class="branch-fullscreen">${renderControls(view, "none", false)}</div>
         </div>
     </aside>`;
 }

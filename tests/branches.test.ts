@@ -20,8 +20,14 @@ describe("Pages Branches view", function () {
     const authorSnippet = () => snippet.replace("<webwriter-pages ", '<webwriter-pages contenteditable="true" ');
     const editor = async (widget: WebwriterPages) => {
         const element = await until(() => widget.shadowRoot!.querySelector<PagesBranches>("pages-branches"));
+        if (element.hidden) {
+            widget.shadowRoot!.querySelector<HTMLButtonElement>(".graph-toggle")!.click();
+            await widget.updateComplete;
+        }
         await element.updateComplete;
         await until(() => element.shadowRoot!.querySelector("ww-node")?.getBoundingClientRect().width, "nodes laid out");
+        await (element.shadowRoot!.querySelector("ww-scene") as any).ready;
+        await frame(2);
         return element;
     };
     const control = <T extends HTMLElement = HTMLButtonElement>(element: Element, selector: string) => element.shadowRoot!.querySelector<T>(selector)!;
@@ -136,31 +142,50 @@ describe("Pages Branches view", function () {
         }
     });
 
-    it("keeps choices between the page and collapsible graph, with fullscreen at the end", async function () {
+    it("starts collapsed and overlays the page without moving choices or changing widget height", async function () {
         const widget = await mount(authorSnippet());
-        const graph = await editor(widget);
+        const graph = await until(() => widget.shadowRoot!.querySelector<PagesBranches>("pages-branches"));
+        await graph.updateComplete;
         assert.isNull(graph.shadowRoot!.querySelector(".help"), "no permanent editing hint");
         const toggle = control<HTMLButtonElement>(widget, ".branch-controls .graph-toggle");
         const controls = control(widget, ".branch-controls");
+        const stage = control(widget, ".page-stage");
         assert.equal(controls.firstElementChild!.className, "branch-choices", "choices start the row");
         assert.equal(controls.lastElementChild!.className, "branch-tools", "controls end the row");
-        assert.equal(toggle.previousElementSibling!.className, "branch-fullscreen");
-        assert.isAtLeast(toggle.getBoundingClientRect().top, control(widget, "#fullscreen").getBoundingClientRect().bottom, "chevron sits below fullscreen");
-        assert.equal(controls.nextElementSibling, graph, "graph follows choices in DOM and keyboard order");
-        assert.isAbove(controls.getBoundingClientRect().top, control(widget, ".page-stage").getBoundingClientRect().top);
-        assert.isAtLeast(graph.getBoundingClientRect().top, controls.getBoundingClientRect().bottom - 1);
+        assert.equal(toggle.nextElementSibling!.className, "branch-fullscreen");
+        assert.isAtLeast(control(widget, "#fullscreen").getBoundingClientRect().top, toggle.getBoundingClientRect().bottom, "chevron sits above fullscreen");
+        assert.equal(graph.parentElement, stage, "graph belongs to the page stage");
+        assert.isAtLeast(controls.getBoundingClientRect().top, stage.getBoundingClientRect().bottom - 1, "choices remain below the page");
         const height = widget.getBoundingClientRect().height;
+        const controlsTop = controls.getBoundingClientRect().top;
         assert.isNull(graph.shadowRoot!.querySelector("summary"), "no separate labelled row");
         assert.equal(toggle.textContent!.trim(), "", "icon-only toggle");
         assert.isNotNull(toggle.querySelector('sl-icon[aria-hidden="true"]'));
+        assert.isTrue(graph.hidden, "graph is collapsed initially");
+        assert.equal(toggle.getAttribute("aria-expanded"), "false");
+        assert.equal(toggle.getAttribute("aria-label"), "Expand graph");
+        const collapsedIcon = toggle.querySelector("sl-icon")!.getAttribute("src");
+        toggle.click();
+        await widget.updateComplete;
+        await graph.updateComplete;
+        await frame(3);
+        assert.isFalse(graph.hidden);
         assert.equal(toggle.getAttribute("aria-expanded"), "true");
+        assert.equal(toggle.getAttribute("aria-label"), "Collapse graph");
+        assert.notEqual(toggle.querySelector("sl-icon")!.getAttribute("src"), collapsedIcon, "chevron reverses when opened");
         assert.equal(widget.shadowRoot!.getElementById(toggle.getAttribute("aria-controls")!), graph);
+        const overlay = graph.getBoundingClientRect(), page = stage.getBoundingClientRect();
+        for (const edge of ["left", "right", "top", "bottom"] as const) assert.closeTo(overlay[edge], page[edge], 1, `overlay fills the page at ${edge}`);
+        assert.equal(getComputedStyle(graph).position, "absolute");
+        assert.closeTo(widget.getBoundingClientRect().height, height, 1, "opening adds no widget height");
+        assert.closeTo(controls.getBoundingClientRect().top, controlsTop, 1, "choices do not move");
         toggle.click();
         await frame(2);
         assert.isTrue(graph.hidden);
         assert.equal(toggle.getAttribute("aria-expanded"), "false");
         assert.equal(toggle.getAttribute("aria-label"), "Expand graph");
-        assert.isBelow(widget.getBoundingClientRect().height, height - 200, "closed graph releases its space");
+        assert.closeTo(widget.getBoundingClientRect().height, height, 1, "closing preserves the layout");
+        assert.equal(toggle.querySelector("sl-icon")!.getAttribute("src"), collapsedIcon);
         assert.isNull(graph.shadowRoot!.querySelector(".toolbar"), "old toolbar is removed");
         assert.equal(control(graph, ".view-controls").getBoundingClientRect().height, 0, "floating controls are also hidden");
         assert.equal(control(graph, "ww-scene").getBoundingClientRect().height, 0, "scene is also hidden");
@@ -175,6 +200,36 @@ describe("Pages Branches view", function () {
         assert.equal(toggle.getAttribute("aria-expanded"), "true");
         assert.equal(graph.shadowRoot!.querySelectorAll("ww-node").length, 3);
         assert.deepEqual(readBranches(widget.children[0]).map((branch) => branch.target), ["first-path", "second-path"]);
+    });
+
+    it("opens pages only through node bubbles and leaves single and double activation in the graph", async function () {
+        const widget = await mount(authorSnippet()), graph = await editor(widget), scene = control(graph, "ww-scene");
+        const icon = control(widget, ".choice-goto").querySelector("sl-icon")!.getAttribute("src");
+        for (const node of graph.shadowRoot!.querySelectorAll("ww-node")) {
+            const open = node.querySelector<HTMLButtonElement>(".node-open")!;
+            assert.equal(getComputedStyle(open).visibility, "visible", "every page can be opened without selecting it");
+            assert.isNotEmpty(open.getAttribute("aria-label")!);
+            assert.equal(open.textContent!.trim(), "", "open bubble is icon-only");
+            assert.equal(open.querySelector("sl-icon")!.getAttribute("src"), icon, "same arrow as the choice navigation bubble");
+            const box = node.getBoundingClientRect(), bubble = open.getBoundingClientRect();
+            assert.isAbove(bubble.left, box.left + box.width / 2, "open bubble is on the right");
+            assert.isBelow(bubble.top, box.top + box.height / 2, "open bubble is at the top");
+        }
+        for (const [count, key, index] of [[1, "first-path", 1], [2, "second-path", 2]] as const) {
+            sceneEvent(scene, "ww-activate", { key, via: "pointer", count });
+            await until(() => widget.activePageIndex === index);
+            await frame(2);
+            assert.isFalse(graph.hidden, `activation count ${count} keeps the graph open`);
+        }
+        const authored = widget.outerHTML;
+        control(graph, 'ww-node[data-ww-key="first-path"] .node-open').click();
+        await until(() => graph.hidden && widget.activePageIndex === 1, "bubble opens the page and closes the overlay");
+        await frame(2);
+        const selection = document.getSelection()!;
+        assert.isTrue(selection.isCollapsed);
+        assert.equal(selection.anchorNode, widget.activePage.querySelector("h2")!.firstChild, "caret moves to the beginning of page content");
+        assert.equal(selection.anchorOffset, 0);
+        assert.equal(widget.outerHTML, authored, "navigation does not write authored settings");
     });
 
     it("creates pages with stable keys and keeps the final page required", async function () {
@@ -196,6 +251,8 @@ describe("Pages Branches view", function () {
     it("can create the first page in an initially empty authoring widget", async function () {
         const widget = await mount('<webwriter-pages type="branches" contenteditable="true"></webwriter-pages>');
         const graph = control<PagesBranches>(widget, "pages-branches");
+        control(widget, ".graph-toggle").click();
+        await widget.updateComplete;
         await graph.updateComplete;
         control(graph, ".add-node").click();
         await until(() => widget.children.length === 1 && pageKey(widget.children[0]), "first page created");
@@ -352,7 +409,7 @@ describe("Pages Branches view", function () {
         assert.closeTo(bar.getBoundingClientRect().right, scene.getBoundingClientRect().right - 10, 1, "top-right controls");
         assert.closeTo(bar.getBoundingClientRect().top, scene.getBoundingClientRect().top + 10, 1);
         assert.isNotNull(bar.querySelector('[data-ww-viewport-action="fit"] sl-icon'), "fit uses a zoom-to-area icon");
-        assert.isAtLeast(scene.getBoundingClientRect().height, 340, "canvas takes the former toolbar's space");
+        assert.closeTo(scene.getBoundingClientRect().height, graph.clientHeight, 1, "canvas fills the page overlay inside its border");
         assert.isNotNull(add.querySelector("sl-icon"));
         assert.equal(add.textContent!.trim(), "", "icon-only add");
         for(const key of ["start", "first-path"]) {
@@ -361,12 +418,26 @@ describe("Pages Branches view", function () {
             for(const node of graph.shadowRoot!.querySelectorAll("ww-node")) {
                 const remove = node.querySelector<HTMLElement>(".remove-node")!;
                 assert.equal(getComputedStyle(remove).visibility, node.getAttribute("data-ww-key") === key ? "visible" : "hidden");
+                if (node.getAttribute("data-ww-key") === key) {
+                    const box = node.getBoundingClientRect(), bubble = remove.getBoundingClientRect();
+                    assert.isAbove(bubble.left, box.left + box.width / 2, "delete bubble is on the right");
+                    assert.isAbove(bubble.top, box.top + box.height / 2, "delete bubble is at the bottom");
+                    const src = remove.querySelector("sl-icon")!.getAttribute("src")!;
+                    const markup = src.includes(";base64,") ? atob(src.split(",")[1]) : decodeURIComponent(src);
+                    assert.include(markup, "icon-tabler-trash", "delete uses a trash icon");
+                }
             }
         }
         control(graph, 'ww-node[data-ww-key="first-path"] .remove-node').click();
         await until(() => widget.children.length === 2);
         assert.isFalse([...widget.children].some(page => pageKey(page) === "first-path"));
         assert.isFalse(readBranches(widget.children[0]).some(branch => branch.target === "first-path"), "incoming choices are removed too");
+        sceneEvent(scene, "ww-select", { keys: [], items: [] });
+        await graph.updateComplete;
+        assert.equal(graph.shadowRoot!.querySelectorAll("ww-node[selected]").length, 0, "background clears node selection");
+        assert.isTrue([...graph.shadowRoot!.querySelectorAll(".remove-node")].every(button => getComputedStyle(button).visibility === "hidden"));
+        scene.dispatchEvent(new KeyboardEvent("keydown", { key: "Delete", bubbles: true, composed: true }));
+        assert.equal(widget.children.length, 2, "background Delete does not remove an unselected page");
     });
 
     it("adds pages at double-click and touch long-press positions as single transactions", async function () {
