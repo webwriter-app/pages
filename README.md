@@ -36,6 +36,8 @@ Routing uses stable local `page-key` values, independent of page order or labels
 
 Set `orientation="portrait"` for a 9:16 page, or use the default `landscape` for 16:9. The orientation applies to all views, fullscreen, and preview cards. The attribute is optional; an absent attribute keeps landscape without adding it to existing markup.
 
+In edit mode, drag the divider where the page meets its controls to change the page aspect ratio. It snaps in steps of 0.05 between 1:2 and 3:1, saved as `page-aspect-ratio` on the widget. Arrow keys adjust the focused divider; Home and End choose the limits. **Reset aspect ratio** in the options removes the override and restores the orientation default. A drag previews locally and becomes one undo step only when released; Escape cancels it.
+
 The widget follows the page theme: `--ww-text-color`, `--ww-font-family`, and `--ww-theme-accent-1` (the
 selected thumbnail). On paper it prints all pages one after another and leaves out the controls.
 In Tabs view, the active tab and its connecting edge match the page's background color. Its remove button overlays the end of the tab with a translucent round background. Duplicate remains available as an action in the options. Interacting with shadow controls capture-selects the widget while preserving native control focus and text editing. Background clicks retain the same capture behavior.
@@ -90,6 +92,7 @@ npm install @webwriter/pages
 | `completionIndicators` (`completion-indicators`) | `boolean` | Mark pages read on leaving them after reaching their bottom. Reader-local; off by default. | `false` | ✓ |
 | `startPage` (`start-page`) | `string` | Stable key of the first page in Branches; an absent key starts at the first page. | `""` | ✓ |
 | `orientation` (`orientation`) | `"landscape" \| "portrait"` | Page orientation: 16:9 landscape or 9:16 portrait. The optional orientation attribute defaults to landscape when absent; the default is not added to existing markup. | `"landscape"` | ✓ |
+| `pageAspectRatio` (`page-aspect-ratio`) | `number \| undefined` | Optional width/height ratio, clamped to 0.5–3; absent uses the orientation default. | `undefined` | ✓ |
 | `activePageIndex` | `number` | Index of the currently active page. | `0` | ✗ |
 | `signals` | `object` | Public signals: the current page number (from 1) and the number of pages. | `{ page: this.#page, count: this.#count }` | ✗ |
 | `actions` | - | The drawer declarations with the availability of the page actions, which follows the pages. | - | ✗ |
@@ -104,6 +107,7 @@ npm install @webwriter/pages
 | :--: | :---------: | :-------: |
 | `loadSections` | Replaces the pages with the pages a `section` stands for; declines anything else. | `fragment: DocumentFragment`
 | `toDetails` | One `details` per page with its label as summary; `null` without pages. | -
+| `resetPageAspectRatio` | Remove the custom ratio and restore the exact orientation default. | -
 | `duplicateActivePage` | - | -
 | `addPage` | Add a new empty page element. Optionally insert after given index. | `index: number`
 | `duplicatePage` | Duplicate an existing page at given index. | `index: number`
@@ -143,6 +147,7 @@ npm install @webwriter/pages
 | Name | Value |
 | :--: | :---------: |
 | `resize` | `inline` |
+| `propagateEvents` | `["keydown"]` (including editor undo/redo) |
 | `definingAsContext` | `true` |
 | `definingForContent` | `true` |
 | `content` | `webwriter-page+` |
@@ -182,7 +187,7 @@ npm install @webwriter/pages
 ## Fields
 | Name (Attribute Name) | Type | Description | Default | Reflects |
 | :-------------------: | :--: | :---------: | :-----: | :------: |
-| `active` (`active`) | `boolean` | Indicates whether the page is currently active/visible. | `false` | ✓ |
+| `active` (`active`) | `boolean` | Active/visible page. Navigation uses local custom state and does not write the attribute. | `false` | ✗ |
 | `label` (`label`) | `string` | Plaintext tab label; empty labels display the “Page n” placeholder. | `""` | ✓ |
 | `pageKey` (`page-key`) | `string` | Stable local identifier for Branches links; independent of order and label. | `""` | ✓ |
 | `branches` (`branches`) | `string` | JSON choices: an array of objects with target page keys and plaintext labels. | `""` | ✓ |

@@ -24,9 +24,9 @@
                 "text": "boolean"
               },
               "default": "false",
-              "description": "Indicates whether the page is currently active/visible.",
+              "description": "Indicates whether the page is currently active/visible. Navigation is local custom state and does not write this attribute.",
               "attribute": "active",
-              "reflects": true
+              "reflects": false
             },
             {
               "kind": "field",
@@ -102,7 +102,7 @@
                 "text": "boolean"
               },
               "default": "false",
-              "description": "Indicates whether the page is currently active/visible.",
+              "description": "Initial active/visible state. Page navigation is local custom state and does not write this attribute.",
               "fieldName": "active"
             },
             {
@@ -267,7 +267,7 @@
               "kind": "field",
               "name": "actions",
               "static": true,
-              "default": "{ addPage: { label: (widget: Labelled) => widget.msg(\"Add\"), buttonGroup: \"pages\", icon: \"Plus\", intent: \"default\" }, removeActivePage: { label: (widget: Labelled) => widget.msg(\"Remove\"), buttonGroup: \"pages\", icon: \"Delete\", intent: \"danger\", disabled: true }, duplicateActivePage: { label: (widget: Labelled) => widget.msg(\"Duplicate\"), buttonGroup: \"pages\", icon: \"Copy\", intent: \"default\", disabled: true }, } satisfies Record<string, Declared<ActionDeclaration>>"
+              "default": "{ addPage: { label: (widget: Labelled) => widget.msg(\"Add\"), buttonGroup: \"pages\", icon: \"Plus\", intent: \"default\" }, removeActivePage: { label: (widget: Labelled) => widget.msg(\"Remove\"), buttonGroup: \"pages\", icon: \"Delete\", intent: \"danger\", disabled: true }, duplicateActivePage: { label: (widget: Labelled) => widget.msg(\"Duplicate\"), buttonGroup: \"pages\", icon: \"Copy\", intent: \"default\", disabled: true }, resetPageAspectRatio: { label: (widget: Labelled) => widget.msg(\"Reset aspect ratio\"), buttonGroup: \"pages\", icon: \"Restore\", intent: \"default\", disabled: true }, } satisfies Record<string, Declared<ActionDeclaration>>"
             },
             {
               "kind": "field",
@@ -716,6 +716,22 @@
               "description": "Stable key of the first page in Branches; an absent key starts at the first page.",
               "attribute": "start-page",
               "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "pageAspectRatio",
+              "type": {
+                "text": "number | undefined"
+              },
+              "default": "undefined",
+              "description": "Optional page width/height ratio, clamped to 0.5–3. Without it, orientation supplies the ratio.",
+              "attribute": "page-aspect-ratio",
+              "reflects": true
+            },
+            {
+              "kind": "method",
+              "name": "resetPageAspectRatio",
+              "description": "Restore the exact orientation default by removing the authored override."
             }
           ],
           "events": [
@@ -762,6 +778,15 @@
               "default": "\"\"",
               "description": "Stable key of the first page in Branches; an absent key starts at the first page.",
               "fieldName": "startPage"
+            },
+            {
+              "name": "page-aspect-ratio",
+              "type": {
+                "text": "number | undefined"
+              },
+              "default": "undefined",
+              "description": "Optional page width/height ratio, clamped to 0.5–3. Without it, orientation supplies the ratio.",
+              "fieldName": "pageAspectRatio"
             }
           ],
           "superclass": {

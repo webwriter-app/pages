@@ -1,4 +1,5 @@
-// Do not modify this file by hand!
+
+    // Do not modify this file by hand!
     // Re-generate this file by running lit-localize
 
 
@@ -14,7 +15,7 @@
 's0f121560cc5ec2f7': `Auswahl hinzufügen`,
 's143cbd1b77c5d1f0': `Auswahl bearbeiten`,
 's15244f583d260178': `Abschlussanzeigen anzeigen`,
-'s236ae937cbcd6a39': `Vergrößern`,
+'s1c1c9f64b0317e3b': `Seitenverhältnis ändern`,
 's2c6d6feada924c0d': `Tabs vorwärtsscrollen`,
 's2e192b19ed15fcf6': `Seite`,
 's309c270b33a470b8': `Neue Seite`,
@@ -28,7 +29,6 @@
 's5590dbf7e425789d': `Beschriftung`,
 's55bc1af31c3cc9d7': `Seite abgeschlossen`,
 's5e8250fb85d64c23': `Schließen`,
-'s62d28b100af985f8': `Graph einpassen`,
 's6a89bb10338369b4': `Zur vorherigen Seite gehen`,
 's6ac0c20ddc5c15ff': `Seiten`,
 's7edad99c6b7bfe88': `Weiter zur nächsten Seite`,
@@ -37,13 +37,12 @@
 's933b62519fffa7f7': `Seite hinzufügen`,
 's9f03b254f12f6c69': `Mit Seite verbinden`,
 'sa56acbd42caca821': `Graph ausklappen`,
+'sa606b4ffbc65c9c3': `Seitenverhältnis zurücksetzen`,
 'sad8f83df9312b389': `Verzweigungen`,
 'sb06ba136bba475e6': `Von Seite verbinden`,
 'sb0ddb594a148d04a': `Seitenverzweigungen`,
 'sb58a788e39e31092': `Graph einklappen`,
 'sbdf3e4d5b2373ae4': `Auswahl entfernen`,
-'sc65ea2cf2f21a13a': `Verkleinern`,
-'sc944851a6584c93f': `Verbindung entfernen`,
 'sdee6470f4b971f5e': `Startseite`,
 'se682f076f6506f9b': `Zur Seite`,
 'sea4f08110bb8f15d': `Entfernen`,

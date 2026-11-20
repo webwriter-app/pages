@@ -202,6 +202,14 @@
         <source>Label</source>
         <target>Beschriftung</target>
       </trans-unit>
+      <trans-unit id="sa606b4ffbc65c9c3">
+        <source>Reset aspect ratio</source>
+        <target>Seitenverhältnis zurücksetzen</target>
+      </trans-unit>
+      <trans-unit id="s1c1c9f64b0317e3b">
+        <source>Resize page aspect ratio</source>
+        <target>Seitenverhältnis ändern</target>
+      </trans-unit>
 </body>
   </file>
 </xliff>

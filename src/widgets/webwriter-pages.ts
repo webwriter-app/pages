@@ -1,4 +1,5 @@
 import { html, nothing, type PropertyValues } from "lit";
+import { styleMap } from "lit/directives/style-map.js";
 import { LitElementWw, resolveDeclarations, signal } from "@webwriter/lit";
 import {
     customElement,
@@ -29,6 +30,7 @@ import { PagesBranches } from "../components/pages-branches";
 import { renderBranchChoices } from "../components/pages-branch-choices";
 import { ensurePageKeys, pageKey, readBranches, writeBranches, type PageBranch } from "../model/page-branches";
 import type { MoveDetail } from "@webwriter/lit/scene";
+import { MAX_PAGE_ASPECT_RATIO, MIN_PAGE_ASPECT_RATIO, PageAspectResize, normalizePageAspectRatio } from "../components/page-aspect-resize";
 
 type Labelled = { msg: MsgFn };
 
@@ -105,6 +107,7 @@ export class WebwriterPages extends LitElementWw {
         addPage: { label: (widget: Labelled) => widget.msg("Add"), buttonGroup: "pages", icon: "Plus", intent: "default" },
         removeActivePage: { label: (widget: Labelled) => widget.msg("Remove"), buttonGroup: "pages", icon: "Delete", intent: "danger", disabled: true },
         duplicateActivePage: { label: (widget: Labelled) => widget.msg("Duplicate"), buttonGroup: "pages", icon: "Copy", intent: "default", disabled: true },
+        resetPageAspectRatio: { label: (widget: Labelled) => widget.msg("Reset aspect ratio"), buttonGroup: "pages", icon: "Restore", intent: "default", disabled: true },
     } satisfies Record<string, Declared<ActionDeclaration>>;
 
     // The drawer labels are computed with `msg`, so the editor reads them again after a language change.
@@ -145,6 +148,72 @@ export class WebwriterPages extends LitElementWw {
     @property({ type: String, reflect: true, useDefault: true })
     accessor orientation: "landscape" | "portrait" = "landscape";
 
+    /** Optional page width/height ratio, clamped to 0.5–3. Without it, orientation supplies the ratio. */
+    @property({ type: Number, attribute: "page-aspect-ratio", reflect: true, converter: {
+        fromAttribute: (value: string | null) => value === null || !value.trim() ? undefined : Number(value),
+        toAttribute: (value: number | undefined) => value === undefined ? null : String(value),
+    } })
+    accessor pageAspectRatio: number | undefined = undefined;
+
+    @state() private accessor aspectPreview: number | null = null;
+    @state() private accessor aspectWide = false;
+    #aspectEditing = false;
+    #aspectFullscreen = false;
+    #lastPageRatio?: number;
+    #aspectCaptureRevision = 0;
+    #resetAspectDisabled = true;
+    #aspectObserver = new ResizeObserver(() => this.#updateAspectEdge());
+    #aspectResize = new PageAspectResize({
+        read: () => {
+            const stage = this.renderRoot.querySelector(".page-stage");
+            if (!this.isConnected || !this.#permissions.editing || !stage) return null;
+            const rect = stage.getBoundingClientRect();
+            return { ratio: this.#pageRatio, width: rect.width, height: rect.height, edge: this.#aspectEdge, rtl: getComputedStyle(this).direction === "rtl" };
+        },
+        preview: ratio => {
+            if (ratio !== this.aspectPreview) this.#aspectCaptureRevision++;
+            this.aspectPreview = ratio;
+        },
+        commit: ratio => transaction(this, async () => {
+            if (!this.isConnected || !this.#permissions.editing) return;
+            this.pageAspectRatio = ratio;
+            await this.updateComplete;
+            await this.#waitForThumbnail();
+        }),
+    });
+
+    get #pageRatio() {
+        return normalizePageAspectRatio(this.pageAspectRatio ?? NaN, this.orientation === "portrait" ? 9 / 16 : 16 / 9);
+    }
+
+    get #aspectEdge(): "top" | "bottom" | "inline-end" {
+        return this.type === "tabs" ? "top" : this.type === "pages" && this.aspectWide ? "inline-end" : "bottom";
+    }
+
+    #updateAspectEdge() {
+        const stage = this.renderRoot.querySelector(".page-stage")?.getBoundingClientRect();
+        const pane = this.renderRoot.querySelector('[part="actions"]')?.getBoundingClientRect();
+        const wide = this.type === "pages" && !this.isFullscreen && Boolean(stage && pane &&
+            (pane.left >= stage.right - 1 || pane.right <= stage.left + 1));
+        if (wide !== this.aspectWide) {
+            this.#aspectResize.disconnect();
+            this.aspectWide = wide;
+        }
+    }
+
+    /** Restore the exact orientation default by removing the authored override. */
+    resetPageAspectRatio() {
+        this.#aspectResize.disconnect();
+        if (!this.hasAttribute("page-aspect-ratio") && this.pageAspectRatio === undefined) return;
+        return transaction(this, async () => {
+            this.removeAttribute("page-aspect-ratio");
+            this.pageAspectRatio = undefined;
+            this.requestUpdate();
+            await this.updateComplete;
+            await this.#waitForThumbnail();
+        });
+    }
+
     /**
      * All `webwriter-page` elements.
      * Represents the individual pages in the sequence of pages.
@@ -176,6 +245,8 @@ export class WebwriterPages extends LitElementWw {
     #actionsDisabled = { duplicateActivePage: true, removeActivePage: true };
     #lifecycle?: AbortController;
     #changeTimer?: ReturnType<typeof setTimeout>;
+    #changeFinished?: () => void;
+    #thumbnailTask = Promise.resolve();
     #touchStartX: number | null = null;
     #touchStartY = 0;
     #touchTarget: Element | null = null;
@@ -197,6 +268,7 @@ export class WebwriterPages extends LitElementWw {
             ...actions,
             duplicateActivePage: { ...actions.duplicateActivePage, disabled: this.#actionsDisabled.duplicateActivePage },
             removeActivePage: { ...actions.removeActivePage, disabled: this.#actionsDisabled.removeActivePage },
+            resetPageAspectRatio: { ...actions.resetPageAspectRatio, disabled: !this.hasAttribute("page-aspect-ratio") },
         };
     }
 
@@ -243,6 +315,7 @@ export class WebwriterPages extends LitElementWw {
         this.addEventListener("error", this.#queueCompletionCheck, { capture: true, signal });
         document.addEventListener("visibilitychange", this.#queueCompletionCheck, { signal });
         this.#pageAttributesObserver.observe(this, { attributes: true, attributeFilter: ["label", "style", "class", "page-key", "branches", "node-x", "node-y"], subtree: true });
+        this.#aspectObserver.observe(this);
         this.requestUpdate();
     }
 
@@ -251,10 +324,14 @@ export class WebwriterPages extends LitElementWw {
         this.#lifecycle?.abort();
         this.#lifecycle = undefined;
         clearTimeout(this.#changeTimer);
+        this.#changeFinished?.();
+        this.#changeFinished = undefined;
         this.#tabResizeObserver?.disconnect();
         this.#tabScroller = null;
         this.#pageAttributesObserver.disconnect();
         this.#stopCompletionTracking();
+        this.#aspectResize.disconnect();
+        this.#aspectObserver.disconnect();
     }
 
     protected firstUpdated(): void {
@@ -263,6 +340,11 @@ export class WebwriterPages extends LitElementWw {
 
     protected willUpdate(changed: PropertyValues<this>) {
         super.willUpdate(changed);
+        const editing = this.#permissions.editing;
+        if (changed.has("type") || changed.has("orientation") || changed.has("pageAspectRatio") ||
+            this.#aspectEditing !== editing || this.#aspectFullscreen !== this.isFullscreen) this.#aspectResize.disconnect();
+        this.#aspectEditing = editing;
+        this.#aspectFullscreen = this.isFullscreen;
         const pages = this.pages ?? [];
         if (this.type === "branches" && this.#permissions.editing && pages.length) {
             const keys = pages.map(pageKey);
@@ -286,9 +368,13 @@ export class WebwriterPages extends LitElementWw {
         }
         this.#readingBranches = readingBranches;
         if (this.pages.length && this.activePageIndex >= this.pages.length) this.activePageIndex = this.pages.length - 1;
-        if (changed.has("orientation") && changed.get("orientation") !== undefined && this.#permissions.editing) {
-            this.changePage(this.activePageIndex);
+        const ratio = this.#pageRatio;
+        if (this.#lastPageRatio !== undefined && ratio !== this.#lastPageRatio) {
+            this.#aspectCaptureRevision++;
+            if (this.#permissions.editing) this.changePage(this.activePageIndex);
         }
+        this.#lastPageRatio = ratio;
+        this.#updateAspectEdge();
         const scroller = this.renderRoot.querySelector<HTMLElement>(".page-tabs-wrapper");
         if (scroller !== this.#tabScroller) {
             this.#tabResizeObserver?.disconnect();
@@ -312,9 +398,11 @@ export class WebwriterPages extends LitElementWw {
         this.#count.set(this.pages?.length ?? 0);
         const duplicateDisabled = !this.activePage;
         const removeDisabled = duplicateDisabled || this.pages.length <= 1;
+        const resetDisabled = !this.hasAttribute("page-aspect-ratio");
         if (this.#actionsDisabled.duplicateActivePage !== duplicateDisabled ||
-            this.#actionsDisabled.removeActivePage !== removeDisabled) {
+            this.#actionsDisabled.removeActivePage !== removeDisabled || this.#resetAspectDisabled !== resetDisabled) {
             this.#actionsDisabled = { duplicateActivePage: duplicateDisabled, removeActivePage: removeDisabled };
+            this.#resetAspectDisabled = resetDisabled;
             this.dispatchEvent(new Event("optionschange", { bubbles: true }));
         }
     }
@@ -762,25 +850,52 @@ export class WebwriterPages extends LitElementWw {
         // Wait briefly to ensure page rendering completes. Rapid calls (every selection change while
         // typing) collapse into one scroll and one thumbnail capture.
         clearTimeout(this.#changeTimer);
+        this.#changeFinished?.();
+        this.#changeFinished = undefined;
+        if (this.type === "branches") {
+            this.#thumbnailTask = Promise.resolve();
+            return;
+        }
+        let finish!: () => void;
+        this.#thumbnailTask = new Promise<void>(resolve => finish = resolve);
+        this.#changeFinished = finish;
         this.#changeTimer = setTimeout(async () => {
-            this.renderRoot.querySelector(".active")?.scrollIntoView({
-                behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-                block: "nearest",
-                inline: "nearest",
-            });
+            try {
+                this.renderRoot.querySelector(".active")?.scrollIntoView({
+                    behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+                    block: "nearest",
+                    inline: "nearest",
+                });
 
-            const page = this.pages[index];
-            const view = this.type;
-            // Branches has no previews; generating one would create an unrelated undo step.
-            if (!page || view === "branches") return;
-            const orientation = this.orientation;
-            const thumbnail = await captureThumbnail(page);
-            // Only keep the capture if the page has not changed in the meantime.
-            if (!this.isConnected || this.activePage !== page || this.orientation !== orientation || this.type !== view) return;
-            page.thumbnail = thumbnail;
-            this.requestUpdate();
+                const page = this.pages[index];
+                const view = this.type;
+                // Branches has no previews; generating one would create an unrelated undo step.
+                if (!page || view === "branches") return;
+                const ratio = this.#pageRatio;
+                if (this.aspectPreview !== null) return;
+                const revision = this.#aspectCaptureRevision;
+                const thumbnail = await captureThumbnail(page);
+                // Only keep the capture if the page has not changed in the meantime.
+                if (!this.isConnected || this.activePage !== page || this.#pageRatio !== ratio || this.aspectPreview !== null || this.#aspectCaptureRevision !== revision || this.type !== view) return;
+                page.thumbnail = thumbnail;
+                this.requestUpdate();
+                await page.updateComplete;
+                await this.updateComplete;
+            } finally {
+                if (this.#changeFinished === finish) this.#changeFinished = undefined;
+                finish();
+            }
         }, 100);
     };
+
+    /** Keep ratio snapshots in the same undo step, including a debounce replaced by a newer capture. */
+    async #waitForThumbnail() {
+        let task: Promise<void>;
+        do {
+            task = this.#thumbnailTask;
+            await task;
+        } while (this.isConnected && task !== this.#thumbnailTask);
+    }
 
     /**
      * Moves the dragged page to the place the drop resolved to.
@@ -839,12 +954,21 @@ export class WebwriterPages extends LitElementWw {
     render() {
         const view = this.#view();
         const branches = this.type === "branches";
+        const ratio = this.aspectPreview ?? this.#pageRatio;
+        const edge = this.#aspectEdge;
         return html`
-            <div class="pages-layout ${branches ? "branches-view" : this.type === "pages" ? "pages-view" : "tabs-view"}">
+            <div class="pages-layout ${branches ? "branches-view" : this.type === "pages" ? "pages-view" : "tabs-view"}" style=${styleMap({ "--_page-ratio": String(ratio), "--_preview-ratio": String(this.orientation === "portrait" ? 9 / 16 : 16 / 9) })}>
                 ${this.type === "tabs" ? renderTabs(view) : html``}
                 <div class="page-viewport">
                     <div class="page-surface">
-                        <div class="page-stage" tabindex=${branches ? "-1" : nothing}><slot></slot></div>
+                        <div class="page-stage" tabindex=${branches ? "-1" : nothing}><slot></slot>
+                            ${view.editing ? html`<div class="page-aspect-handle ${edge}" role="separator" tabindex="0" contenteditable="false"
+                                aria-label=${this.msg("Resize page aspect ratio")} title=${this.msg("Resize page aspect ratio")}
+                                aria-orientation=${edge === "inline-end" ? "vertical" : "horizontal"}
+                                aria-valuemin=${MIN_PAGE_ASPECT_RATIO} aria-valuemax=${MAX_PAGE_ASPECT_RATIO} aria-valuenow=${ratio}
+                                ?data-resizing=${this.aspectPreview !== null}
+                                @pointerdown=${this.#aspectResize.pointerdown} @keydown=${this.#aspectResize.keydown}></div>` : nothing}
+                        </div>
                         ${this.type == "pages" && this.isFullscreen
                             ? html`<div class="controls-overlay" contenteditable="false">${renderControls(view)}</div>`
                             : html``}

@@ -5,8 +5,12 @@ import { getMochaConfig } from "@webwriter/build/test";
 import "../src/widgets/webwriter-page";
 import "../src/widgets/webwriter-pages";
 import { drag, frame, items, mount, order, pages, steps, unmountAll, until, visible } from "./helpers";
+import { testAspectResize } from "./aspect-resize";
+import { ratioFromPageAspectDrag } from "../src/components/page-aspect-resize";
+import { transactionOpen } from "@webwriter/widget/transaction";
 
 mocha.setup(getMochaConfig());
+testAspectResize();
 
 describe("<webwriter-pages> in edit mode", function () {
   beforeEach(function () {
@@ -15,6 +19,180 @@ describe("<webwriter-pages> in edit mode", function () {
   afterEach(function () {
     unmountAll();
     document.designMode = "off";
+  });
+
+  describe("page aspect ratio", function () {
+    const separator = (widget: Element) => items<HTMLElement>(widget, ".page-aspect-handle")[0];
+    const stage = (widget: Element) => items<HTMLElement>(widget, ".page-stage")[0];
+    const pointer = (target: EventTarget, type: string, x: number, y: number) => target.dispatchEvent(new PointerEvent(type, {
+      pointerId: 73, pointerType: "mouse", button: 0, clientX: x, clientY: y, bubbles: true, composed: true, cancelable: true,
+    }));
+    const begin = (handle: HTMLElement) => {
+      const rect = handle.getBoundingClientRect();
+      const point = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      pointer(handle, "pointerdown", point.x, point.y);
+      return point;
+    };
+    const arrow = (handle: HTMLElement, key: string) => handle.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, composed: true, cancelable: true }));
+
+    it("keeps optional orientation defaults exact and confines the override to shadow sizing", async function () {
+      const widget = await mount(`<webwriter-pages contenteditable="">${pages(2)}</webwriter-pages>`);
+      widget.parentElement!.style.width = "720px";
+      await frame(2);
+      assert.isFalse(widget.hasAttribute("page-aspect-ratio"));
+      assert.isTrue(widget.actions.resetPageAspectRatio.disabled);
+      let rect = stage(widget).getBoundingClientRect();
+      assert.closeTo(rect.width / rect.height, 16 / 9, 0.001);
+      widget.orientation = "portrait";
+      await widget.updateComplete;
+      rect = stage(widget).getBoundingClientRect();
+      assert.closeTo(rect.width / rect.height, 9 / 16, 0.001);
+      widget.setAttribute("page-aspect-ratio", "1.25");
+      await widget.updateComplete;
+      rect = stage(widget).getBoundingClientRect();
+      assert.closeTo(rect.width / rect.height, 1.25, 0.001);
+      assert.isFalse(widget.actions.resetPageAspectRatio.disabled);
+      assert.isFalse(widget.hasAttribute("style"), "no authored sizing styles");
+      assert.equal(items<HTMLElement>(widget, ".pages-layout")[0].style.getPropertyValue("--_page-ratio"), "1.25");
+      for (const [value, expected] of [["0.1", 0.5], ["5", 3], ["invalid", 9 / 16]] as const) {
+        widget.setAttribute("page-aspect-ratio", value);
+        await widget.updateComplete;
+        rect = stage(widget).getBoundingClientRect();
+        assert.closeTo(rect.width / rect.height, expected, 0.001);
+      }
+      await widget.resetPageAspectRatio();
+      assert.isFalse(widget.hasAttribute("page-aspect-ratio"));
+      assert.isTrue(widget.actions.resetPageAspectRatio.disabled);
+    });
+
+    it("previews a seam drag without an attribute and saves its ratio in one transaction", async function () {
+      const widget = await mount(`<webwriter-pages contenteditable="">${pages(2)}</webwriter-pages>`);
+      widget.parentElement!.style.width = "720px";
+      await frame(2);
+      const initial = stage(widget).getBoundingClientRect(), handle = separator(widget), start = begin(handle);
+      const recorder = steps(widget);
+      pointer(window, "pointermove", start.x, start.y + 60);
+      await frame(2);
+      assert.isFalse(widget.hasAttribute("page-aspect-ratio"));
+      const preview = stage(widget).getBoundingClientRect();
+      assert.isBelow(preview.height, initial.height, "top seam increases the ratio when dragged down");
+      const expected = ratioFromPageAspectDrag({ ratio: 16 / 9, width: initial.width, height: initial.height, edge: "top" }, 0, 60);
+      assert.closeTo(preview.width / preview.height, expected, 0.001);
+      pointer(window, "pointerup", start.x, start.y + 60);
+      await frame(3);
+      assert.equal(widget.pageAspectRatio, expected);
+      assert.equal(widget.getAttribute("page-aspect-ratio"), String(expected));
+      await until(() => recorder.log.length === 2, "ratio capture closes its transaction");
+      assert.deepEqual(recorder.stop(), ["transactionstart", "transactionend"]);
+      assert.isFalse(handle.hasAttribute("data-resizing"));
+    });
+
+    it("cancels Escape, remote ratio changes, layout and edit-mode changes without overwriting authored values", async function () {
+      this.timeout(10000);
+      const widget = await mount(`<webwriter-pages contenteditable="">${pages(2)}</webwriter-pages>`);
+      widget.parentElement!.style.width = "720px";
+      await frame(2);
+      const resize = async () => {
+        const start = begin(separator(widget));
+        pointer(window, "pointermove", start.x, start.y + 60);
+        await frame(2);
+        return start;
+      };
+      let start = await resize();
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+      await frame(2);
+      assert.isFalse(widget.hasAttribute("page-aspect-ratio"));
+      assert.closeTo(stage(widget).getBoundingClientRect().width / stage(widget).getBoundingClientRect().height, 16 / 9, 0.001);
+      start = await resize();
+      widget.setAttribute("page-aspect-ratio", "1.25");
+      await widget.updateComplete;
+      pointer(window, "pointerup", start.x, start.y + 60);
+      await frame(2);
+      assert.equal(widget.pageAspectRatio, 1.25, "remote ratio survives release");
+      start = await resize();
+      widget.type = "pages";
+      await widget.updateComplete;
+      pointer(window, "pointerup", start.x, start.y + 60);
+      await frame(2);
+      assert.equal(widget.pageAspectRatio, 1.25, "layout change cancels");
+      start = await resize();
+      document.designMode = "off";
+      widget.contentEditable = "false";
+      await until(() => !separator(widget), "handle removed outside edit mode");
+      pointer(window, "pointerup", start.x, start.y + 60);
+      await frame(2);
+      assert.equal(widget.pageAspectRatio, 1.25, "mode change cancels");
+    });
+
+    it("uses keyboard steps and limits, and resets to the exact current orientation", async function () {
+      const widget = await mount(`<webwriter-pages contenteditable="" page-aspect-ratio="2">${pages(1)}</webwriter-pages>`);
+      const handle = separator(widget);
+      assert.equal(handle.getAttribute("role"), "separator");
+      assert.equal(handle.getAttribute("aria-orientation"), "horizontal");
+      assert.equal(handle.getAttribute("aria-valuemin"), "0.5");
+      assert.equal(handle.getAttribute("aria-valuemax"), "3");
+      arrow(handle, "ArrowDown");
+      await widget.updateComplete;
+      assert.equal(widget.pageAspectRatio, 2.05);
+      assert.equal(handle.getAttribute("aria-valuenow"), "2.05");
+      arrow(handle, "Home"); await widget.updateComplete; assert.equal(widget.pageAspectRatio, 0.5);
+      arrow(handle, "End"); await widget.updateComplete; assert.equal(widget.pageAspectRatio, 3);
+      widget.orientation = "portrait";
+      await widget.updateComplete;
+      await until(() => !transactionOpen(widget), "keyboard capture finished");
+      const recorder = steps(widget);
+      await widget.resetPageAspectRatio();
+      assert.deepEqual(recorder.stop(), ["transactionstart", "transactionend"]);
+      assert.isFalse(widget.hasAttribute("page-aspect-ratio"));
+      const rect = stage(widget).getBoundingClientRect();
+      assert.closeTo(rect.width / rect.height, 9 / 16, 0.001);
+    });
+
+    it("places the separator on the wide Slides seam, mirrors its keyboard direction and removes it in read mode", async function () {
+      this.timeout(10000);
+      const widget = await mount(`<webwriter-pages type="pages" contenteditable="" page-aspect-ratio="1.5" dir="rtl">${pages(2)}</webwriter-pages>`);
+      widget.parentElement!.style.width = "1280px";
+      await until(() => separator(widget).getAttribute("aria-orientation") === "vertical", "wide seam");
+      let handle = separator(widget), rect = stage(widget).getBoundingClientRect();
+      assert.closeTo(handle.getBoundingClientRect().left, rect.left, 1, "RTL seam is at inline end");
+      arrow(handle, "ArrowRight");
+      await widget.updateComplete;
+      assert.equal(widget.pageAspectRatio, 1.45);
+      widget.parentElement!.style.width = "720px";
+      await until(() => separator(widget).getAttribute("aria-orientation") === "horizontal", "narrow seam");
+      handle = separator(widget); rect = stage(widget).getBoundingClientRect();
+      assert.closeTo(handle.getBoundingClientRect().bottom, rect.bottom, 1);
+      document.designMode = "off";
+      widget.contentEditable = "false";
+      await until(() => !separator(widget), "read mode has no seam");
+    });
+
+    it("updates preview cards, fullscreen fitting and captures after a persisted ratio change", async function () {
+      this.timeout(10000);
+      const widget = await mount(`<webwriter-pages type="pages" contenteditable="">${pages(2)}</webwriter-pages>`);
+      widget.parentElement!.style.width = "720px";
+      const page = widget.activePage;
+      const previous = page.thumbnail;
+      widget.pageAspectRatio = 1.25;
+      await widget.updateComplete;
+      await frame(2);
+      for (const card of items(widget, ".page-thumb, .add-page")) {
+        const rect = card.getBoundingClientRect();
+        assert.closeTo(rect.width / rect.height, 1.25, 0.01, `${card.className} follows the custom ratio`);
+      }
+      await until(() => page.thumbnail && page.thumbnail !== previous, "new ratio capture");
+      const image = new Image();
+      image.src = page.thumbnail;
+      await image.decode();
+      assert.closeTo(image.naturalWidth / image.naturalHeight, 1.25, 0.01);
+      widget.classList.add("ww-fullscreen");
+      widget.style.cssText = "width:1000px;height:650px;";
+      await frame(2);
+      const rect = stage(widget).getBoundingClientRect();
+      assert.closeTo(rect.width / rect.height, 1.25, 0.01);
+      assert.isAtMost(rect.width, 1000);
+      assert.isAtMost(rect.height, 650);
+    });
   });
 
   it("shows authors the controls while the arrow keys do not navigate", async function () {

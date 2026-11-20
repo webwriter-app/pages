@@ -13,7 +13,6 @@ export const pages_styles = css`
         --_accent-soft: color-mix(in srgb, var(--ww-theme-accent-1) 12%, white);
         --_page-action-size: 24px;
         --_page-action-space: calc(var(--_page-action-size) / 2 + var(--sl-focus-ring-offset));
-        --_page-ratio: 16 / 9;
         display: block;
         box-sizing: border-box;
         min-width: min(300px, 100%);
@@ -26,10 +25,6 @@ export const pages_styles = css`
     :host(:not(:fullscreen):not(.ww-fullscreen)) {
         width: 100%;
         block-size: auto;
-    }
-
-    :host([orientation="portrait"]) {
-        --_page-ratio: 9 / 16;
     }
 
     .pages-layout {
@@ -236,6 +231,48 @@ export const pages_styles = css`
         aspect-ratio: var(--_page-ratio);
     }
 
+    .page-aspect-handle {
+        position: absolute;
+        inset-inline: 0;
+        block-size: 10px;
+        z-index: 3;
+        cursor: row-resize;
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+        outline: none;
+    }
+
+    .page-aspect-handle.top { inset-block-start: 0; }
+    .page-aspect-handle.bottom { inset-block-end: 0; }
+    .page-aspect-handle.inline-end {
+        inset-inline: auto 0;
+        inset-block: 0;
+        inline-size: 10px;
+        block-size: auto;
+        cursor: col-resize;
+    }
+
+    .page-aspect-handle::after {
+        content: "";
+        position: absolute;
+        inset-inline: 0;
+        inset-block-start: 50%;
+        block-size: 2px;
+        background: var(--_accent);
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .page-aspect-handle.inline-end::after {
+        inset-inline: 50% auto;
+        inset-block: 0;
+        inline-size: 2px;
+        block-size: auto;
+    }
+
+    .page-aspect-handle:is(:hover, :focus-visible, [data-resizing])::after { opacity: 1; }
+
     .page-viewport {
         display: contents;
     }
@@ -356,7 +393,7 @@ export const pages_styles = css`
 
     [part="actions"] {
         --_preview-height: 4rem;
-        --_thumb-width: calc(var(--_preview-height) * var(--_page-ratio));
+        --_thumb-width: calc(var(--_preview-height) * var(--_preview-ratio));
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
         gap: var(--sl-spacing-x-small);
@@ -533,7 +570,7 @@ export const pages_styles = css`
     }
 
     .page-thumb {
-        block-size: var(--_preview-height);
+        block-size: calc(var(--_thumb-width) / var(--_page-ratio));
         scroll-margin-inline: var(--_page-action-space);
         scroll-margin-block-start: var(--_page-action-space);
         max-inline-size: 100%;
@@ -551,7 +588,7 @@ export const pages_styles = css`
     }
 
     .preview-actions > .add-page {
-        block-size: var(--_preview-height);
+        block-size: calc(var(--_thumb-width) / var(--_page-ratio));
         margin: 0;
     }
 
@@ -1046,6 +1083,7 @@ export const pages_styles = css`
 
         aside,
         [part="branch-editor"],
+        .page-aspect-handle,
         .controls-overlay {
             display: none !important;
         }
