@@ -32,13 +32,16 @@ export class PagesBranches extends LitElementWw {
     });
     #scene: SceneController = new SceneController(this, {
         viewport: this.#viewport.core,
-        can: () => Boolean(this.view?.editing),
+        can: () => Boolean(this.view?.editing && this.renderRoot.querySelector<HTMLDetailsElement>("details")?.open),
         undoHost: () => (this.getRootNode() as ShadowRoot).host as HTMLElement,
     });
 
     static styles = css`
-        :host { display: block; color: var(--ww-text-color, inherit); font-family: var(--ww-font-family, inherit); }
+        :host { display: block; position: relative; color: var(--ww-text-color, inherit); font-family: var(--ww-font-family, inherit); }
         * { box-sizing: border-box; }
+        summary { min-block-size: 44px; padding: 10px 56px 10px 12px; line-height: 24px; font-size: 13px; background: var(--sl-color-neutral-50); cursor: pointer; }
+        summary:focus-visible { outline: 2px solid var(--ww-theme-accent-1, #0284c7); outline-offset: -2px; }
+        .fullscreen-controls { position: absolute; inset-block-start: 6px; inset-inline-end: 8px; }
         .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
         .toolbar { padding: 10px 12px; background: var(--sl-color-neutral-50); }
         .toolbar { border-bottom: 1px solid var(--sl-panel-border-color); }
@@ -63,7 +66,6 @@ export class PagesBranches extends LitElementWw {
         .port[data-ww-port-candidate], .port[data-ww-port-over] { outline: 2px solid var(--ww-theme-accent-1, #0284c7); }
         ww-path { stroke: var(--sl-color-neutral-500); stroke-width: 2px; }
         ww-text { fill: var(--ww-text-color, #374151); font-size: 12px; }
-        .help { margin: 0; padding: 8px 12px; font-size: 12px; color: var(--sl-color-neutral-600); border-block: 1px solid var(--sl-panel-border-color); }
         @media (hover: hover) { button:not(:disabled):hover { border-color: var(--sl-color-neutral-500); background: var(--sl-color-neutral-100); } }
         @media (pointer: coarse) { button, input, select { min-block-size: 44px; } }
     `;
@@ -135,6 +137,8 @@ export class PagesBranches extends LitElementWw {
         if (!view?.editing) return nothing;
         const page = view.pages[view.activePageIndex];
         return html`
+            <details open>
+            <summary>${view.msg("Graph editor")}</summary>
             <div class="toolbar">
                 <button type="button" class="add-node" @click=${() => view.addPage()}><span aria-hidden="true">＋</span> ${view.msg("Add page")}</button>
                 <button type="button" class="remove-node" ?disabled=${view.pages.length <= 1} @click=${() => view.removePage(view.activePageIndex)}>${view.msg("Remove")}</button>
@@ -143,7 +147,6 @@ export class PagesBranches extends LitElementWw {
                     <button type="button" title=${view.msg("Zoom out")} aria-label=${view.msg("Zoom out")} @click=${() => this.#viewport.zoomBy(1 / 1.2)}>−</button>
                     <button type="button" title=${view.msg("Zoom in")} aria-label=${view.msg("Zoom in")} @click=${() => this.#viewport.zoomBy(1.2)}>+</button>
                     <button type="button" @click=${() => this.#viewport.fit({ follow: "none" })}>${view.msg("Fit graph")}</button>
-                    ${renderControls(view, "none", false)}
                 </div>
             </div>
             <ww-scene select="single" connect-click grid="10" background="dots" background-spacing="20"
@@ -170,7 +173,8 @@ export class PagesBranches extends LitElementWw {
                     </ww-node>`;
                 })}
             </ww-scene>
-            <p class="help">${view.msg("Select a node to edit its page. Connect the dots to add choices, or use the destination menu below.")}</p>
+            </details>
+            <div class="fullscreen-controls">${renderControls(view, "none", false)}</div>
         `;
     }
 }

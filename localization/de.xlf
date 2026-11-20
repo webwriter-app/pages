@@ -158,10 +158,6 @@
         <source>Add choice</source>
         <target>Auswahl hinzufügen</target>
       </trans-unit>
-      <trans-unit id="s8e9d3a9db3fbea9a">
-        <source>Select a node to edit its page. Connect the dots to add choices, or use the destination menu below.</source>
-        <target>Wählen Sie einen Knoten, um seine Seite zu bearbeiten. Verbinden Sie die Punkte, um Auswahlmöglichkeiten hinzuzufügen, oder nutzen Sie das Zielmenü darunter.</target>
-      </trans-unit>
       <trans-unit id="s415b9ffddb8c1de6">
         <source>Page choices</source>
         <target>Seitenauswahl</target>
@@ -169,6 +165,10 @@
       <trans-unit id="s81ecf2d4386b8e84">
         <source>Continue</source>
         <target>Fortfahren</target>
+      </trans-unit>
+      <trans-unit id="scd1c2bb091075898">
+        <source>Graph editor</source>
+        <target>Graph-Editor</target>
       </trans-unit>
 </body>
   </file>

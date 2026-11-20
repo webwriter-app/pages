@@ -66,7 +66,7 @@ describe("Pages Branches view", function () {
         assert.equal(graph.shadowRoot!.querySelectorAll("ww-node").length, 3);
         assert.equal(graph.shadowRoot!.querySelectorAll("ww-path").length, 4);
         assert.isNull(graph.shadowRoot!.querySelector(".page-settings"), "no separate label input row");
-        assert.isNotNull(graph.shadowRoot!.querySelector(".toolbar #fullscreen"));
+        assert.isNotNull(graph.shadowRoot!.querySelector(".fullscreen-controls #fullscreen"));
         assert.isNotNull(graph.shadowRoot!.querySelector('ww-node[data-ww-key="start"] .node-label-input'));
         const scene = control(graph, "ww-scene");
         sceneEvent(scene, "ww-select", { keys: ["second-path"], items: [] });
@@ -80,6 +80,29 @@ describe("Pages Branches view", function () {
         field.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true }));
         await until(() => widget.children[2].getAttribute("label") === "A different ending");
         await until(() => control<HTMLInputElement>(graph, '.node-label-input').value === "A different ending");
+    });
+
+    it("collapses the graph natively while keeping fullscreen and choices available", async function () {
+        const widget = await mount(authorSnippet());
+        const graph = await editor(widget);
+        assert.isNull(graph.shadowRoot!.querySelector(".help"), "no permanent editing hint");
+        const details = control<HTMLDetailsElement>(graph, "details");
+        const height = graph.getBoundingClientRect().height;
+        assert.isTrue(details.open, "graph starts expanded");
+        control(graph, "summary").click();
+        await frame(2);
+        assert.isFalse(details.open);
+        assert.isBelow(graph.getBoundingClientRect().height, height - 200, "closed graph releases its space");
+        assert.isAbove(control(graph, "#fullscreen").getBoundingClientRect().height, 0, "fullscreen remains visible");
+        choices(widget)[0].click();
+        await until(() => widget.activePageIndex === 1);
+        await frame(2);
+        assert.isFalse(details.open, "page navigation does not reopen the graph");
+        control(graph, "summary").click();
+        await frame(3);
+        assert.isTrue(details.open);
+        assert.equal(graph.shadowRoot!.querySelectorAll("ww-node").length, 3);
+        assert.deepEqual(readBranches(widget.children[0]).map((branch) => branch.target), ["first-path", "second-path"]);
     });
 
     it("creates pages with stable keys and keeps the final page required", async function () {
