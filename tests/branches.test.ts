@@ -298,6 +298,15 @@ describe("Pages Branches view", function () {
         assert.isAtMost(bottom.y, frameBox.bottom);
         const paths = [...scene.querySelectorAll("ww-path")] as any[];
         assert.isTrue(paths.every(path => path.route === "avoid"), "uses the SDK's optional avoidance route");
+        for (const path of paths) {
+            const drawing = scene.drawingOf(path), ends = scene.endsOf(path);
+            for (const [end, point] of [[ends.from, drawing.points[0]], [ends.to, drawing.points.at(-1)]] as const) {
+                const rect = end.element.getBoundingClientRect();
+                const center = scene.toScene(rect.left + rect.width / 2, rect.top + rect.height / 2);
+                assert.closeTo(point.x, center.x, 0.1, "connector reaches the port center horizontally");
+                assert.closeTo(point.y, center.y, 0.1, "connector reaches the port center vertically");
+            }
+        }
         const clear = () => {
             for (const path of paths) {
                 const drawing = scene.drawingOf(path);

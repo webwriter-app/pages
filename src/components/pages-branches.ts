@@ -56,7 +56,10 @@ export class PagesBranches extends LitElementWw {
         .node-label-input { inline-size: 100%; min-inline-size: 0; padding: 0; border: 0; background: transparent; font-weight: 600; }
         .node-start { display: block; margin-block-start: 6px; min-block-size: 24px; padding: 1px 5px; font-size: 11px; }
         .node-kind { display: block; margin-block-start: 5px; font-size: 12px; color: var(--sl-color-neutral-500); }
-        .port { position: absolute; inset-block-start: 28px; inline-size: 24px; block-size: 24px; border: 6px solid var(--sl-panel-background-color); border-radius: 50%; background: var(--ww-theme-accent-1, #0284c7); }
+        .port { position: absolute; inset-block-start: 28px; inline-size: 24px; block-size: 24px; border: 6px solid transparent; border-radius: 50%; background: var(--ww-theme-accent-1, #0284c7); background-clip: padding-box; }
+        /* Mask the node border, but leave the outward half clear for the connector. */
+        .port::before { content: ""; position: absolute; inset: -6px; border: 6px solid var(--sl-panel-background-color); border-radius: 50%; clip-path: inset(0 0 0 50%); pointer-events: none; }
+        .output::before { clip-path: inset(0 50% 0 0); }
         .input { inset-inline-start: -12px; }
         .output { inset-inline-end: -12px; }
         .port[data-ww-port-candidate], .port[data-ww-port-over] { outline: 2px solid var(--ww-theme-accent-1, #0284c7); }
@@ -157,7 +160,7 @@ export class PagesBranches extends LitElementWw {
                 @keydown=${this.#keydown}>
                 ${view.pages.flatMap((source) => readBranches(source).filter((branch) => this.#page(branch.target)).map((branch) => html`
                     <ww-path data-ww-key=${`path:${pageKey(source)}:${branch.target}`} from=${`${pageKey(source)}:out`} to=${`${branch.target}:in`}
-                        route="avoid" marker-end="arrow" aria-label=${branch.label || this.#label(this.#page(branch.target)!)} selectable ?selected=${this.selectedPath === `path:${pageKey(source)}:${branch.target}`}>
+                        route="avoid" aria-label=${branch.label || this.#label(this.#page(branch.target)!)} selectable ?selected=${this.selectedPath === `path:${pageKey(source)}:${branch.target}`}>
                     </ww-path>`))}
                 ${repeat(view.pages, pageKey, (node, index) => {
                     const position = readNodePosition(node, index), key = pageKey(node);
