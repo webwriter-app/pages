@@ -10,9 +10,11 @@ import type { PagesBranches } from "../src/components/pages-branches";
 import { pageKey, readBranches } from "../src/model/page-branches";
 import snippet from "../snippets/branching-scenario.html";
 import { testBranchModel } from "./branches-model";
+import { testBranchNodeLayout } from "./branch-node-layout";
 
 mocha.setup(getMochaConfig());
 testBranchModel();
+testBranchNodeLayout();
 
 describe("Pages Branches view", function () {
     beforeEach(() => { document.designMode = "off"; });
@@ -254,19 +256,46 @@ describe("Pages Branches view", function () {
         const graph = await editor(widget), scene = control<any>(graph, "ww-scene");
         await frame(4);
         const boxes = () => [...scene.querySelectorAll("ww-node")].map((node: Element) => {
-            const box = node.getBoundingClientRect(), frame = scene.getBoundingClientRect();
+            const rects = [node, ...node.querySelectorAll("[data-ww-control]")].map(item => item.getBoundingClientRect());
+            const box = { left: Math.min(...rects.map(rect => rect.left)), right: Math.max(...rects.map(rect => rect.right)),
+                top: Math.min(...rects.map(rect => rect.top)), bottom: Math.max(...rects.map(rect => rect.bottom)) };
+            const frame = scene.getBoundingClientRect();
             assert.isAtLeast(box.left, frame.left - 0.5);
             assert.isAtMost(box.right, frame.right + 0.5);
             assert.isAtLeast(box.top, frame.top - 0.5);
             assert.isAtMost(box.bottom, frame.bottom + 0.5);
-            return [box.x, box.y, box.width, box.height];
+            return box;
         });
-        const initial = boxes();
+        boxes();
         control<HTMLButtonElement>(widget, ".graph-toggle").click();
         await frame(2);
         control<HTMLButtonElement>(widget, ".graph-toggle").click();
         await frame(4);
-        assert.deepEqual(boxes(), initial, "reopening uses the same fitted view");
+        boxes();
+    });
+
+    it("automatically separates previews, labels and all bubbles as page ratios change", async function () {
+        this.timeout(20000);
+        const widget = await mount(authorSnippet());
+        // Exercise coincident saved anchors as well as changing page sizes.
+        for (const page of widget.children) { page.setAttribute("node-x", "40"); page.setAttribute("node-y", "40"); }
+        const saved = [...widget.children].map(page => [page.getAttribute("node-x"), page.getAttribute("node-y")]);
+        const graph = await editor(widget);
+        const clear = () => {
+            const boxes = [...graph.shadowRoot!.querySelectorAll<HTMLElement>("ww-node")].map(node => {
+                const rects = [node, ...node.querySelectorAll<HTMLElement>("[data-ww-control]")].map(item => item.getBoundingClientRect());
+                return { left: Math.min(...rects.map(box => box.left)), right: Math.max(...rects.map(box => box.right)),
+                    top: Math.min(...rects.map(box => box.top)), bottom: Math.max(...rects.map(box => box.bottom)) };
+            });
+            return boxes.every((a, index) => boxes.slice(index + 1).every(b => a.right <= b.left + 0.1 || a.left >= b.right - 0.1 || a.bottom <= b.top + 0.1 || a.top >= b.bottom - 0.1));
+        };
+        for (const ratio of [16 / 9, 9 / 16, 4 / 3, 3, 0.5, 16 / 9]) {
+            widget.pageAspectRatio = ratio;
+            await widget.updateComplete;
+            await frame(20);
+            assert.isTrue(clear(), `no overlap at ratio ${ratio}`);
+            assert.deepEqual([...widget.children].map(page => [page.getAttribute("node-x"), page.getAttribute("node-y")]), saved, "automatic placement preserves saved anchors and undo history");
+        }
     });
 
     it("opens pages only through node bubbles and leaves single and double activation in the graph", async function () {

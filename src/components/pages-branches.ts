@@ -16,6 +16,7 @@ import fitIcon from "@tabler/icons/outline/zoom-scan.svg";
 import startIcon from "@tabler/icons/outline/flag.svg";
 import openIcon from "@tabler/icons/outline/share-3.svg";
 import { captureThumbnail } from "./page-thumbnail";
+import { resolveBranchNodeLayout, type BranchNodePosition } from "../model/branch-node-layout";
 
 /** An editing-only Scene over the same authored pages that the reader sees. */
 export class PagesBranches extends LitElementWw {
@@ -42,10 +43,15 @@ export class PagesBranches extends LitElementWw {
     #previewTimer?: ReturnType<typeof setTimeout>;
     #previewEpoch = 0;
     #previewRunning = false;
+    @state() private accessor nodePositions = new Map<string, BranchNodePosition>();
+    #layoutRevision = 0;
+    #fitPending = false;
+    #fitRunning = false;
+    #fitEpoch = 0;
 
     #viewport: Viewport = new Viewport(this, {
         wheel: "page",
-        bounds: () => this.#scene.extent(),
+        bounds: () => this.#graphBounds(),
         start: "fit",
         can: () => !this.#scene.marquee,
     });
@@ -65,12 +71,12 @@ export class PagesBranches extends LitElementWw {
         .icon-button { display: grid; place-items: center; min-inline-size: 32px; min-block-size: 32px; padding: 0; }
         .add-node { position: absolute; inset-inline-start: 10px; inset-block-start: 10px; z-index: 10; box-shadow: 0 1px 4px rgb(0 0 0 / 0.12); }
         .node-open, .node-start, .remove-node { position: absolute; inset-inline-end: -6px; min-inline-size: 24px; min-block-size: 24px; border-radius: 50%; box-shadow: 0 1px 3px #0002; }
-        .node-open { inset-block-start: -8px; --ww-control-origin: left top; }
-        .node-start { inset-inline-start: -6px; inset-inline-end: auto; inset-block-end: -8px; visibility: hidden; --ww-control-origin: right bottom; }
-        .remove-node { inset-block-end: -8px; visibility: hidden; --ww-control-origin: left bottom; }
-        :host(:dir(rtl)) .node-open { --ww-control-origin: right top; }
-        :host(:dir(rtl)) .node-start { --ww-control-origin: left bottom; }
-        :host(:dir(rtl)) .remove-node { --ww-control-origin: right bottom; }
+        .node-open { inset-block-start: calc(-0.5 * var(--_node-tool-size) - var(--_node-action-shift)); --ww-control-origin: left center; }
+        .node-start { inset-inline-start: -6px; inset-inline-end: auto; inset-block-end: calc(-0.5 * var(--_node-tool-size) - var(--_node-action-shift)); visibility: hidden; --ww-control-origin: right center; }
+        .remove-node { inset-block-end: calc(-0.5 * var(--_node-tool-size) - var(--_node-action-shift)); visibility: hidden; --ww-control-origin: left center; }
+        :host(:dir(rtl)) .node-open { --ww-control-origin: right center; }
+        :host(:dir(rtl)) .node-start { --ww-control-origin: left center; }
+        :host(:dir(rtl)) .remove-node { --ww-control-origin: right center; }
         ww-node[selected] .remove-node { visibility: visible; }
         sl-icon { font-size: 16px; pointer-events: none; }
         button, input, select { font: inherit; font-size: 13px; color: inherit; min-block-size: 32px; }
@@ -80,13 +86,23 @@ export class PagesBranches extends LitElementWw {
         input { inline-size: 14rem; max-inline-size: 100%; }
         button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--ww-theme-accent-1, #0284c7); outline-offset: 2px; }
         ww-scene { display: block; block-size: 100%; background: var(--sl-panel-background-color); --ww-scene-selection: var(--ww-theme-accent-1, #0284c7); }
-        ww-node { inline-size: min(200px, calc(200px * var(--_page-ratio, 16 / 9))); padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; }
+        ww-node {
+            --ww-control-limit: 7;
+            --_node-tool-size: 24px;
+            --_node-width: min(200px, calc(200px * var(--_page-ratio, 16 / 9)));
+            --_node-height: calc(var(--_node-width) / var(--_page-ratio, 16 / 9));
+            --_node-control-scale: min(max(1, var(--ww-scene-counter, 1)), var(--ww-control-limit));
+            --_node-tool-world: calc(var(--_node-tool-size) * var(--_node-control-scale));
+            --_node-port-world: calc(24px * var(--_node-control-scale));
+            --_node-action-shift: max(0px, calc((var(--_node-tool-world) + var(--_node-port-world) + 8px - var(--_node-height)) / 2));
+            inline-size: var(--_node-width); padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer;
+        }
         .node-card { position: relative; inline-size: 100%; aspect-ratio: var(--_page-ratio, 16 / 9); border: 1px solid var(--sl-color-neutral-400); border-radius: 8px; background: var(--sl-panel-background-color); }
         ww-node[selected] { outline: none; }
         ww-node[selected] .node-card, ww-node:focus-visible .node-card { border-color: var(--ww-theme-accent-1, #0284c7); outline: 2px solid var(--ww-theme-accent-1, #0284c7); outline-offset: 2px; }
         .node-preview { position: absolute; inset: 0; display: block; inline-size: 100%; block-size: 100%; object-fit: contain; border-radius: inherit; pointer-events: none; user-select: none; }
         /* Normal flow makes the label part of Scene's measured routing obstacle. */
-        .node-label-overlay { margin-block-end: 8px; padding: 2px 6px; border-radius: 4px; background: color-mix(in srgb, var(--sl-panel-background-color, white) 80%, transparent); }
+        .node-label-overlay { inline-size: calc(100% - var(--_node-tool-size) - 2px); margin-block-end: max(6px, calc((var(--_node-port-world) - var(--_node-height)) / 2 + 4px)); padding: 2px 6px; border-radius: 4px; background: color-mix(in srgb, var(--sl-panel-background-color, white) 80%, transparent); }
         .node-label, .node-label-input { display: block; inline-size: 100%; min-inline-size: 0; min-block-size: 0; block-size: 1.5em; padding: 0; border: 0; border-radius: 0; background: transparent; font: inherit; font-weight: 600; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .node-label-input::placeholder { color: inherit; opacity: 1; }
         ww-node[selected] .node-start, .node-start:disabled { visibility: visible; }
@@ -106,7 +122,7 @@ export class PagesBranches extends LitElementWw {
             button:not(:disabled):hover { border-color: var(--sl-color-neutral-500); background: var(--sl-color-neutral-100); }
             .remove-node:not(:disabled):hover { color: var(--sl-color-danger-600); border-color: currentColor; }
         }
-        @media (pointer: coarse) { button, input:not(.node-label-input), select { min-block-size: 44px; } .icon-button, .view-controls button { min-inline-size: 44px; min-block-size: 44px; } }
+        @media (pointer: coarse) { ww-node { --_node-tool-size: 44px; } button, input:not(.node-label-input), select { min-block-size: 44px; } .icon-button, .view-controls button { min-inline-size: 44px; min-block-size: 44px; } }
     `;
 
     #label(page: WebwriterPage) {
@@ -120,11 +136,13 @@ export class PagesBranches extends LitElementWw {
     }
 
     protected updated(changed: PropertyValues<this>) {
-        if (changed.has("collapsed") && !this.collapsed) {
-            void this.#scene.ready.then(() => {
-                if (this.isConnected && !this.collapsed) return this.#viewport.fit({ follow: "none" });
-            });
+        if (this.collapsed) this.#cancelFit();
+        else if (changed.has("pageRatio") || changed.has("collapsed")) {
+            this.#fitPending = true;
+            this.#fitEpoch++;
         }
+        this.#resolveLayout();
+        if (this.#fitPending && !this.#fitRunning) void this.#fitGraph();
         this.#syncPreviews(changed.has("pageRatio"));
         const buttons = this.renderRoot.querySelectorAll<HTMLButtonElement>(".view-controls button");
         if (!("focusGroup" in HTMLElement.prototype) && !Array.from(buttons).some(button => button.hasAttribute("tabindex"))) {
@@ -136,7 +154,7 @@ export class PagesBranches extends LitElementWw {
         if (previousPage && page && previousPage !== page) {
             this.selectedNode = pageKey(page);
             this.selectedPath = "";
-            const { x, y } = readNodePosition(page, this.view.activePageIndex);
+            const { x, y } = this.nodePositions.get(pageKey(page)) ?? readNodePosition(page, this.view.activePageIndex);
             const view = this.#viewport;
             const node = this.renderRoot.querySelector<HTMLElement>(`ww-node[data-ww-key="${pageKey(page)}"]`);
             const width = node?.offsetWidth ?? 200, height = node?.offsetHeight ?? 200 / this.pageRatio;
@@ -151,6 +169,69 @@ export class PagesBranches extends LitElementWw {
         super.disconnectedCallback();
         this.#stopPreviews();
         this.#previews.clear();
+        this.#cancelFit();
+    }
+
+    #cancelFit = () => { this.#fitPending = false; this.#fitEpoch++; };
+
+    /** Include counter-scaled controls in fit and pan limits, not just the card bodies. */
+    #graphBounds() {
+        const bounds = this.#scene.extent();
+        if (!bounds || this.collapsed) return bounds;
+        let { x, y, width, height } = bounds, right = x + width, bottom = y + height;
+        for (const control of this.renderRoot.querySelectorAll<HTMLElement>("ww-node [data-ww-control]")) {
+            const rect = control.getBoundingClientRect();
+            const a = this.#scene.toScene(rect.left, rect.top), b = this.#scene.toScene(rect.right, rect.bottom);
+            x = Math.min(x, a.x); y = Math.min(y, a.y); right = Math.max(right, b.x); bottom = Math.max(bottom, b.y);
+        }
+        return { x, y, width: right - x, height: bottom - y };
+    }
+
+    #resolveLayout() {
+        if (this.collapsed || !this.view?.editing) return;
+        const scale = this.#viewport.scale;
+        const nodes = this.view.pages.flatMap((page, index) => {
+            const key = pageKey(page), node = this.renderRoot.querySelector<HTMLElement>(`ww-node[data-ww-key="${key}"]`);
+            if (!node?.offsetWidth) return [];
+            const rect = node.getBoundingClientRect();
+            let left = rect.left, right = rect.right, top = rect.top, bottom = rect.bottom;
+            // Reserve hidden action bubbles too, so selecting a node cannot introduce collisions.
+            for (const control of node.querySelectorAll<HTMLElement>("[data-ww-control]")) {
+                const box = control.getBoundingClientRect();
+                left = Math.min(left, box.left); right = Math.max(right, box.right);
+                top = Math.min(top, box.top); bottom = Math.max(bottom, box.bottom);
+            }
+            return [{ key, ...readNodePosition(page, index), bounds: { x: (left - rect.left) / scale, y: (top - rect.top) / scale, width: (right - left) / scale, height: (bottom - top) / scale } }];
+        });
+        const positions = resolveBranchNodeLayout(nodes);
+        if (positions.size !== this.nodePositions.size || [...positions].some(([key, point]) => {
+            const previous = this.nodePositions.get(key);
+            return !previous || Math.abs(previous.x - point.x) > 0.05 || Math.abs(previous.y - point.y) > 0.05;
+        })) {
+            this.#layoutRevision++;
+            this.nodePositions = positions;
+        }
+    }
+
+    async #fitGraph() {
+        this.#fitRunning = true;
+        this.#fitPending = false;
+        const epoch = this.#fitEpoch;
+        try {
+            await this.#scene.ready;
+            // Controls keep their screen size: settle layout and fit together after a ratio change.
+            for (let step = 0; step < 8 && epoch === this.#fitEpoch && this.isConnected && !this.collapsed; step++) {
+                await this.updateComplete;
+                const revision = this.#layoutRevision, scale = this.#viewport.scale;
+                await this.#viewport.fit({ follow: "none" });
+                await this.updateComplete;
+                await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+                if (revision === this.#layoutRevision && Math.abs(scale - this.#viewport.scale) < 0.001) break;
+            }
+        } finally {
+            this.#fitRunning = false;
+            if (this.#fitPending && this.isConnected) this.requestUpdate();
+        }
     }
 
     #stopPreviews() {
@@ -341,7 +422,7 @@ export class PagesBranches extends LitElementWw {
         if (!view?.editing) return nothing;
         const page = view.pages[view.activePageIndex];
         return html`
-            <div class="graph">
+            <div class="graph" @pointerdown=${this.#cancelFit}>
             <button type="button" class="add-node icon-button" title=${view.msg("Add page")} aria-label=${view.msg("Add page")} @click=${this.#addNode}>
                 <sl-icon src=${plusIcon} aria-hidden="true"></sl-icon>
             </button>
@@ -353,7 +434,7 @@ export class PagesBranches extends LitElementWw {
                 <button type="button" data-ww-viewport-action="fit" aria-keyshortcuts="0"><sl-icon src=${fitIcon} aria-hidden="true"></sl-icon></button>
             </div>
             <ww-scene id="graph" select="single" connect-click grid="10" background="dots" background-spacing="20"
-                data-ww-viewport="canvas" data-ww-viewport-fit="content" data-ww-viewport-fit-padding="24" data-ww-viewport-fit-inset="48 0 0 0" data-ww-viewport-zoom="0.4 1.5"
+                data-ww-viewport="canvas" data-ww-viewport-fit="content" data-ww-viewport-fit-padding="24" data-ww-viewport-fit-inset="48 0 0 0" data-ww-viewport-zoom="0.08 1.5"
                 aria-label=${view.msg("Page branches")} @ww-select=${this.#select} @ww-activate=${this.#select}
                 @ww-ready=${async () => {
                     await this.updateComplete;
@@ -368,7 +449,7 @@ export class PagesBranches extends LitElementWw {
                         aria-label=${branch.label || this.#label(this.#page(branch.target)!)} selectable ?selected=${this.selectedPath === `path:${pageKey(source)}:${branch.target}`}>
                     </ww-path>`))}
                 ${repeat(view.pages, pageKey, (node, index) => {
-                    const position = readNodePosition(node, index), key = pageKey(node);
+                    const key = pageKey(node), position = this.nodePositions.get(key) ?? readNodePosition(node, index);
                     return html`<ww-node data-ww-key=${key} x=${position.x} y=${position.y} selectable movable ?selected=${!this.selectedPath && (this.selectedNode === undefined ? node === page : this.selectedNode === key)}
                         aria-label=${this.#label(node)}>
                         <div class="node-label-overlay">${node === page ? html`<input class="node-label-input" aria-label=${view.msg("Page label")} .value=${live(node.getAttribute("label") ?? "")}
