@@ -188,6 +188,7 @@ export class WebwriterPages extends LitElementWw {
     #completionMutation?: MutationObserver;
     #completionFrame?: number;
     #readingBranches = false;
+    @state() private accessor branchGraphExpanded = true;
 
     /** The drawer declarations with the availability of the page actions, which follows the pages. */
     get actions() {
@@ -810,11 +811,6 @@ export class WebwriterPages extends LitElementWw {
         const branches = this.type === "branches";
         return html`
             <div class="pages-layout ${branches ? "branches-view" : this.type === "pages" ? "pages-view" : "tabs-view"}">
-                ${branches && view.editing ? html`<pages-branches part="branch-editor" contenteditable="false" data-ww-capture-selection="false"
-                    .view=${view} .startKey=${this.startPage || pageKey(view.pages[0])}
-                    .setBranches=${this.#setBranches} .movePages=${this.#moveBranchPages} .setStart=${this.#setStartPage}
-                ></pages-branches>` : html``}
-                ${branches && !view.editing ? html`<aside class="branch-topbar" contenteditable="false" data-ww-capture-selection="false"><div class="controls-rows">${renderControls(view, "none", false)}</div></aside>` : nothing}
                 ${this.type === "tabs" ? renderTabs(view) : html``}
                 <div class="page-viewport">
                     <div class="page-surface">
@@ -825,7 +821,12 @@ export class WebwriterPages extends LitElementWw {
                     </div>
                 </div>
                 ${this.type == "pages" && !this.isFullscreen ? renderThumbs(view) : html``}
-                ${branches ? renderBranchChoices(view, this.#setBranches, this.#followBranch) : nothing}
+                ${branches ? renderBranchChoices(view, this.#setBranches, this.#followBranch, this.branchGraphExpanded, () => this.branchGraphExpanded = !this.branchGraphExpanded) : nothing}
+                ${branches && view.editing ? html`<pages-branches id="branch-editor" part="branch-editor" contenteditable="false" data-ww-capture-selection="false"
+                    ?hidden=${!this.branchGraphExpanded} .collapsed=${!this.branchGraphExpanded}
+                    .view=${view} .startKey=${this.startPage || pageKey(view.pages[0])}
+                    .setBranches=${this.#setBranches} .movePages=${this.#moveBranchPages} .setStart=${this.#setStartPage}
+                ></pages-branches>` : nothing}
             </div>
         `;
     }

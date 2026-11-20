@@ -3,6 +3,9 @@ import { repeat } from "lit/directives/repeat.js";
 import arrowRight from "@tabler/icons/outline/arrow-right.svg";
 import plusIcon from "@tabler/icons/outline/plus.svg";
 import removeIcon from "@tabler/icons/outline/x.svg";
+import chevronDown from "@tabler/icons/outline/chevron-down.svg";
+import chevronRight from "@tabler/icons/outline/chevron-right.svg";
+import { renderControls } from "./pages-controls";
 import type { PagesView } from "../model/pages-view";
 import type { WebwriterPage } from "../widgets/webwriter-page";
 import type { WebwriterPages } from "../widgets/webwriter-pages";
@@ -36,11 +39,10 @@ function fallbackPopup(event: MouseEvent, id: string, prepare: (popup: HTMLDialo
 }
 
 /** The bottom pane is the common interface for reading and editing page choices. */
-export function renderBranchChoices(view: PagesView, setBranches: (page: WebwriterPage, branches: PageBranch[]) => void, follow: (target: string) => void) {
+export function renderBranchChoices(view: PagesView, setBranches: (page: WebwriterPage, branches: PageBranch[]) => void, follow: (target: string) => void, graphExpanded: boolean, toggleGraph: () => void) {
     const page = view.pages[view.activePageIndex];
-    if (!page) return nothing;
     const label = (target: WebwriterPage) => target.getAttribute("label") || `${view.msg("Page")} ${view.pages.indexOf(target) + 1}`;
-    const branches = readBranches(page).filter((branch, index, all) => all.findIndex((entry) => entry.target === branch.target) === index);
+    const branches = (page ? readBranches(page) : []).filter((branch, index, all) => all.findIndex((entry) => entry.target === branch.target) === index);
     const destinations = (current?: string) => view.pages.filter((target) => target !== page &&
         (pageKey(target) === current || !readBranches(page).some((branch) => branch.target === pageKey(target))));
     const addId = `choice-add-${pageKey(page)}`;
@@ -92,8 +94,11 @@ export function renderBranchChoices(view: PagesView, setBranches: (page: Webwrit
         </dialog>` };
     };
 
-    const addition = view.editing ? popup(addId) : undefined;
-    return html`<aside class="branch-controls" part="branch-controls" contenteditable="false" data-ww-capture-selection="false">
+    const addition = view.editing && page ? popup(addId) : undefined;
+    const toggleLabel = graphExpanded ? view.msg("Collapse graph") : view.msg("Expand graph");
+    return html`<aside class="branch-controls ${view.editing && graphExpanded ? "graph-expanded" : ""}" part="branch-controls" contenteditable="false" data-ww-capture-selection="false">
+        ${view.editing ? html`<button type="button" class="graph-toggle" aria-expanded=${String(graphExpanded)} aria-controls="branch-editor" aria-label=${toggleLabel} title=${toggleLabel}
+            @click=${toggleGraph}><sl-icon src=${graphExpanded ? chevronDown : chevronRight} aria-hidden="true"></sl-icon></button>` : nothing}
         <nav class="branch-choices" aria-label=${view.msg("Page choices")}>
             ${repeat(branches, (branch) => branch.target, (branch) => {
                 const target = view.pages.find((target) => pageKey(target) === branch.target);
@@ -117,5 +122,6 @@ export function renderBranchChoices(view: PagesView, setBranches: (page: Webwrit
             ${addition ? html`<button type="button" class="add-choice" popovertarget=${addId} aria-haspopup="dialog" title=${view.msg("Add choice")} aria-label=${view.msg("Add choice")}
                 ?disabled=${!destinations().length} @click=${(event: MouseEvent) => fallbackPopup(event, addId, addition.prepare)}><sl-icon src=${plusIcon} aria-hidden="true"></sl-icon></button>${addition.content}` : nothing}
         </nav>
+        <div class="branch-fullscreen">${renderControls(view, "none", false)}</div>
     </aside>`;
 }

@@ -55,7 +55,7 @@ export async function mount(html: string) {
   const widget = wrap.querySelector("webwriter-pages") as WebwriterPages;
   await customElements.whenDefined("webwriter-pages");
   await widget.updateComplete;
-  await until(() => widget.shadowRoot!.querySelector(".page-thumb, .page-tab, .branch-topbar, pages-branches"), "no page controls");
+  await until(() => widget.shadowRoot!.querySelector(".page-thumb, .page-tab, .branch-controls"), "no page controls");
   return widget;
 }
 

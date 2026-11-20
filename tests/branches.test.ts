@@ -33,7 +33,7 @@ describe("Pages Branches view", function () {
         assert.equal(widget.type, "branches");
         assert.equal(widget.children.length, 3);
         assert.isNull(widget.shadowRoot!.querySelector("pages-branches"));
-        assert.isNotNull(widget.shadowRoot!.querySelector(".branch-topbar #fullscreen"));
+        assert.isNotNull(widget.shadowRoot!.querySelector(".branch-controls .branch-fullscreen #fullscreen"));
         widget.completionIndicators = true;
         await widget.updateComplete;
         assert.isNull(widget.shadowRoot!.querySelector(".completion-overview"), "completion remains hidden");
@@ -66,7 +66,7 @@ describe("Pages Branches view", function () {
         assert.equal(graph.shadowRoot!.querySelectorAll("ww-node").length, 3);
         assert.equal(graph.shadowRoot!.querySelectorAll("ww-path").length, 4);
         assert.isNull(graph.shadowRoot!.querySelector(".page-settings"), "no separate label input row");
-        assert.isNotNull(graph.shadowRoot!.querySelector(".fullscreen-controls #fullscreen"));
+        assert.isNotNull(widget.shadowRoot!.querySelector(".branch-controls #fullscreen"));
         assert.isNotNull(graph.shadowRoot!.querySelector('ww-node[data-ww-key="start"] .node-label-input'));
         const scene = control(graph, "ww-scene");
         sceneEvent(scene, "ww-select", { keys: ["second-path"], items: [] });
@@ -82,31 +82,39 @@ describe("Pages Branches view", function () {
         await until(() => control<HTMLInputElement>(graph, '.node-label-input').value === "A different ending");
     });
 
-    it("collapses the graph with an icon in the toolbar while keeping fullscreen and choices available", async function () {
+    it("keeps choices between the page and collapsible graph, with fullscreen at the end", async function () {
         const widget = await mount(authorSnippet());
         const graph = await editor(widget);
         assert.isNull(graph.shadowRoot!.querySelector(".help"), "no permanent editing hint");
-        const toggle = control<HTMLButtonElement>(graph, ".toolbar .graph-toggle");
-        const scene = control(graph, "ww-scene");
-        const height = graph.getBoundingClientRect().height;
+        const toggle = control<HTMLButtonElement>(widget, ".branch-controls .graph-toggle");
+        const controls = control(widget, ".branch-controls");
+        assert.equal(controls.firstElementChild, toggle, "chevron starts the choices row");
+        assert.equal(controls.lastElementChild!.className, "branch-fullscreen", "fullscreen ends the choices row");
+        assert.equal(controls.nextElementSibling, graph, "graph follows choices in DOM and keyboard order");
+        assert.isAbove(controls.getBoundingClientRect().top, control(widget, ".page-stage").getBoundingClientRect().top);
+        assert.isAtLeast(graph.getBoundingClientRect().top, controls.getBoundingClientRect().bottom - 1);
+        const height = widget.getBoundingClientRect().height;
         assert.isNull(graph.shadowRoot!.querySelector("summary"), "no separate labelled row");
         assert.equal(toggle.textContent!.trim(), "", "icon-only toggle");
         assert.isNotNull(toggle.querySelector('sl-icon[aria-hidden="true"]'));
         assert.equal(toggle.getAttribute("aria-expanded"), "true");
+        assert.equal(widget.shadowRoot!.getElementById(toggle.getAttribute("aria-controls")!), graph);
         toggle.click();
         await frame(2);
-        assert.isTrue(scene.hidden);
+        assert.isTrue(graph.hidden);
         assert.equal(toggle.getAttribute("aria-expanded"), "false");
         assert.equal(toggle.getAttribute("aria-label"), "Expand graph");
-        assert.isBelow(graph.getBoundingClientRect().height, height - 200, "closed graph releases its space");
-        assert.isAbove(control(graph, "#fullscreen").getBoundingClientRect().height, 0, "fullscreen remains visible");
+        assert.isBelow(widget.getBoundingClientRect().height, height - 200, "closed graph releases its space");
+        assert.equal(control(graph, ".toolbar").getBoundingClientRect().height, 0, "toolbar is also hidden");
+        assert.equal(control(graph, "ww-scene").getBoundingClientRect().height, 0, "scene is also hidden");
+        assert.isAbove(control(widget, "#fullscreen").getBoundingClientRect().height, 0, "fullscreen remains visible");
         control(widget, ".choice-goto").click();
         await until(() => widget.activePageIndex === 1);
         await frame(2);
-        assert.isTrue(scene.hidden, "page navigation does not reopen the graph");
+        assert.isTrue(graph.hidden, "page navigation does not reopen the graph");
         toggle.click();
         await frame(3);
-        assert.isFalse(scene.hidden);
+        assert.isFalse(graph.hidden);
         assert.equal(toggle.getAttribute("aria-expanded"), "true");
         assert.equal(graph.shadowRoot!.querySelectorAll("ww-node").length, 3);
         assert.deepEqual(readBranches(widget.children[0]).map((branch) => branch.target), ["first-path", "second-path"]);
