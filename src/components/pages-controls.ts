@@ -30,7 +30,7 @@ function renderCompletionOverview(view: PagesView) {
 /** Remove button of the active page in the tab or thumbnail strip. */
 export function renderPageButtons(view: PagesView, index: number) {
     if (index !== view.activePageIndex) return nothing;
-    return html`<div class="page-actions" data-ww-capture-selection="false">
+    return html`<div class="page-actions">
         <sl-icon-button
             class="remove-btn"
             data-ww-can="edit"
@@ -52,7 +52,6 @@ export function renderAddPage(view: PagesView) {
         <button
             type="button"
             class="add-page"
-            data-ww-capture-selection="false"
             data-ww-can="edit"
             aria-label=${view.msg("Add page")}
             title=${view.msg("Add page")}
@@ -66,7 +65,7 @@ export function renderControls(view: PagesView, navigation: "pages" | "tabs" | "
     const tabs = navigation === "tabs";
     const previousTitle = tabs ? view.msg("Scroll tabs backward") : view.msg("Go to previous page");
     const nextTitle = tabs ? view.msg("Scroll tabs forward") : view.msg("Go to next page");
-    return html`${navigation === "none" ? nothing : html`<div class="controls-section" data-ww-capture-selection="false">
+    return html`${navigation === "none" ? nothing : html`<div class="controls-section">
             <sl-icon-button
                 class=${tabs ? "tabs-scroll-backward" : ""}
                 title=${previousTitle}
@@ -88,7 +87,7 @@ export function renderControls(view: PagesView, navigation: "pages" | "tabs" | "
                 ?disabled=${tabs ? !view.canScrollTabsForward : !view.hasNextPage}
             ></sl-icon-button>
         </div>`}
-        <div class="controls-section" data-ww-capture-selection="false">
+        <div class="controls-section">
             <sl-icon-button
                 id="fullscreen"
                 class="fullscreen-btn"

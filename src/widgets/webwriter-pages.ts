@@ -530,8 +530,8 @@ export class WebwriterPages extends LitElementWw {
         const page = this.#createPage(index);
         this.changePage(this.pages.indexOf(page));
 
-        // place cursor at the start of the new page
-        const selection = document.getSelection();
+        // A shadow control keeps its focus and capture; external actions start writing in the new page.
+        const selection = (this.renderRoot as ShadowRoot).activeElement ? null : this.ownerDocument.getSelection();
         if (selection) {
             selection.setBaseAndExtent(page.firstElementChild!, 0, page.firstElementChild!, 0);
         }
@@ -837,7 +837,7 @@ export class WebwriterPages extends LitElementWw {
                 </div>
                 ${this.type == "pages" && !this.isFullscreen ? renderThumbs(view) : html``}
                 ${branches ? renderBranchChoices(view, this.#setBranches, this.#followBranch, this.branchGraphExpanded, () => this.branchGraphExpanded = !this.branchGraphExpanded, this.#addPageChoice) : nothing}
-                ${branches && view.editing ? html`<pages-branches id="branch-editor" part="branch-editor" contenteditable="false" data-ww-capture-selection="false"
+                ${branches && view.editing ? html`<pages-branches id="branch-editor" part="branch-editor" contenteditable="false"
                     ?hidden=${!this.branchGraphExpanded} .collapsed=${!this.branchGraphExpanded}
                     .view=${view} .startKey=${this.startPage || pageKey(view.pages[0])}
                     .setBranches=${this.#setBranches} .movePages=${this.#moveBranchPages} .setStart=${this.#setStartPage}

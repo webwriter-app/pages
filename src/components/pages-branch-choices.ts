@@ -112,7 +112,7 @@ export function renderBranchChoices(view: PagesView, setBranches: (page: Webwrit
 
     const addition = view.editing && page ? popup(addId) : undefined;
     const toggleLabel = graphExpanded ? view.msg("Collapse graph") : view.msg("Expand graph");
-    return html`<aside class="branch-controls ${view.editing && graphExpanded ? "graph-expanded" : ""}" part="branch-controls" contenteditable="false" data-ww-capture-selection="false">
+    return html`<aside class="branch-controls ${view.editing && graphExpanded ? "graph-expanded" : ""}" part="branch-controls" contenteditable="false">
         <nav class="branch-choices" aria-label=${view.msg("Page choices")}>
             ${repeat(branches, (branch) => branch.target, (branch) => {
                 const target = view.pages.find((target) => pageKey(target) === branch.target);

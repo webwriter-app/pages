@@ -36,6 +36,26 @@ describe("<webwriter-pages> in edit mode", function () {
     assert.deepEqual(order(widget), ["s1", "s2", "s3"]);
   });
 
+  it("keeps native shadow focus and the document range when adding through a control", async function () {
+    const widget = await mount(`<webwriter-pages contenteditable="">${pages(2)}</webwriter-pages>`);
+    const selection = document.getSelection()!;
+    const text = widget.children[0].querySelector("p")!.firstChild!;
+    selection.setPosition(text, 2);
+    const add = items<HTMLButtonElement>(widget, ".add-page")[0];
+    add.focus();
+    const before = selection.getRangeAt(0).cloneRange();
+    add.click();
+    await widget.updateComplete;
+    assert.equal(widget.children.length, 3);
+    assert.equal(widget.shadowRoot!.activeElement, add, "control stays focused for editor capture");
+    assert.equal(selection.anchorNode, before.startContainer, "no authored caret overrides capture");
+    assert.equal(selection.anchorOffset, before.startOffset);
+    add.blur();
+    widget.addPage();
+    assert.equal(selection.anchorNode, widget.activePage.firstElementChild, "external add action starts in the new page");
+    assert.equal(selection.anchorOffset, 0);
+  });
+
   it("turns preview and add cards portrait and refreshes the active thumbnail after an orientation change", async function () {
     this.timeout(10000);
     const widget = await mount(`<webwriter-pages type="pages" contenteditable="">${pages(2)}</webwriter-pages>`);
