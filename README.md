@@ -3,6 +3,8 @@
 
 Present content as tabs, slides, or branching pages.
 
+Pages currently bundles the Scene SDK and its Lit adapter so Branches always uses the new routing implementation. The pinned build-time SDK snapshot is documented in [vendor/README.md](vendor/README.md).
+
 ## Snippets
 [Snippets](https://webwriter.app/docs/snippets/snippets/) are examples and templates using the package's widgets.
 

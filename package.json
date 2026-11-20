@@ -156,13 +156,12 @@
   "license": "MIT",
   "author": "",
   "scripts": {
-    "prepublishOnly": "npx @webwriter/build --shared-dependencies"
+    "prepublishOnly": "npx @webwriter/build --shared-dependencies && node scripts/check-sdk-bundle.mjs"
   },
   "dependencies": {
     "@shoelace-style/shoelace": "^2.20.1",
     "@tabler/icons": "^3.52.0",
     "@webwriter/lit": "^3.2.0",
-    "@webwriter/widget": "^1.2.0",
     "@zumer/snapdom": "^3.7.5",
     "lit": "^3.3.0"
   },
@@ -171,6 +170,7 @@
     "@types/chai": "^5.2.2",
     "@types/mocha": "^10.0.10",
     "@webwriter/build": "^1.14.0",
+    "@webwriter/widget": "file:vendor/webwriter-widget-db77f1fb.tgz",
     "chai": "^6.3.0",
     "mocha": "^12.0.3",
     "typescript": "^7.0.2"
@@ -222,5 +222,8 @@
       "uninsertable": true
     }
   },
-  "customElements": "custom-elements.json"
+  "customElements": "custom-elements.json",
+  "prebuiltDependencies": [
+    "@webwriter/lit"
+  ]
 }
