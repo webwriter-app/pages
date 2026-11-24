@@ -1010,23 +1010,35 @@ export const pages_styles = css`
 
         :host(:not(:fullscreen):not(.ww-fullscreen)) [part="actions"] {
             contain: size;
-            inline-size: calc(2 * var(--_thumb-width) + 7rem);
+            /* Leave room for the thumbnail, its overlapping action, and two scrollbar gutters. */
+            inline-size: calc(var(--_thumb-width) + 2 * (var(--_page-action-space) + var(--sl-spacing-medium)));
             min-block-size: 0;
-            grid-template-columns: minmax(0, 1fr) auto;
+            display: flex;
+            flex-direction: column;
             border-block-start: var(--sl-panel-border-width) solid var(--sl-panel-border-color);
             border-inline-start: 0;
             border-radius: 0 var(--sl-border-radius-medium) var(--sl-border-radius-medium) 0;
         }
 
         :host(:not(:fullscreen):not(.ww-fullscreen)) .page-thumbs {
-            grid-column: 1;
-            grid-row: 1 / -1;
             flex-direction: column;
+            align-items: center;
             min-block-size: 0;
             padding-block-end: var(--_page-action-space);
             overflow-y: auto;
             overflow-x: hidden;
-            scrollbar-gutter: stable;
+            scrollbar-gutter: stable both-edges;
+        }
+
+        :host(:not(:fullscreen):not(.ww-fullscreen)) .preview-actions {
+            flex: 0 0 auto;
+            flex-direction: column;
+            align-self: stretch;
+            margin: 0;
+        }
+
+        :host(:not(:fullscreen):not(.ww-fullscreen)) .preview-actions > .add-page {
+            align-self: center;
         }
 
         :host(:not(:fullscreen):not(.ww-fullscreen)) .pages-view ::slotted(webwriter-page) {

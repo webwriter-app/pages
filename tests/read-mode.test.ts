@@ -593,7 +593,7 @@ describe("<webwriter-pages> in read mode", function () {
     }
   });
 
-  it("keeps regular Slides controls beside the add pane with compact previews", async function () {
+  it("places fullscreen after the add pane on the same axis as compact previews", async function () {
     const widget = await mount(`<webwriter-pages type="pages" contenteditable="true">${pages(3)}</webwriter-pages>`);
     for (const width of [300, 520, 720, 1100, 1600]) {
       widget.parentElement!.style.width = `${width}px`;
@@ -607,9 +607,18 @@ describe("<webwriter-pages> in read mode", function () {
       const preview = items(widget, ".page-thumb")[0].getBoundingClientRect();
       assert.closeTo(preview.height, 64, 1, "previews stay compact");
       assert.closeTo(add.height, preview.height, 1, "add pane matches the preview height");
-      assert.isAtLeast(fullscreen.left, add.right, `fullscreen is to the right of add at ${width}px`);
-      assert.closeTo(fullscreen.right, pane.right - 17, 1, "fullscreen stays near the right edge");
-      assert.closeTo(fullscreen.top + fullscreen.height / 2, add.top + add.height / 2, 1, "fullscreen is centered beside add");
+      if (width < 1100) {
+        assert.isAtLeast(fullscreen.left, add.right, "fullscreen is to the right of add");
+        assert.closeTo(fullscreen.right, pane.right - 17, 1, "fullscreen stays near the right edge");
+        assert.closeTo(fullscreen.top + fullscreen.height / 2, add.top + add.height / 2, 1, "fullscreen is centered beside add");
+      } else {
+        const center = (rect: DOMRect) => (rect.left + rect.right) / 2;
+        assert.isAbove(add.top, preview.bottom, "add is below the previews");
+        assert.isAtLeast(fullscreen.top, add.bottom, "fullscreen is below add");
+        assert.closeTo(center(add), center(preview), 1, "add and previews share one column");
+        assert.closeTo(center(fullscreen), center(preview), 1, "fullscreen is centered in the same column");
+        assert.closeTo(fullscreen.bottom, pane.bottom - 9, 1, "fullscreen stays at the bottom");
+      }
       const style = getComputedStyle(strip);
       assert.closeTo(preview.width,
         Math.min(64 * 16 / 9, strip.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)), 1,
@@ -631,8 +640,12 @@ describe("<webwriter-pages> in read mode", function () {
     assert.closeTo(pane.getBoundingClientRect().left, page.getBoundingClientRect().right, 1);
     assert.closeTo(pane.getBoundingClientRect().height, page.getBoundingClientRect().height, 1);
     assert.isAbove(strip.scrollHeight, strip.clientHeight, "preview list overflows vertically");
+    const fullscreen = items(widget, "#fullscreen")[0];
+    const fullscreenTop = fullscreen.getBoundingClientRect().top;
+    assert.isAtLeast(fullscreenTop, strip.getBoundingClientRect().bottom, "fullscreen sits below the scroller");
     strip.scrollTop = strip.scrollHeight;
     assert.isAbove(strip.scrollTop, 0, "preview list can scroll");
+    assert.equal(fullscreen.getBoundingClientRect().top, fullscreenTop, "scrolling leaves fullscreen in place");
     const button = items<HTMLButtonElement>(widget, "button.page-select").at(-1)!;
     button.focus();
     button.click();

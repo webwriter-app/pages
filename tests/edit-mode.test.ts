@@ -632,11 +632,11 @@ describe("<webwriter-pages> in edit mode", function () {
     }
   });
 
-  it("keeps a gap beside the add card while previews scroll and appends a page", async function () {
+  it("keeps a gap between the add card and scrolling previews and appends a page", async function () {
     const widget = await mount(`<webwriter-pages type="pages" contenteditable="">${pages(12)}</webwriter-pages>`);
     const strip = items(widget, ".page-thumbs")[0];
     const add = items<HTMLButtonElement>(widget, ".add-page")[0];
-    assert.equal(strip.nextElementSibling, add.parentElement, "add card and fullscreen sit beside the scroller");
+    assert.equal(strip.nextElementSibling, add.parentElement, "add card and fullscreen are outside the scroller");
     assert.isNull(widget.shadowRoot!.querySelector(".add-btn"), "no toolbar add button");
     for (const width of [300, 720, 1100]) {
       widget.parentElement!.style.width = `${width}px`;
@@ -649,12 +649,13 @@ describe("<webwriter-pages> in edit mode", function () {
         const viewport = strip.getBoundingClientRect();
         const card = add.getBoundingClientRect();
         const pane = items(widget, '[part="actions"]')[0].getBoundingClientRect();
-        assert.closeTo(card.left - viewport.right, 8, 1, `gap at ${width}/${progress}`);
+        const gap = width >= 1100 ? card.top - viewport.bottom : card.left - viewport.right;
+        assert.closeTo(gap, 8, 1, `gap at ${width}/${progress}`);
         assert.closeTo(card.left, initial.left, 1, "add card does not move when scrolling");
         assert.closeTo(card.top, initial.top, 1, "add card stays visible when scrolling");
         assert.isAtMost(card.right, pane.right, "add card fits the pane");
         assert.closeTo(viewport.left, pane.left, 1, "scroller reaches the left edge");
-        if (width >= 520) assert.closeTo(viewport.bottom, pane.bottom, 1, "scroller reaches the bottom edge");
+        if (width >= 520 && width < 1100) assert.closeTo(viewport.bottom, pane.bottom, 1, "horizontal scroller reaches the bottom edge");
         assert.equal(getComputedStyle(strip).scrollbarWidth, "thin");
         assert.closeTo(card.width / card.height, 16 / 9, 0.01, "add card is page-shaped");
       }
