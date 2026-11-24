@@ -39,7 +39,6 @@ export const pages_styles = css`
         box-sizing: border-box;
         border: var(--sl-panel-border-width) solid var(--sl-panel-border-color);
         border-radius: var(--sl-border-radius-medium) var(--sl-border-radius-medium) 0 0;
-        background: var(--sl-panel-background-color, Canvas);
         overflow: clip;
         user-select: none;
     }
@@ -456,14 +455,27 @@ export const pages_styles = css`
         display: none !important;
     }
 
-    /* The opaque graph covers these inert pages. Keep their real layout available
-       to the shared thumbnail capture without cloning or changing authored nodes. */
+    /* Keep inactive pages laid out for thumbnail capture. Paint a backdrop
+       between them and the active page so only the active page shows during the reveal. */
     @media screen {
+        slot.graph-preview-pages { isolation: isolate; }
+
+        slot.graph-preview-pages::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            background: var(--sl-panel-background-color, Canvas);
+        }
+
         slot.graph-preview-pages::slotted(webwriter-page) {
             display: block !important;
             position: absolute;
             inset: 0;
+            z-index: 0;
         }
+
+        slot.graph-preview-pages::slotted(webwriter-page:state(ww-page-active)) { z-index: 2; }
     }
 
     slot:not([name]) {

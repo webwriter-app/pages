@@ -66,7 +66,7 @@ export class PagesBranches extends LitElementWw {
         :host { display: block; position: relative; block-size: 100%; color: var(--ww-text-color, inherit); font-family: var(--ww-font-family, inherit); }
         * { box-sizing: border-box; }
         :host([hidden]) { display: none; }
-        .graph { position: relative; block-size: 100%; }
+        .graph { position: relative; block-size: 100%; background: var(--sl-panel-background-color, Canvas); }
         @media screen and (prefers-reduced-motion: no-preference) {
             .graph { animation: branch-graph-rise 240ms ease-out; }
             @keyframes branch-graph-rise {
