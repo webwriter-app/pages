@@ -401,13 +401,13 @@ export const pages_styles = css`
         gap: 0.5ch;
     }
 
-    ::slotted(webwriter-page:not(:state(ww-page-active))) {
-        display: none !important;
-    }
-
     /* Keep inactive pages laid out for thumbnail capture. Paint a backdrop
        between them and the active page so only the active page shows during the reveal. */
-    @media screen {
+    @media not print {
+        ::slotted(webwriter-page:not(:state(ww-page-active))) {
+            display: none !important;
+        }
+
         slot.graph-preview-pages { isolation: isolate; }
 
         slot.graph-preview-pages::before {
@@ -1114,8 +1114,10 @@ export const pages_styles = css`
             border: 0;
             padding: 0;
             aspect-ratio: auto;
-            max-width: none;
-            width: auto;
+            min-inline-size: 0;
+            max-inline-size: none !important;
+            inline-size: auto !important;
+            block-size: auto !important;
             background: none;
             container-type: normal;
         }
@@ -1128,24 +1130,23 @@ export const pages_styles = css`
         }
 
         slot:not([name]) {
-            position: static;
-            height: auto;
-            min-height: 0;
-            opacity: 1 !important;
+            display: contents;
         }
 
         .pages-layout,
+        .page-viewport,
         .page-surface,
         .page-stage {
             display: block !important;
             aspect-ratio: auto;
             inline-size: auto !important;
             block-size: auto !important;
+            margin: 0 !important;
+            container-type: normal !important;
         }
 
-        ::slotted(webwriter-page:not(:state(ww-page-active))),
         ::slotted(webwriter-page) {
-            display: block !important;
+            display: flow-root !important;
             height: auto !important;
             overflow: visible !important;
             break-inside: avoid;
