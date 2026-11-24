@@ -1009,7 +1009,7 @@ export const pages_styles = css`
     }
 
     .slide-controls-overlay {
-        --_overlay-button-size: 32px;
+        --_overlay-button-size: 28px;
         position: absolute;
         inset-inline-end: var(--sl-spacing-small);
         inset-block-end: var(--sl-spacing-small);
@@ -1017,17 +1017,22 @@ export const pages_styles = css`
         max-inline-size: calc(100% - 2 * var(--sl-spacing-small));
         box-sizing: border-box;
         margin: 0;
+        gap: 2px;
+        padding: 2px 4px;
+        border-radius: var(--sl-border-radius-medium);
         flex-wrap: wrap;
         justify-content: flex-end;
         background: var(--sl-panel-background-color, Canvas);
     }
 
+    .slide-controls-overlay .controls-section { gap: 2px; }
+    .slide-controls-overlay .pages-index { font-size: 0.8125rem; }
     .pages-view .slide-controls-overlay .controls-section:has(> .completion-overview) { flex-direction: row; }
 
     .slide-controls-overlay :is(sl-icon-button, .overlay-add-page) {
         inline-size: var(--_overlay-button-size);
         block-size: var(--_overlay-button-size);
-        font-size: 16px;
+        font-size: 0.875rem;
     }
 
     .slide-controls-overlay sl-icon-button::part(base), .overlay-add-page {
