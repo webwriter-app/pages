@@ -301,8 +301,20 @@ export class WebwriterPages extends LitElementWw {
         super();
         // Reordering by pointer or keyboard is for authors only.
         new Drag(this, { can: () => this.#permissions.editing });
-        this.addEventListener("fullscreenchange", () => this.requestUpdate());
+        this.addEventListener("fullscreenchange", this.#handleFullscreenChange);
     }
+
+    #handleFullscreenChange = async (event: Event) => {
+        if (event.target !== this) return;
+        this.requestUpdate();
+        if (!this.isFullscreen) return;
+        await this.updateComplete;
+        const page = this.activePage;
+        if (!this.isConnected || !this.isFullscreen || !this.#permissions.editing || page?.parentElement !== this
+            || (this.type === "branches" && this.branchGraphExpanded)) return;
+        page.scrollTop = 0;
+        this.#selectPageStart(page);
+    };
 
     connectedCallback() {
         super.connectedCallback?.();
@@ -721,7 +733,7 @@ export class WebwriterPages extends LitElementWw {
         });
     }
 
-    /** Return document editing to the first content of the surviving page. */
+    /** Return document editing to the first content of the page. */
     #selectPageStart(page: WebwriterPage) {
         (this.renderRoot as ShadowRoot).activeElement?.closest<HTMLElement>("sl-icon-button, input, button")?.blur();
         this.blur();

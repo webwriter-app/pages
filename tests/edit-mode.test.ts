@@ -249,6 +249,27 @@ describe("<webwriter-pages> in edit mode", function () {
     assert.equal(widget.activePageIndex, 0);
   });
 
+  it("places the caret at the start of the active slide when entering fullscreen", async function () {
+    const widget = await mount(`<webwriter-pages type="pages" contenteditable="">${pages(2)}</webwriter-pages>`);
+    items<HTMLButtonElement>(widget, ".page-select")[1].click();
+    await widget.updateComplete;
+    const text = widget.activePage.querySelector("p")!.firstChild!;
+    const selection = document.getSelection()!;
+    selection.setPosition(text, 3);
+    let fullscreen = true;
+    Object.defineProperty(widget, "isFullscreen", { configurable: true, get: () => fullscreen });
+    widget.dispatchEvent(new Event("fullscreenchange"));
+    await until(() => selection.anchorNode === text && selection.anchorOffset === 0, "caret moves to the active slide start");
+    assert.isTrue(selection.isCollapsed);
+    assert.equal(widget.activePageIndex, 1);
+
+    selection.setPosition(text, 3);
+    fullscreen = false;
+    widget.dispatchEvent(new Event("fullscreenchange"));
+    await widget.updateComplete;
+    assert.equal(selection.anchorOffset, 3, "leaving fullscreen preserves a later caret position");
+  });
+
   it("can add pages from the Slides overlay and restore the preview pane", async function () {
     const widget = await mount(`<webwriter-pages type="pages" hide-pagination contenteditable="true">${pages(2)}</webwriter-pages>`);
     const add = items<HTMLButtonElement>(widget, ".slide-controls-overlay .overlay-add-page")[0];
