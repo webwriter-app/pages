@@ -270,6 +270,31 @@ describe("<webwriter-pages> in edit mode", function () {
     assert.equal(selection.anchorOffset, 3, "leaving fullscreen preserves a later caret position");
   });
 
+  it("selects the whole first element on fullscreen entry when it is a structural or atomic block", async function () {
+    const firstBlocks = [
+      "<ul><li>List item</li></ul>",
+      "<table><tbody><tr><td>Cell</td></tr></tbody></table>",
+      "<figure><img alt='Picture'><figcaption>Caption</figcaption></figure>",
+      "<section><p>Nested text</p></section>",
+      "<p contenteditable='false'>Locked paragraph</p>",
+    ];
+    for (const markup of firstBlocks) {
+      const widget = await mount(`<webwriter-pages type="pages" contenteditable=""><webwriter-page><!--leading comment-->${markup}<p>Later text</p></webwriter-page></webwriter-pages>`);
+      const page = widget.activePage, first = page.firstElementChild!;
+      const selection = document.getSelection()!;
+      selection.setPosition(page.lastElementChild!.firstChild!, 2);
+      Object.defineProperty(widget, "isFullscreen", { configurable: true, get: () => true });
+      widget.dispatchEvent(new Event("fullscreenchange"));
+      await widget.updateComplete;
+      const { startContainer, endContainer, startOffset, endOffset } = selection.getRangeAt(0);
+      assert.equal(startContainer, page);
+      assert.equal(endContainer, page);
+      assert.equal(page.childNodes[startOffset], first);
+      assert.equal(endOffset, startOffset + 1);
+      unmountAll();
+    }
+  });
+
   it("can add pages from the Slides overlay and restore the preview pane", async function () {
     const widget = await mount(`<webwriter-pages type="pages" hide-pagination contenteditable="true">${pages(2)}</webwriter-pages>`);
     const add = items<HTMLButtonElement>(widget, ".slide-controls-overlay .overlay-add-page")[0];

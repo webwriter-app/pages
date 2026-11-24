@@ -313,7 +313,7 @@ export class WebwriterPages extends LitElementWw {
         if (!this.isConnected || !this.isFullscreen || !this.#permissions.editing || page?.parentElement !== this
             || (this.type === "branches" && this.branchGraphExpanded)) return;
         page.scrollTop = 0;
-        this.#selectPageStart(page);
+        this.#selectPageStart(page, { firstElementOnly: true });
     };
 
     connectedCallback() {
@@ -734,7 +734,7 @@ export class WebwriterPages extends LitElementWw {
     }
 
     /** Return document editing to the first content of the page. */
-    #selectPageStart(page: WebwriterPage) {
+    #selectPageStart(page: WebwriterPage, { firstElementOnly = false } = {}) {
         (this.renderRoot as ShadowRoot).activeElement?.closest<HTMLElement>("sl-icon-button, input, button")?.blur();
         this.blur();
         const selection = this.ownerDocument.getSelection();
@@ -744,7 +744,9 @@ export class WebwriterPages extends LitElementWw {
         let textContainer: Element | undefined;
         while (node instanceof Element) {
             if (node !== page && (node.localName.includes("-") || node.matches("img, picture, svg, math, video, audio, canvas, iframe, object, embed, hr, input, textarea, select, button, [contenteditable='false']"))) break;
-            if (node.matches("p, h1, h2, h3, h4, h5, h6, pre, li, td, th, summary")) textContainer = node;
+            const textBlock = node.matches("p, h1, h2, h3, h4, h5, h6, pre, li, td, th, summary");
+            if (firstElementOnly && node === first && !textBlock) break;
+            if (textBlock) textContainer = node;
             const child = Array.from(node.childNodes).find((child) => child instanceof Text ? Boolean(child.data.trim())
                 : child instanceof Element && !child.matches("[hidden], [inert], script, style, template") && getComputedStyle(child).display !== "none");
             if (!child || child instanceof HTMLBRElement) {
