@@ -12,11 +12,15 @@
     }
   },
   "./snippets/slides": {
+    "iconWidget": "webwriter-pages-slides",
     "label": {
       "_": "Slides",
       "en": "Slides",
       "de": "Folien"
     }
+  },
+  "./snippets/carousel": {
+    "iconWidget": "webwriter-pages-carousel"
   },
   "./snippets/what-is-webwriter": {
     "label": {
@@ -40,6 +44,7 @@
     }
   },
   "./snippets/branching-scenario": {
+    "iconWidget": "webwriter-pages-branching-scenario",
     "label": {
       "_": "Branching Scenario",
       "en": "Branching Scenario",

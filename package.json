@@ -169,7 +169,7 @@
     "@lit/localize": "^0.12.2",
     "@types/chai": "^5.2.2",
     "@types/mocha": "^10.0.10",
-    "@webwriter/build": "^1.14.0",
+    "@webwriter/build": "file:vendor/webwriter-build-f0a93df1.tgz",
     "@webwriter/widget": "file:vendor/webwriter-widget-670d4358.tgz",
     "chai": "^6.3.0",
     "mocha": "^12.0.3",
@@ -205,6 +205,9 @@
     "./snippets/branching-scenario.html": "./snippets/branching-scenario.html",
     "./snippets/what-is-webwriter.html": "./snippets/what-is-webwriter.html",
     "./icon": "./icon.svg",
+    "./widgets/webwriter-pages-slides.icon.svg": "./src/assets/slides.svg",
+    "./widgets/webwriter-pages-carousel.icon.svg": "./src/assets/carousel.svg",
+    "./widgets/webwriter-pages-branching-scenario.icon.svg": "./src/assets/branching-scenario.svg",
     "./editing-config.json": "./editing-config.json",
     "./custom-elements.json": "./custom-elements.json"
   },

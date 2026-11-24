@@ -19,3 +19,10 @@ does not try to fetch a package-relative SDK archive.
 When an SDK release includes these Scene changes, restore it as a runtime
 dependency, update the lockfile, and remove this snapshot. Verify the built
 package before restoring shared SDK imports.
+
+## Build tool snapshot
+
+`webwriter-build-f0a93df1.tgz` packages `@webwriter/build` from
+`webwriter-app/webwriter` commit `f0a93df1`. That commit handles `.icon.svg`
+exports as assets. The published 1.15.0 build still treats them as scripts.
+Use a published release once it includes the icon export fix.

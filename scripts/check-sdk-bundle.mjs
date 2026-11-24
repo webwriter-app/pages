@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const manifest = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 const entries = Object.entries(manifest.exports)
-    .filter(([name]) => name.startsWith("./widgets/"))
+    .filter(([name]) => name.startsWith("./widgets/") && !name.endsWith(".icon.svg"))
     .map(([, entry]) => fileURLToPath(new URL(`../${entry.default.replace(".*", ".js")}`, import.meta.url)));
 
 await build({
