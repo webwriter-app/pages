@@ -261,7 +261,7 @@
               "kind": "field",
               "name": "options",
               "static": true,
-              "default": "{ type: { type: \"select\", label: (widget: Labelled) => widget.msg(\"View\"), options: [ { value: \"tabs\", label: (widget: Labelled) => widget.msg(\"Tabs\") }, { value: \"pages\", label: (widget: Labelled) => widget.msg(\"Slides\") }, { value: \"branches\", label: (widget: Labelled) => widget.msg(\"Branches\") }, ], }, completionIndicators: { type: Boolean, label: (widget: Labelled) => widget.msg(\"Show completion indicators\"), }, } satisfies Record<string, Declared<OptionDeclaration>>"
+              "default": "{ type: { type: \"select\", label: (widget: Labelled) => widget.msg(\"View\"), options: [ { value: \"tabs\", label: (widget: Labelled) => widget.msg(\"Tabs\") }, { value: \"pages\", label: (widget: Labelled) => widget.msg(\"Slides\") }, { value: \"branches\", label: (widget: Labelled) => widget.msg(\"Branches\") }, ], }, completionIndicators: { type: Boolean, label: (widget: Labelled) => widget.msg(\"Show completion indicators\"), }, hidePagination: { type: Boolean, label: (widget: Labelled) => widget.msg(\"Hide pagination\"), hidden: (widget: HTMLElement) => widget.getAttribute(\"type\") !== \"pages\", }, } satisfies Record<string, Declared<OptionDeclaration>>"
             },
             {
               "kind": "field",
@@ -306,6 +306,17 @@
               "default": "false",
               "description": "Mark pages read on leaving them after reaching their bottom. Reader-local; off by default.",
               "attribute": "completion-indicators",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "hidePagination",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Replace the Slides preview strip with controls over the current page.",
+              "attribute": "hide-pagination",
               "reflects": true
             },
             {
@@ -760,6 +771,15 @@
               "default": "false",
               "description": "Mark pages read on leaving them after reaching their bottom. Reader-local; off by default.",
               "fieldName": "completionIndicators"
+            },
+            {
+              "name": "hide-pagination",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Replace the Slides preview strip with controls over the current page.",
+              "fieldName": "hidePagination"
             },
             {
               "name": "orientation",

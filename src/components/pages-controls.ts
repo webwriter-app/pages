@@ -46,12 +46,12 @@ export function renderPageButtons(view: PagesView, index: number) {
     </div>`;
 }
 
-/** An author-only card at the end of the page list that appends a new page. */
-export function renderAddPage(view: PagesView) {
+/** Author-only control that appends a new page. */
+export function renderAddPage(view: PagesView, appearance: "card" | "icon" = "card") {
     return view.editing ? html`
         <button
             type="button"
-            class="add-page"
+            class=${appearance === "icon" ? "overlay-add-page" : "add-page"}
             data-ww-can="edit"
             aria-label=${view.msg("Add page")}
             title=${view.msg("Add page")}

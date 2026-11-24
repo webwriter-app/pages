@@ -335,8 +335,8 @@ export const pages_styles = css`
         margin: 0;
     }
 
-    :host(:fullscreen) .pages-view .page-surface,
-    :host(.ww-fullscreen) .pages-view .page-surface {
+    :host(:fullscreen:not([hide-pagination])) .pages-view .page-surface,
+    :host(.ww-fullscreen:not([hide-pagination])) .pages-view .page-surface {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
         align-items: end;
@@ -345,21 +345,21 @@ export const pages_styles = css`
         max-inline-size: 100%;
     }
 
-    :host(:fullscreen) .pages-view .page-stage,
-    :host(.ww-fullscreen) .pages-view .page-stage {
+    :host(:fullscreen:not([hide-pagination])) .pages-view .page-stage,
+    :host(.ww-fullscreen:not([hide-pagination])) .pages-view .page-stage {
         grid-column: 1;
         grid-row: 1;
         inline-size: calc(100cqb * var(--_page-ratio));
         max-inline-size: 100%;
     }
 
-    :host(:fullscreen) .pages-view .page-surface:dir(rtl),
-    :host(.ww-fullscreen) .pages-view .page-surface:dir(rtl) {
+    :host(:fullscreen:not([hide-pagination])) .pages-view .page-surface:dir(rtl),
+    :host(.ww-fullscreen:not([hide-pagination])) .pages-view .page-surface:dir(rtl) {
         grid-template-columns: auto minmax(0, 1fr);
     }
 
-    :host(:fullscreen) .pages-view .page-surface:dir(rtl) > .page-stage,
-    :host(.ww-fullscreen) .pages-view .page-surface:dir(rtl) > .page-stage {
+    :host(:fullscreen:not([hide-pagination])) .pages-view .page-surface:dir(rtl) > .page-stage,
+    :host(.ww-fullscreen:not([hide-pagination])) .pages-view .page-surface:dir(rtl) > .page-stage {
         grid-column: 2;
     }
 
@@ -427,7 +427,7 @@ export const pages_styles = css`
         --_preview-height: 6rem;
     }
 
-    :host([type="pages"]:not(:fullscreen):not(.ww-fullscreen)) ::slotted(webwriter-page) {
+    :host([type="pages"]:not(:fullscreen):not(.ww-fullscreen):not([hide-pagination])) ::slotted(webwriter-page) {
         border-end-start-radius: 0;
         border-end-end-radius: 0;
     }
@@ -1008,6 +1008,49 @@ export const pages_styles = css`
         z-index: 1000000000;
     }
 
+    .slide-controls-overlay {
+        --_overlay-button-size: 32px;
+        position: absolute;
+        inset-inline-end: var(--sl-spacing-small);
+        inset-block-end: var(--sl-spacing-small);
+        z-index: 2;
+        max-inline-size: calc(100% - 2 * var(--sl-spacing-small));
+        box-sizing: border-box;
+        margin: 0;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        background: var(--sl-panel-background-color, Canvas);
+    }
+
+    .pages-view .slide-controls-overlay .controls-section:has(> .completion-overview) { flex-direction: row; }
+
+    .slide-controls-overlay :is(sl-icon-button, .overlay-add-page) {
+        inline-size: var(--_overlay-button-size);
+        block-size: var(--_overlay-button-size);
+        font-size: 16px;
+    }
+
+    .slide-controls-overlay sl-icon-button::part(base), .overlay-add-page {
+        display: grid;
+        place-items: center;
+        box-sizing: border-box;
+        padding: 0;
+        border-radius: var(--sl-border-radius-medium);
+    }
+
+    .slide-controls-overlay sl-icon-button::part(base) { inline-size: 100%; block-size: 100%; }
+
+    .overlay-add-page {
+        border: 0;
+        background: transparent;
+        color: var(--sl-color-neutral-600);
+        cursor: pointer;
+    }
+
+    .overlay-add-page:focus-visible { outline: 2px solid var(--_accent); outline-offset: 2px; }
+    @media (hover: hover) { .overlay-add-page:hover { color: var(--_accent); } }
+    @media (pointer: coarse) { .slide-controls-overlay { --_overlay-button-size: 44px; } }
+
     @container pages (max-width: 520px) {
         .page-tabs-row > .add-page {
             inline-size: 40px;
@@ -1020,7 +1063,7 @@ export const pages_styles = css`
     }
 
     @container pages (min-width: 1100px) {
-        :host(:not(:fullscreen):not(.ww-fullscreen)) .pages-view {
+        :host(:not(:fullscreen):not(.ww-fullscreen):not([hide-pagination])) .pages-view {
             grid-template-columns: minmax(0, 1fr) auto;
         }
 
@@ -1045,7 +1088,7 @@ export const pages_styles = css`
             scrollbar-gutter: stable;
         }
 
-        :host([type="pages"]:not(:fullscreen):not(.ww-fullscreen)) ::slotted(webwriter-page) {
+        :host([type="pages"]:not(:fullscreen):not(.ww-fullscreen):not([hide-pagination])) ::slotted(webwriter-page) {
             border-start-end-radius: 0;
             border-end-start-radius: var(--sl-border-radius-medium);
         }

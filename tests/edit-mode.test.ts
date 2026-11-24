@@ -231,6 +231,20 @@ describe("<webwriter-pages> in edit mode", function () {
     assert.equal(widget.activePageIndex, 0);
   });
 
+  it("can add pages from the Slides overlay and restore the preview pane", async function () {
+    const widget = await mount(`<webwriter-pages type="pages" hide-pagination contenteditable="true">${pages(2)}</webwriter-pages>`);
+    const add = items<HTMLButtonElement>(widget, ".slide-controls-overlay .overlay-add-page")[0];
+    assert.equal(add.getAttribute("aria-label"), "Add page");
+    add.click();
+    await until(() => widget.children.length === 3 && widget.activePageIndex === 2);
+    assert.equal(items(widget, ".page-thumb").length, 0);
+    widget.hidePagination = false;
+    await widget.updateComplete;
+    assert.isFalse(widget.hasAttribute("hide-pagination"));
+    assert.equal(items(widget, ".page-thumb").length, 3);
+    assert.equal(items(widget, ".slide-controls-overlay").length, 0);
+  });
+
   it("keeps thumbnails and their select buttons on the tab order for the keyboard", async function () {
     const widget = await mount(`<webwriter-pages type="pages" contenteditable="">${pages(3)}</webwriter-pages>`);
     await until(() => items(widget, ".page-thumb").every(thumb => thumb.tabIndex === 0), "thumbs focusable");

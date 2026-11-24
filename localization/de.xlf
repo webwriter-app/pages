@@ -86,6 +86,10 @@
         <source>Show completion indicators</source>
         <target>Abschlussanzeigen anzeigen</target>
       </trans-unit>
+      <trans-unit id="s3bae91c4d384ac23">
+        <source>Hide pagination</source>
+        <target>Folienleiste ausblenden</target>
+      </trans-unit>
       <trans-unit id="s55bc1af31c3cc9d7">
         <source>Page completed</source>
         <target>Seite abgeschlossen</target>

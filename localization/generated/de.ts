@@ -21,6 +21,7 @@
 's309c270b33a470b8': `Neue Seite`,
 's33f85f24c0f5f008': `Speichern`,
 's354ae458a550da1f': `Ziel`,
+'s3bae91c4d384ac23': `Folienleiste ausblenden`,
 's415b9ffddb8c1de6': `Seitenauswahl`,
 's4200371a855e0ae9': `Tabs zurückscrollen`,
 's4924ae578d75adec': `Seite entfernen`,

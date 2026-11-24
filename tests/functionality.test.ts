@@ -132,8 +132,13 @@ describe("<webwriter-pages>", function () {
     try {
       await waitForView(german, "Folien")
       assert.equal(view(english), "Slides")
-      assert.deepEqual(Object.keys(german.options!), ["type", "completionIndicators"]);
+      assert.deepEqual(Object.keys(german.options!), ["type", "completionIndicators", "hidePagination"]);
       assert.equal(german.options!.completionIndicators.label, "Abschlussanzeigen anzeigen");
+      assert.equal(german.options!.hidePagination.label, "Folienleiste ausblenden");
+      assert.isFalse(german.options!.hidePagination.hidden);
+      german.type = "tabs";
+      await german.updateComplete;
+      assert.isTrue(german.options!.hidePagination.hidden, "only Slides exposes the option");
       const pageActions = (widget: WebwriterPages) => Object.entries(widget.actions).filter(([name]) => ["addPage", "removeActivePage", "duplicateActivePage"].includes(name)).map(([, action]) => action)
       const labels = (widget: WebwriterPages) => pageActions(widget).map(action => action.label)
       assert.deepEqual(labels(english), ["Add", "Remove", "Duplicate"])

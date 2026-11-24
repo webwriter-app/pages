@@ -493,6 +493,49 @@ describe("<webwriter-pages> in read mode", function () {
     }
   });
 
+  it("replaces the Slides preview pane with page navigation in normal and fullscreen view", async function () {
+    const widget = await mount(`<webwriter-pages type="pages">${pages(2)}</webwriter-pages>`);
+    assert.isFalse(widget.hidePagination);
+    assert.isNotNull(widget.shadowRoot!.querySelector('[part="actions"]'));
+    widget.setAttribute("hide-pagination", "");
+    await widget.updateComplete;
+    const overlay = widget.shadowRoot!.querySelector<HTMLElement>(".slide-controls-overlay")!;
+    assert.isNull(widget.shadowRoot!.querySelector('[part="actions"]'));
+    assert.isNull(overlay.querySelector(".overlay-add-page"), "readers cannot add pages");
+    const [previous, next] = overlay.querySelectorAll<HTMLElement>(".controls-section:first-child sl-icon-button");
+    const count = () => overlay.querySelector(".pages-index")!.textContent!.replace(/\s/g, "");
+    assert.equal(count(), "1/2");
+    assert.isTrue(previous.hasAttribute("disabled"));
+    next.click();
+    await widget.updateComplete;
+    assert.equal(count(), "2/2");
+    assert.isTrue(next.hasAttribute("disabled"));
+    previous.click();
+    await widget.updateComplete;
+    assert.equal(count(), "1/2");
+
+    Object.defineProperty(widget, "isFullscreen", { configurable: true, get: () => true });
+    widget.classList.add("ww-fullscreen");
+    widget.style.width = "360px";
+    widget.style.height = "640px";
+    widget.dir = "rtl";
+    widget.requestUpdate();
+    await widget.updateComplete;
+    await frame(2);
+    assert.equal(overlay.querySelector("#fullscreen")!.getAttribute("label"), "Exit fullscreen");
+    const stage = widget.shadowRoot!.querySelector(".page-stage")!.getBoundingClientRect();
+    const controls = overlay.getBoundingClientRect();
+    assert.closeTo(stage.width / stage.height, 16 / 9, 0.01);
+    assert.isAtLeast(controls.left, stage.left);
+    assert.isAtMost(controls.right, stage.right);
+    assert.isAtMost(controls.bottom, stage.bottom);
+
+    widget.type = "tabs";
+    await widget.updateComplete;
+    assert.isNull(widget.shadowRoot!.querySelector(".slide-controls-overlay"));
+    assert.isTrue(widget.hasAttribute("hide-pagination"), "changing view preserves the saved preference");
+  });
+
   it("keeps fullscreen slide controls outside the physical right edge within the viewport", async function () {
     const widget = await mount(`<webwriter-pages type="pages">${pages(3)}</webwriter-pages>`);
     Object.defineProperty(widget, "isFullscreen", { configurable: true, get: () => true });

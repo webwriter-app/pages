@@ -21,7 +21,7 @@ import { sourceLocale, targetLocales } from "../../localization/generated/locale
 
 import { WebwriterPage } from "./webwriter-page";
 import { pages_styles } from "../components/webwriter-pages.styles";
-import { renderControls } from "../components/pages-controls";
+import { renderAddPage, renderControls } from "../components/pages-controls";
 import { renderThumbs, renderTabs } from "../components/pages-strip";
 import { sectionToPages, pageToDetails } from "../components/pages-convert";
 import { captureThumbnail } from "../components/page-thumbnail";
@@ -101,6 +101,11 @@ export class WebwriterPages extends LitElementWw {
             type: Boolean,
             label: (widget: Labelled) => widget.msg("Show completion indicators"),
         },
+        hidePagination: {
+            type: Boolean,
+            label: (widget: Labelled) => widget.msg("Hide pagination"),
+            hidden: (widget: HTMLElement) => widget.getAttribute("type") !== "pages",
+        },
     } satisfies Record<string, Declared<OptionDeclaration>>;
 
     static actions = {
@@ -143,6 +148,10 @@ export class WebwriterPages extends LitElementWw {
     /** Mark pages read on leaving them after reaching their bottom. Reader-local; off by default. */
     @property({ type: Boolean, attribute: "completion-indicators", reflect: true, useDefault: true })
     accessor completionIndicators = false;
+
+    /** Replace the Slides preview strip with controls over the current page. */
+    @property({ type: Boolean, attribute: "hide-pagination", reflect: true, useDefault: true })
+    accessor hidePagination = false;
 
     /** Page orientation: 16:9 landscape or 9:16 portrait. */
     @property({ type: String, reflect: true, useDefault: true })
@@ -362,7 +371,7 @@ export class WebwriterPages extends LitElementWw {
             this.#branchPageAnimation?.cancel();
             this.#branchPageAnimation = undefined;
         }
-        if (changed.has("type") || changed.has("orientation") || changed.has("pageAspectRatio") ||
+        if (changed.has("type") || changed.has("orientation") || changed.has("pageAspectRatio") || changed.has("hidePagination") ||
             this.#aspectEditing !== editing || this.#aspectFullscreen !== this.isFullscreen) this.#aspectResize.disconnect();
         this.#aspectEditing = editing;
         this.#aspectFullscreen = this.isFullscreen;
@@ -420,7 +429,7 @@ export class WebwriterPages extends LitElementWw {
         const duplicateDisabled = !this.activePage;
         const removeDisabled = duplicateDisabled || this.pages.length <= 1;
         const resetDisabled = !this.hasAttribute("page-aspect-ratio");
-        if (this.#actionsDisabled.duplicateActivePage !== duplicateDisabled ||
+        if (changed.has("type") || this.#actionsDisabled.duplicateActivePage !== duplicateDisabled ||
             this.#actionsDisabled.removeActivePage !== removeDisabled || this.#resetAspectDisabled !== resetDisabled) {
             this.#actionsDisabled = { duplicateActivePage: duplicateDisabled, removeActivePage: removeDisabled };
             this.#resetAspectDisabled = resetDisabled;
@@ -996,6 +1005,7 @@ export class WebwriterPages extends LitElementWw {
     render() {
         const view = this.#view();
         const branches = this.type === "branches";
+        const compactSlides = this.type === "pages" && this.hidePagination;
         const ratio = this.aspectPreview ?? this.#pageRatio;
         const edge = this.#aspectEdge;
         return html`
@@ -1009,6 +1019,9 @@ export class WebwriterPages extends LitElementWw {
                                 .view=${view} .pageRatio=${ratio} .startKey=${this.startPage || pageKey(view.pages[0])}
                                 .setBranches=${this.#setBranches} .movePages=${this.#moveBranchPages} .setStart=${this.#setStartPage} .addPageAt=${this.#addBranchPage} .openPage=${this.#openBranchPage}
                             ></pages-branches>` : nothing}
+                            ${compactSlides ? html`<div class="controls-overlay slide-controls-overlay" contenteditable="false">
+                                ${renderControls(view)}${renderAddPage(view, "icon")}
+                            </div>` : nothing}
                             ${view.editing ? html`<div class="page-aspect-handle ${edge}" role="separator" tabindex="0" contenteditable="false"
                                 aria-label=${this.msg("Resize page aspect ratio")} title=${this.msg("Resize page aspect ratio")}
                                 aria-orientation=${edge === "inline-end" ? "vertical" : "horizontal"}
@@ -1018,13 +1031,13 @@ export class WebwriterPages extends LitElementWw {
                                 ${this.aspectPreview !== null ? html`<span class="page-aspect-label" aria-hidden="true">${formatPageAspectRatio(ratio)}</span>` : nothing}
                             </div>` : nothing}
                         </div>
-                        ${this.type == "pages" && this.isFullscreen
+                        ${this.type === "pages" && this.isFullscreen && !compactSlides
                             ? html`<div class="controls-overlay" contenteditable="false">${renderControls(view)}</div>`
                             : html``}
                     </div>
                 </div>
-                ${this.type == "pages" && !this.isFullscreen ? renderThumbs(view) : html``}
-                ${branches ? renderBranchChoices(view, this.#setBranches, this.#followBranch, this.branchGraphExpanded, () => this.branchGraphExpanded = !this.branchGraphExpanded, this.#addPageChoice) : nothing}
+                ${this.type === "pages" && !this.isFullscreen && !compactSlides ? renderThumbs(view) : nothing}
+                ${branches ? renderBranchChoices(view, this.#setBranches, this.#followBranch, this.branchGraphExpanded, () => this.branchGraphExpanded = !this.branchGraphExpanded, this.#addPageChoice, this.localize.getLocale(), this.#watchPendingSignalTags, this.#setHighlightedWidgets) : nothing}
             </div>
         `;
     }
