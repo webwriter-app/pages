@@ -67,7 +67,7 @@ export function renderTabs(view: PagesView) {
     </aside>`;
 }
 
-/** The thumbnail strip with its controls, shown in the "pages" view outside fullscreen. */
+/** The thumbnail strip with its controls for the Slides view. */
 export function renderThumbs(view: PagesView) {
     return html`<aside part="actions" contenteditable="false">
         <div class="page-thumbs" role="region" aria-label=${view.msg("Pages")} tabindex="0" data-ww-drop="page" data-ww-drop-position="index" @ww-dragcommit=${view.onDragCommit}>

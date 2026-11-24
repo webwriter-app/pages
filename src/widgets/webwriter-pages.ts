@@ -1009,12 +1009,9 @@ export class WebwriterPages extends LitElementWw {
                                 ${this.aspectPreview !== null ? html`<span class="page-aspect-label" aria-hidden="true">${formatPageAspectRatio(ratio)}</span>` : nothing}
                             </div>` : nothing}
                         </div>
-                        ${this.type === "pages" && this.isFullscreen && !compactSlides
-                            ? html`<div class="controls-overlay" contenteditable="false">${renderControls(view)}</div>`
-                            : html``}
                     </div>
                 </div>
-                ${this.type === "pages" && !this.isFullscreen && !compactSlides ? renderThumbs(view) : nothing}
+                ${this.type === "pages" && !compactSlides ? renderThumbs(view) : nothing}
                 ${branches ? renderBranchChoices(view, this.#setBranches, this.#followBranch, this.branchGraphExpanded, () => this.branchGraphExpanded = !this.branchGraphExpanded, this.#addPageChoice, this.localize.getLocale(), this.#watchPendingSignalTags, this.#setHighlightedWidgets) : nothing}
             </div>
         `;

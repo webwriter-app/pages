@@ -22,7 +22,7 @@ Display authored content in Tabs, Slides, or Branches, with Tabs by default.
 
 Authors add `webwriter-page` children; the `type` attribute switches between the Slides view with preview cards ("pages")
 and the default tab strip ("tabs"). Thumbnails are drawn in the editor with a capture library that loads on first use.
-In Slides, **Hide pagination** replaces the preview pane with an overlay for the current page count, navigation, and fullscreen. Authors can add a page from the overlay.
+In Slides, the preview pane remains at the bottom in fullscreen. **Hide pagination** replaces it with an overlay for the current page count, navigation, and fullscreen. Authors can add a page from the overlay.
 In use mode the arrow keys, the controls and swipes in fullscreen move between pages. The arrow keys leave
 text entry, Alt and Meta combinations alone. Every thumbnail and inactive tab has a button that selects its page;
 in edit mode Space or Enter on the thumbnail itself picks it up for reordering.

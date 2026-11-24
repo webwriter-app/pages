@@ -311,39 +311,6 @@ export const pages_styles = css`
         margin: 0;
     }
 
-    :host(:fullscreen:not([hide-pagination])) .pages-view .page-surface,
-    :host(.ww-fullscreen:not([hide-pagination])) .pages-view .page-surface {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: end;
-        gap: var(--sl-spacing-small);
-        inline-size: max-content;
-        max-inline-size: 100%;
-    }
-
-    :host(:fullscreen:not([hide-pagination])) .pages-view .page-stage,
-    :host(.ww-fullscreen:not([hide-pagination])) .pages-view .page-stage {
-        grid-column: 1;
-        grid-row: 1;
-        inline-size: calc(100cqb * var(--_page-ratio));
-        max-inline-size: 100%;
-    }
-
-    :host(:fullscreen:not([hide-pagination])) .pages-view .page-surface:dir(rtl),
-    :host(.ww-fullscreen:not([hide-pagination])) .pages-view .page-surface:dir(rtl) {
-        grid-template-columns: auto minmax(0, 1fr);
-    }
-
-    :host(:fullscreen:not([hide-pagination])) .pages-view .page-surface:dir(rtl) > .page-stage,
-    :host(.ww-fullscreen:not([hide-pagination])) .pages-view .page-surface:dir(rtl) > .page-stage {
-        grid-column: 2;
-    }
-
-    :host(:fullscreen) .pages-view .page-surface:dir(rtl) > .controls-overlay,
-    :host(.ww-fullscreen) .pages-view .page-surface:dir(rtl) > .controls-overlay {
-        grid-column: 1;
-    }
-
     [part="tabs"] {
         inline-size: 100%;
         box-sizing: border-box;
@@ -401,6 +368,13 @@ export const pages_styles = css`
 
     :host([orientation="portrait"]) [part="actions"] {
         --_preview-height: 6rem;
+    }
+
+    :host(:fullscreen) [part="actions"],
+    :host(.ww-fullscreen) [part="actions"] {
+        flex: 0 0 auto;
+        border-block-start: var(--sl-panel-border-width) solid var(--sl-panel-border-color);
+        border-radius: 0;
     }
 
     :host([type="pages"]:not(:fullscreen):not(.ww-fullscreen):not([hide-pagination])) ::slotted(webwriter-page) {
@@ -969,21 +943,6 @@ export const pages_styles = css`
         }
     }
 
-    .controls-overlay {
-        grid-column: 2;
-        grid-row: 1;
-        margin-block-end: var(--sl-spacing-small);
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        gap: var(--sl-spacing-2x-small);
-        padding: var(--sl-spacing-2x-small) var(--sl-spacing-x-small);
-        background: rgba(255, 255, 255, 0.75);
-        border-radius: var(--sl-border-radius-large);
-        border: var(--sl-panel-border-width) solid var(--sl-panel-border-color);
-        z-index: 1000000000;
-    }
-
     .slide-controls-overlay {
         --_overlay-button-size: 28px;
         position: absolute;
@@ -992,9 +951,11 @@ export const pages_styles = css`
         z-index: 2;
         max-inline-size: calc(100% - 2 * var(--sl-spacing-small));
         box-sizing: border-box;
-        margin: 0;
+        display: flex;
+        align-items: center;
         gap: 2px;
         padding: 2px 4px;
+        border: var(--sl-panel-border-width) solid var(--sl-panel-border-color);
         border-radius: var(--sl-border-radius-medium);
         flex-wrap: wrap;
         justify-content: flex-end;

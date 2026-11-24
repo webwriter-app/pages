@@ -536,12 +536,20 @@ describe("<webwriter-pages> in read mode", function () {
     assert.isTrue(widget.hasAttribute("hide-pagination"), "changing view preserves the saved preference");
   });
 
-  it("keeps fullscreen slide controls outside the physical right edge within the viewport", async function () {
+  it("keeps the regular Slides preview pane below the fitted page in fullscreen", async function () {
     const widget = await mount(`<webwriter-pages type="pages">${pages(3)}</webwriter-pages>`);
+    const pane = widget.shadowRoot!.querySelector<HTMLElement>('[part="actions"]')!;
     Object.defineProperty(widget, "isFullscreen", { configurable: true, get: () => true });
     widget.classList.add("ww-fullscreen");
     widget.requestUpdate();
     await widget.updateComplete;
+    assert.equal(widget.shadowRoot!.querySelector('[part="actions"]'), pane, "fullscreen keeps the same preview pane");
+    assert.equal(pane.querySelectorAll(".page-thumb").length, 3);
+    assert.equal(pane.querySelector("#fullscreen")!.getAttribute("label"), "Exit fullscreen");
+    assert.isNull(widget.shadowRoot!.querySelector(".controls-overlay"));
+    pane.querySelectorAll<HTMLButtonElement>(".page-select")[1].click();
+    await widget.updateComplete;
+    assert.equal(widget.activePageIndex, 1, "preview navigation works in fullscreen");
     for(const direction of ["ltr", "rtl"] as const) {
       widget.dir = direction;
       for(const orientation of ["landscape", "portrait"] as const) {
@@ -554,12 +562,12 @@ describe("<webwriter-pages> in read mode", function () {
           const context = `${direction}/${orientation}/${width}x${height}`;
           const host = widget.getBoundingClientRect();
           const page = widget.activePage.getBoundingClientRect();
-          const controls = items(widget, ".controls-overlay")[0].getBoundingClientRect();
+          const controls = pane.getBoundingClientRect();
           assert.isAbove(controls.width, 0, `controls are visible: ${context}`);
           assert.isAbove(controls.height, 0, `controls are visible: ${context}`);
           assert.closeTo(page.width / page.height, orientation === "portrait" ? 9 / 16 : 16 / 9, 0.01, `page ratio: ${context}`);
-          assert.closeTo(controls.left, page.right + 12, 1, `controls use the physical right edge with a 12px gap: ${context}`);
-          assert.closeTo(controls.bottom, page.bottom - 12, 1, `controls align above the page bottom: ${context}`);
+          assert.isAtLeast(controls.top, page.bottom - 1, `pane stays below the page: ${context}`);
+          assert.closeTo(controls.bottom, host.bottom, 1, `pane sits at the bottom of fullscreen: ${context}`);
           for(const [name, rect] of [["page", page], ["controls", controls]] as const) {
             assert.isAtLeast(rect.left, host.left - 1, `${name} fits on the left: ${context}`);
             assert.isAtMost(rect.right, host.right + 1, `${name} fits on the right: ${context}`);
@@ -576,7 +584,7 @@ describe("<webwriter-pages> in read mode", function () {
     for (const width of [300, 520, 720, 1100, 1600]) {
       widget.parentElement!.style.width = `${width}px`;
       await frame(2);
-      assert.isNull(widget.shadowRoot!.querySelector(".pages-index"), "pagination is fullscreen-only");
+      assert.isNull(widget.shadowRoot!.querySelector(".pages-index"), "the preview pane navigates through thumbnails");
       assert.isNull(widget.shadowRoot!.querySelector('[title="Go to next page"]'), "no regular navigation chevron");
       const add = items(widget, ".add-page")[0].getBoundingClientRect();
       const fullscreen = items(widget, "#fullscreen")[0].getBoundingClientRect();
