@@ -37,7 +37,7 @@ Routing uses stable local `page-key` values, independent of page order or labels
 
 Set `orientation="portrait"` for a 9:16 page, or use the default `landscape` for 16:9. The orientation applies to all views, fullscreen, and preview cards. The attribute is optional; an absent attribute keeps landscape without adding it to existing markup.
 
-In edit mode, drag the divider where the page meets its controls to change the page aspect ratio. It snaps in steps of 0.05 between 1:2 and 3:1, with an extra step of attraction around exact 16:9, saved as `page-aspect-ratio` on the widget. A temporary fraction label, such as 16:9 or 4:3, follows the pointer while dragging. Arrow keys adjust the focused divider; Home and End choose the limits. **Reset aspect ratio** in the options removes the override and restores the orientation default. A drag previews locally and becomes one undo step only when released; Escape cancels it.
+In edit mode, drag the bottom edge of the page to change its aspect ratio. It snaps in steps of 0.05 between 1:2 and 3:1, with an extra step of attraction around exact 16:9, saved as `page-aspect-ratio` on the widget. A temporary fraction label, such as 16:9 or 4:3, follows the pointer while dragging. Up and Down adjust the focused handle; Home and End choose the limits. **Reset aspect ratio** in the options removes the override and restores the orientation default. A drag previews locally and becomes one undo step only when released; Escape cancels it.
 
 The widget follows the page theme: `--ww-text-color`, `--ww-font-family`, and `--ww-theme-accent-1` (the
 selected thumbnail). On paper it prints all pages one after another and leaves out the controls.

@@ -38,15 +38,12 @@ export interface PageAspectResizeState {
     ratio: number;
     width: number;
     height: number;
-    edge: "top" | "bottom" | "inline-end";
-    rtl?: boolean;
 }
 
-export function ratioFromPageAspectDrag(state: PageAspectResizeState, dx: number, dy: number): number {
-    if (!Number.isFinite(dx) || !Number.isFinite(dy) || !(state.width > 0) || !(state.height > 0)
+export function ratioFromPageAspectDrag(state: PageAspectResizeState, dy: number): number {
+    if (!Number.isFinite(dy) || !(state.width > 0) || !(state.height > 0)
         || !Number.isFinite(state.width) || !Number.isFinite(state.height)) return normalizePageAspectRatio(state.ratio);
-    if (state.edge === "inline-end") return dragged((state.width + (state.rtl ? -dx : dx)) / state.height);
-    const height = state.height + (state.edge === "top" ? -dy : dy);
+    const height = state.height + dy;
     return height <= 0 ? MAX_PAGE_ASPECT_RATIO : dragged(state.width / height);
 }
 
@@ -78,10 +75,10 @@ export class PageAspectResize {
         try {
             for await (const sample of gesture) {
                 if (this.#gesture !== gesture) return;
-                this.options.preview(ratioFromPageAspectDrag(initial, sample.dx, sample.dy));
+                this.options.preview(ratioFromPageAspectDrag(initial, sample.dy));
             }
             if (this.#gesture !== gesture || gesture.cancelled || !gesture.moved || !handle.isConnected || !this.options.read()) return;
-            const ratio = ratioFromPageAspectDrag(initial, gesture.last.dx, gesture.last.dy);
+            const ratio = ratioFromPageAspectDrag(initial, gesture.last.dy);
             if (Math.abs(ratio - initial.ratio) > 1e-10) await this.options.commit(ratio);
         } finally {
             if (this.#gesture === gesture) {
@@ -103,10 +100,7 @@ export class PageAspectResize {
         if (event.defaultPrevented || this.#gesture || event.ctrlKey || event.metaKey || event.altKey) return;
         const state = this.options.read();
         if (!state) return;
-        const directions = state.edge === "inline-end"
-            ? { ArrowLeft: state.rtl ? 1 : -1, ArrowRight: state.rtl ? -1 : 1 }
-            : { ArrowUp: state.edge === "top" ? -1 : 1, ArrowDown: state.edge === "top" ? 1 : -1 };
-        const direction = directions[event.key as keyof typeof directions];
+        const direction = event.key === "ArrowUp" ? 1 : event.key === "ArrowDown" ? -1 : 0;
         const current = normalizePageAspectRatio(state.ratio);
         const ratio = event.key === "Home" ? MIN_PAGE_ASPECT_RATIO : event.key === "End" ? MAX_PAGE_ASPECT_RATIO
             : direction ? stepped(current + direction * PAGE_ASPECT_RATIO_STEP) : null;

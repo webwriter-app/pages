@@ -165,19 +165,17 @@ export class WebwriterPages extends LitElementWw {
     accessor pageAspectRatio: number | undefined = undefined;
 
     @state() private accessor aspectPreview: number | null = null;
-    @state() private accessor aspectWide = false;
     #aspectEditing = false;
     #aspectFullscreen = false;
     #lastPageRatio?: number;
     #aspectCaptureRevision = 0;
     #resetAspectDisabled = true;
-    #aspectObserver = new ResizeObserver(() => this.#updateAspectEdge());
     #aspectResize = new PageAspectResize({
         read: () => {
             const stage = this.renderRoot.querySelector(".page-stage");
             if (!this.isConnected || !this.#permissions.editing || !stage) return null;
             const rect = stage.getBoundingClientRect();
-            return { ratio: this.#pageRatio, width: rect.width, height: rect.height, edge: this.#aspectEdge, rtl: getComputedStyle(this).direction === "rtl" };
+            return { ratio: this.#pageRatio, width: rect.width, height: rect.height };
         },
         preview: ratio => {
             if (ratio !== this.aspectPreview) this.#aspectCaptureRevision++;
@@ -195,28 +193,11 @@ export class WebwriterPages extends LitElementWw {
         return normalizePageAspectRatio(this.pageAspectRatio ?? NaN, this.orientation === "portrait" ? 9 / 16 : 16 / 9);
     }
 
-    get #aspectEdge(): "top" | "bottom" | "inline-end" {
-        return this.type === "tabs" ? "top" : this.type === "pages" && this.aspectWide ? "inline-end" : "bottom";
-    }
-
-    #updateAspectEdge() {
-        const stage = this.renderRoot.querySelector(".page-stage")?.getBoundingClientRect();
-        const pane = this.renderRoot.querySelector('[part="actions"]')?.getBoundingClientRect();
-        const wide = this.type === "pages" && !this.isFullscreen && Boolean(stage && pane &&
-            (pane.left >= stage.right - 1 || pane.right <= stage.left + 1));
-        if (wide !== this.aspectWide) {
-            this.#aspectResize.disconnect();
-            this.aspectWide = wide;
-        }
-    }
-
     #positionAspectLabel(event: PointerEvent) {
         const handle = event.currentTarget as HTMLElement;
         const rect = handle.getBoundingClientRect();
-        const vertical = this.#aspectEdge === "inline-end";
-        const position = vertical ? event.clientY - rect.top : event.clientX - rect.left;
-        const length = vertical ? rect.height : rect.width;
-        handle.style.setProperty("--_aspect-pointer", `${Math.max(32, Math.min(length - 32, position))}px`);
+        const position = event.clientX - rect.left;
+        handle.style.setProperty("--_aspect-pointer", `${Math.max(32, Math.min(rect.width - 32, position))}px`);
     }
 
     #resizePagePointerDown(event: PointerEvent) {
@@ -340,7 +321,6 @@ export class WebwriterPages extends LitElementWw {
         this.addEventListener("error", this.#queueCompletionCheck, { capture: true, signal });
         document.addEventListener("visibilitychange", this.#queueCompletionCheck, { signal });
         this.#pageAttributesObserver.observe(this, { attributes: true, attributeFilter: ["label", "style", "class", "page-key", "branches", "node-x", "node-y"], subtree: true });
-        this.#aspectObserver.observe(this);
         this.requestUpdate();
     }
 
@@ -358,7 +338,6 @@ export class WebwriterPages extends LitElementWw {
         this.#branchPageAnimation = undefined;
         this.#stopCompletionTracking();
         this.#aspectResize.disconnect();
-        this.#aspectObserver.disconnect();
     }
 
     protected firstUpdated(): void {
@@ -405,7 +384,6 @@ export class WebwriterPages extends LitElementWw {
             if (this.#permissions.editing) this.changePage(this.activePageIndex);
         }
         this.#lastPageRatio = ratio;
-        this.#updateAspectEdge();
         const scroller = this.renderRoot.querySelector<HTMLElement>(".page-tabs-wrapper");
         if (scroller !== this.#tabScroller) {
             this.#tabResizeObserver?.disconnect();
@@ -1008,7 +986,6 @@ export class WebwriterPages extends LitElementWw {
         const branches = this.type === "branches";
         const compactSlides = this.type === "pages" && this.hidePagination;
         const ratio = this.aspectPreview ?? this.#pageRatio;
-        const edge = this.#aspectEdge;
         return html`
             <div class="pages-layout ${branches ? "branches-view" : this.type === "pages" ? "pages-view" : "tabs-view"}" style=${styleMap({ "--_page-ratio": String(ratio), "--_preview-ratio": String(this.orientation === "portrait" ? 9 / 16 : 16 / 9) })}>
                 ${this.type === "tabs" ? renderTabs(view) : html``}
@@ -1023,9 +1000,9 @@ export class WebwriterPages extends LitElementWw {
                             ${compactSlides ? html`<div class="controls-overlay slide-controls-overlay" contenteditable="false">
                                 ${renderControls(view)}${renderAddPage(view, "icon")}
                             </div>` : nothing}
-                            ${view.editing ? html`<div class="page-aspect-handle ${edge}" role="separator" tabindex="0" contenteditable="false"
+                            ${view.editing ? html`<div class="page-aspect-handle" role="separator" tabindex="0" contenteditable="false"
                                 aria-label=${this.msg("Resize page aspect ratio")} title=${this.msg("Resize page aspect ratio")}
-                                aria-orientation=${edge === "inline-end" ? "vertical" : "horizontal"}
+                                aria-orientation="horizontal"
                                 aria-valuemin=${MIN_PAGE_ASPECT_RATIO} aria-valuemax=${MAX_PAGE_ASPECT_RATIO} aria-valuenow=${ratio} aria-valuetext=${formatPageAspectRatio(ratio)}
                                 ?data-resizing=${this.aspectPreview !== null}
                                 @pointerdown=${this.#resizePagePointerDown} @pointermove=${(event: PointerEvent) => { if (this.aspectPreview !== null) this.#positionAspectLabel(event); }} @keydown=${this.#aspectResize.keydown}>

@@ -229,6 +229,7 @@ export const pages_styles = css`
     .page-aspect-handle {
         position: absolute;
         inset-inline: 0;
+        inset-block-end: 0;
         block-size: 10px;
         z-index: 3;
         cursor: row-resize;
@@ -236,16 +237,6 @@ export const pages_styles = css`
         -webkit-user-select: none;
         user-select: none;
         outline: none;
-    }
-
-    .page-aspect-handle.top { inset-block-start: 0; }
-    .page-aspect-handle.bottom { inset-block-end: 0; }
-    .page-aspect-handle.inline-end {
-        inset-inline: auto 0;
-        inset-block: 0;
-        inline-size: 10px;
-        block-size: auto;
-        cursor: col-resize;
     }
 
     .page-aspect-handle::after {
@@ -257,13 +248,6 @@ export const pages_styles = css`
         background: var(--_accent);
         opacity: 0;
         pointer-events: none;
-    }
-
-    .page-aspect-handle.inline-end::after {
-        inset-inline: 50% auto;
-        inset-block: 0;
-        inline-size: 2px;
-        block-size: auto;
     }
 
     .page-aspect-handle:is(:hover, :focus-visible, [data-resizing])::after { opacity: 1; }
@@ -283,14 +267,6 @@ export const pages_styles = css`
         white-space: nowrap;
         box-shadow: 0 1px 4px rgb(0 0 0 / 0.15);
         pointer-events: none;
-    }
-
-    .page-aspect-handle.top .page-aspect-label { inset-block-end: auto; inset-block-start: calc(100% + 4px); }
-    .page-aspect-handle.inline-end .page-aspect-label {
-        left: auto;
-        inset-inline-end: calc(100% + 4px);
-        inset-block: var(--_aspect-pointer, 50%) auto;
-        translate: 0 -50%;
     }
 
     .page-viewport {

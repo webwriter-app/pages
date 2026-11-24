@@ -7,7 +7,7 @@ const tick = async () => { await frame(); await frame(); };
 
 export function testAspectResize() {
     describe("page aspect resize helper", function () {
-        const bottom: PageAspectResizeState = { ratio: 2, width: 600, height: 300, edge: "bottom" };
+        const bottom: PageAspectResizeState = { ratio: 2, width: 600, height: 300 };
         let handle: HTMLElement;
         let resize: PageAspectResize;
         let current: PageAspectResizeState | null;
@@ -50,25 +50,22 @@ export function testAspectResize() {
             assert.equal(normalizePageAspectRatio(NaN, NaN), 16 / 9);
         });
 
-        it("uses the seam side, horizontal RTL direction and fixed initial dimensions", function () {
-            assert.closeTo(ratioFromPageAspectDrag(bottom, 0, 100), 1.5, 1e-10);
-            assert.closeTo(ratioFromPageAspectDrag({ ...bottom, edge: "top" }, 0, 100), 3, 1e-10);
-            assert.closeTo(ratioFromPageAspectDrag({ ...bottom, edge: "inline-end" }, 90, 500), 2.3, 1e-10);
-            assert.closeTo(ratioFromPageAspectDrag({ ...bottom, edge: "inline-end", rtl: true }, 90, 500), 1.7, 1e-10);
-            assert.equal(ratioFromPageAspectDrag(bottom, 0, -500), MAX_PAGE_ASPECT_RATIO);
-            assert.equal(ratioFromPageAspectDrag(bottom, 0, 5000), MIN_PAGE_ASPECT_RATIO);
-            assert.equal(ratioFromPageAspectDrag({ ...bottom, width: Infinity }, 10, 10), 2);
+        it("adjusts the initial height by the vertical drag and clamps the resulting ratio", function () {
+            assert.equal(ratioFromPageAspectDrag(bottom, 100), 1.5);
+            assert.equal(ratioFromPageAspectDrag(bottom, -60), 2.5);
+            assert.equal(ratioFromPageAspectDrag(bottom, -500), MAX_PAGE_ASPECT_RATIO);
+            assert.equal(ratioFromPageAspectDrag(bottom, 5000), MIN_PAGE_ASPECT_RATIO);
+            assert.equal(ratioFromPageAspectDrag({ ...bottom, width: Infinity }, 10), 2);
         });
 
         it("snaps a drag to exact 16:9 through both expanded snap boundaries, then returns to ordinary steps", function () {
             const exact = 16 / 9, reach = 1.5 * PAGE_ASPECT_RATIO_STEP;
             for (const offset of [-reach, -PAGE_ASPECT_RATIO_STEP, 0, PAGE_ASPECT_RATIO_STEP, reach]) {
                 const raw = exact + offset;
-                assert.equal(ratioFromPageAspectDrag(bottom, 0, bottom.width / raw - bottom.height), exact);
-                assert.equal(ratioFromPageAspectDrag({ ...bottom, edge: "inline-end" }, raw * bottom.height - bottom.width, 0), exact);
+                assert.equal(ratioFromPageAspectDrag(bottom, bottom.width / raw - bottom.height), exact);
             }
-            assert.equal(ratioFromPageAspectDrag(bottom, 0, bottom.width / (exact - reach - 0.0001) - bottom.height), 1.7);
-            assert.equal(ratioFromPageAspectDrag(bottom, 0, bottom.width / (exact + reach + 0.0001) - bottom.height), 1.85);
+            assert.equal(ratioFromPageAspectDrag(bottom, bottom.width / (exact - reach - 0.0001) - bottom.height), 1.7);
+            assert.equal(ratioFromPageAspectDrag(bottom, bottom.width / (exact + reach + 0.0001) - bottom.height), 1.85);
         });
 
         it("formats familiar exact and nearby ratios as small whole-number fractions", function () {
@@ -96,9 +93,9 @@ export function testAspectResize() {
             assert.equal(previews.at(-1), 16 / 9, "raw 600/350 enters the expanded 16:9 snap range");
             assert.deepEqual(commits, []);
             assert.isFalse(handle.hasAttribute("page-aspect-ratio"));
-            pointer("pointermove", 20, 120);
+            pointer("pointermove", 110, 120);
             await tick();
-            pointer("pointerup", 20, 120);
+            pointer("pointerup", 110, 120);
             await tick();
             assert.deepEqual(commits, [1.5]);
             assert.equal(handle.getAttribute("page-aspect-ratio"), "1.5");
@@ -140,17 +137,13 @@ export function testAspectResize() {
         it("uses arrows and Home/End with the same step and bounds, leaving unrelated keys alone", function () {
             assert.isTrue(key("ArrowUp").defaultPrevented);
             assert.equal(commits.at(-1), 2.05, "step values serialize without floating-point tails");
-            current = { ...bottom, edge: "top" };
-            key("ArrowUp");
-            assert.closeTo(commits.at(-1)!, 1.95, 1e-10);
-            current = { ...bottom, edge: "inline-end", rtl: true };
-            key("ArrowRight");
-            assert.closeTo(commits.at(-1)!, 1.95, 1e-10);
+            assert.isTrue(key("ArrowDown").defaultPrevented);
+            assert.equal(commits.at(-1), 1.95);
             key("Home"); assert.equal(commits.at(-1), MIN_PAGE_ASPECT_RATIO);
             key("End"); assert.equal(commits.at(-1), MAX_PAGE_ASPECT_RATIO);
             const count = commits.length;
             assert.isFalse(key("Tab").defaultPrevented);
-            assert.isFalse(key("ArrowUp").defaultPrevented);
+            assert.isFalse(key("ArrowRight").defaultPrevented);
             assert.equal(commits.length, count);
             current = { ...bottom, ratio: MAX_PAGE_ASPECT_RATIO };
             key("End");

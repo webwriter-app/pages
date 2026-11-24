@@ -75,8 +75,8 @@ describe("<webwriter-pages> in edit mode", function () {
       await frame(2);
       assert.isFalse(widget.hasAttribute("page-aspect-ratio"));
       const preview = stage(widget).getBoundingClientRect();
-      assert.isBelow(preview.height, initial.height, "top seam increases the ratio when dragged down");
-      const expected = ratioFromPageAspectDrag({ ratio: 16 / 9, width: initial.width, height: initial.height, edge: "top" }, 0, 60);
+      assert.isAbove(preview.height, initial.height, "dragging the bottom edge down makes the page taller");
+      const expected = ratioFromPageAspectDrag({ ratio: 16 / 9, width: initial.width, height: initial.height }, 60);
       assert.closeTo(preview.width / preview.height, expected, 0.001);
       pointer(window, "pointerup", start.x, start.y + 60);
       await frame(3);
@@ -158,7 +158,7 @@ describe("<webwriter-pages> in edit mode", function () {
       widget.pageAspectRatio = 4 / 3;
       await widget.updateComplete;
       const second = begin(handle);
-      pointer(window, "pointermove", second.x, second.y + 4);
+      pointer(window, "pointermove", second.x, second.y - 4);
       await frame(2);
       assert.equal(items(widget, ".page-aspect-label")[0].textContent, "4:3");
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
@@ -175,8 +175,9 @@ describe("<webwriter-pages> in edit mode", function () {
       assert.equal(handle.getAttribute("aria-valuemax"), "3");
       arrow(handle, "ArrowDown");
       await widget.updateComplete;
-      assert.equal(widget.pageAspectRatio, 2.05);
-      assert.equal(handle.getAttribute("aria-valuenow"), "2.05");
+      assert.equal(widget.pageAspectRatio, 1.95);
+      assert.equal(handle.getAttribute("aria-valuenow"), "1.95");
+      arrow(handle, "ArrowUp"); await widget.updateComplete; assert.equal(widget.pageAspectRatio, 2);
       arrow(handle, "Home"); await widget.updateComplete; assert.equal(widget.pageAspectRatio, 0.5);
       arrow(handle, "End"); await widget.updateComplete; assert.equal(widget.pageAspectRatio, 3);
       widget.orientation = "portrait";
@@ -190,20 +191,21 @@ describe("<webwriter-pages> in edit mode", function () {
       assert.closeTo(rect.width / rect.height, 9 / 16, 0.001);
     });
 
-    it("places the separator on the wide Slides seam, mirrors its keyboard direction and removes it in read mode", async function () {
+    it("places the separator across the bottom in every layout, including wide RTL Slides", async function () {
       this.timeout(10000);
       const widget = await mount(`<webwriter-pages type="pages" contenteditable="" page-aspect-ratio="1.5" dir="rtl">${pages(2)}</webwriter-pages>`);
-      widget.parentElement!.style.width = "1280px";
-      await until(() => separator(widget).getAttribute("aria-orientation") === "vertical", "wide seam");
-      let handle = separator(widget), rect = stage(widget).getBoundingClientRect();
-      assert.closeTo(handle.getBoundingClientRect().left, rect.left, 1, "RTL seam is at inline end");
-      arrow(handle, "ArrowRight");
-      await widget.updateComplete;
-      assert.equal(widget.pageAspectRatio, 1.45);
-      widget.parentElement!.style.width = "720px";
-      await until(() => separator(widget).getAttribute("aria-orientation") === "horizontal", "narrow seam");
-      handle = separator(widget); rect = stage(widget).getBoundingClientRect();
-      assert.closeTo(handle.getBoundingClientRect().bottom, rect.bottom, 1);
+      for (const [type, width, compact] of [["pages", 1280, false], ["pages", 720, false], ["pages", 720, true], ["tabs", 720, false], ["branches", 720, false]] as const) {
+        widget.type = type;
+        widget.hidePagination = compact;
+        widget.parentElement!.style.width = `${width}px`;
+        await widget.updateComplete;
+        const handle = separator(widget), rect = stage(widget).getBoundingClientRect();
+        const edge = handle.getBoundingClientRect();
+        assert.equal(handle.getAttribute("aria-orientation"), "horizontal");
+        assert.closeTo(edge.bottom, rect.bottom, 1);
+        assert.closeTo(edge.width, rect.width, 1);
+        assert.isBelow(edge.height, rect.height);
+      }
       document.designMode = "off";
       widget.contentEditable = "false";
       await until(() => !separator(widget), "read mode has no seam");
