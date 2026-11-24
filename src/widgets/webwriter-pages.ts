@@ -92,6 +92,7 @@ export class WebwriterPages extends LitElementWw {
     static options = {
         type: {
             type: "select",
+            control: "select",
             attribute: false,
             label: (widget: Labelled) => widget.msg("View"),
             options: [

@@ -144,6 +144,7 @@ describe("<webwriter-pages>", function () {
       await waitForView(german, "Folien")
       assert.equal(view(english), "Slides")
       assert.deepEqual(Object.keys(german.options!), ["type", "completionIndicators"]);
+      assert.equal((english.options!.type as SelectOptionDeclaration).control, "select");
       assert.equal(german.options!.completionIndicators.label, "Abschlussanzeigen anzeigen");
       const choices = (widget: WebwriterPages) => (widget.options!.type as SelectOptionDeclaration).options!;
       assert.deepEqual(choices(english).map(({ value, label }) => [value, label]), [
