@@ -194,9 +194,8 @@ describe("<webwriter-pages> in edit mode", function () {
     it("places the separator across the bottom in every layout, including wide RTL Slides", async function () {
       this.timeout(10000);
       const widget = await mount(`<webwriter-pages type="pages" contenteditable="" page-aspect-ratio="1.5" dir="rtl">${pages(2)}</webwriter-pages>`);
-      for (const [type, width, compact] of [["pages", 1280, false], ["pages", 720, false], ["pages", 720, true], ["tabs", 720, false], ["branches", 720, false]] as const) {
+      for (const [type, width] of [["pages", 1280], ["pages", 720], ["carousel", 720], ["tabs", 720], ["branches", 720]] as const) {
         widget.type = type;
-        widget.hidePagination = compact;
         widget.parentElement!.style.width = `${width}px`;
         await widget.updateComplete;
         const handle = separator(widget), rect = stage(widget).getBoundingClientRect();
@@ -295,16 +294,16 @@ describe("<webwriter-pages> in edit mode", function () {
     }
   });
 
-  it("can add pages from the Slides overlay and restore the preview pane", async function () {
-    const widget = await mount(`<webwriter-pages type="pages" hide-pagination contenteditable="true">${pages(2)}</webwriter-pages>`);
+  it("can add pages from Carousel and switch to the Slides preview pane", async function () {
+    const widget = await mount(`<webwriter-pages type="carousel" contenteditable="true">${pages(2)}</webwriter-pages>`);
     const add = items<HTMLButtonElement>(widget, ".slide-controls-overlay .overlay-add-page")[0];
     assert.equal(add.getAttribute("aria-label"), "Add page");
     add.click();
     await until(() => widget.children.length === 3 && widget.activePageIndex === 2);
     assert.equal(items(widget, ".page-thumb").length, 0);
-    widget.hidePagination = false;
+    widget.type = "pages";
     await widget.updateComplete;
-    assert.isFalse(widget.hasAttribute("hide-pagination"));
+    assert.equal(widget.getAttribute("type"), "pages");
     assert.equal(items(widget, ".page-thumb").length, 3);
     assert.equal(items(widget, ".slide-controls-overlay").length, 0);
   });

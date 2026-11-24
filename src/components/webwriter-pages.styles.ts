@@ -377,7 +377,7 @@ export const pages_styles = css`
         border-radius: 0;
     }
 
-    :host([type="pages"]:not(:fullscreen):not(.ww-fullscreen):not([hide-pagination])) ::slotted(webwriter-page) {
+    :host(:not(:fullscreen):not(.ww-fullscreen)) .pages-view ::slotted(webwriter-page) {
         border-end-start-radius: 0;
         border-end-end-radius: 0;
     }
@@ -386,7 +386,7 @@ export const pages_styles = css`
         margin-block-start: calc(var(--sl-panel-border-width) * -1);
     }
 
-    :host(:not([type="pages"]):not([type="branches"])) ::slotted(webwriter-page) {
+    .tabs-view ::slotted(webwriter-page) {
         border-start-start-radius: 0;
         border-start-end-radius: 0;
     }
@@ -964,7 +964,6 @@ export const pages_styles = css`
 
     .slide-controls-overlay .controls-section { gap: 2px; }
     .slide-controls-overlay .pages-index { font-size: 0.8125rem; }
-    .pages-view .slide-controls-overlay .controls-section:has(> .completion-overview) { flex-direction: row; }
 
     .slide-controls-overlay :is(sl-icon-button, .overlay-add-page) {
         inline-size: var(--_overlay-button-size);
@@ -1005,7 +1004,7 @@ export const pages_styles = css`
     }
 
     @container pages (min-width: 1100px) {
-        :host(:not(:fullscreen):not(.ww-fullscreen):not([hide-pagination])) .pages-view {
+        :host(:not(:fullscreen):not(.ww-fullscreen)) .pages-view {
             grid-template-columns: minmax(0, 1fr) auto;
         }
 
@@ -1030,7 +1029,7 @@ export const pages_styles = css`
             scrollbar-gutter: stable;
         }
 
-        :host([type="pages"]:not(:fullscreen):not(.ww-fullscreen):not([hide-pagination])) ::slotted(webwriter-page) {
+        :host(:not(:fullscreen):not(.ww-fullscreen)) .pages-view ::slotted(webwriter-page) {
             border-start-end-radius: 0;
             border-end-start-radius: var(--sl-border-radius-medium);
         }

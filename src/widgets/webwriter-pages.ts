@@ -33,12 +33,14 @@ import type { MoveDetail } from "@webwriter/lit/scene";
 import { MAX_PAGE_ASPECT_RATIO, MIN_PAGE_ASPECT_RATIO, PageAspectResize, formatPageAspectRatio, normalizePageAspectRatio } from "../components/page-aspect-resize";
 
 type Labelled = { msg: MsgFn };
+type PagesLayout = "tabs" | "pages" | "carousel" | "branches";
 
 /**
- * Display authored content in Tabs, Slides, or Branches, with Tabs by default.
+ * Display authored content in Tabs, Slides, Carousel, or Branches, with Tabs by default.
  *
- * Authors add `webwriter-page` children; the `type` attribute switches between the Slides view with preview cards ("pages")
- * and the default tab strip ("tabs"). Thumbnails are drawn in the editor with a capture library that loads on first use.
+ * Authors add `webwriter-page` children. Slides ("pages") shows preview cards, Carousel ("carousel") shows
+ * compact controls over the page, and Tabs ("tabs") shows a tab strip. Thumbnails are drawn in the editor
+ * with a capture library that loads on first use.
  * The "branches" view adds an editing-only Scene graph. Node labels, start page, positions and choices
  * are saved on the authored pages; the bottom pane edits choices and lets readers follow them.
  * The graph has no reading-mode controls, and Branches hides completion indicators.
@@ -90,21 +92,18 @@ export class WebwriterPages extends LitElementWw {
     static options = {
         type: {
             type: "select",
+            attribute: false,
             label: (widget: Labelled) => widget.msg("View"),
             options: [
                 { value: "tabs", label: (widget: Labelled) => widget.msg("Tabs") },
                 { value: "pages", label: (widget: Labelled) => widget.msg("Slides") },
+                { value: "carousel", label: (widget: Labelled) => widget.msg("Carousel") },
                 { value: "branches", label: (widget: Labelled) => widget.msg("Branches") },
             ],
         },
         completionIndicators: {
             type: Boolean,
             label: (widget: Labelled) => widget.msg("Show completion indicators"),
-        },
-        hidePagination: {
-            type: Boolean,
-            label: (widget: Labelled) => widget.msg("Hide pagination"),
-            hidden: (widget: HTMLElement) => widget.getAttribute("type") !== "pages",
         },
     } satisfies Record<string, Declared<OptionDeclaration>>;
 
@@ -126,20 +125,27 @@ export class WebwriterPages extends LitElementWw {
 
     #permissions = new Permissions(this);
 
-    /**
-     * Defines the type of view for the sequence of pages.
-     * - "pages": Show the Slides view with preview cards.
-     * - "tabs": Show content using tabs.
-     * - "branches": Edit a page graph; read by following choices.
-     */
     @property({
         type: String,
-        attribute: true,
-        reflect: true,
-        useDefault: true,
-        converter: { fromAttribute: (value: string | null) => value === "pages" || value === "branches" ? value : "tabs" },
+        attribute: "type",
+        converter: { fromAttribute: (value: string | null) => value === "pages" || value === "carousel" || value === "branches" ? value : "tabs" },
     })
-    public accessor type: "tabs" | "pages" | "branches" = "tabs";
+    private accessor authoredType: PagesLayout = "tabs";
+
+    @property({ type: Boolean, attribute: "hide-pagination" })
+    private accessor legacyHidePagination = false;
+
+    /** The current view, stored in the `type` attribute. */
+    get type(): PagesLayout {
+        // Read existing compact Slides without changing their authored markup.
+        return this.authoredType === "pages" && this.legacyHidePagination ? "carousel" : this.authoredType;
+    }
+
+    set type(value: PagesLayout | null) {
+        if (value) this.setAttribute("type", value);
+        else this.removeAttribute("type");
+        this.removeAttribute("hide-pagination");
+    }
 
     /** Stable key of the first page in Branches; an absent key starts at the first page. */
     @property({ type: String, attribute: "start-page", reflect: true, useDefault: true })
@@ -148,10 +154,6 @@ export class WebwriterPages extends LitElementWw {
     /** Mark pages read on leaving them after reaching their bottom. Reader-local; off by default. */
     @property({ type: Boolean, attribute: "completion-indicators", reflect: true, useDefault: true })
     accessor completionIndicators = false;
-
-    /** Replace the Slides preview strip with controls over the current page. */
-    @property({ type: Boolean, attribute: "hide-pagination", reflect: true, useDefault: true })
-    accessor hidePagination = false;
 
     /** Page orientation: 16:9 landscape or 9:16 portrait. */
     @property({ type: String, reflect: true, useDefault: true })
@@ -356,14 +358,15 @@ export class WebwriterPages extends LitElementWw {
         this.requestUpdate();
     }
 
-    protected willUpdate(changed: PropertyValues<this>) {
+    protected willUpdate(changed: PropertyValues) {
         super.willUpdate(changed);
         const editing = this.#permissions.editing;
-        if (changed.has("type") || changed.has("activePageIndex") || this.branchGraphExpanded) {
+        const viewChanged = changed.has("authoredType") || changed.has("legacyHidePagination");
+        if (viewChanged || changed.has("activePageIndex") || this.branchGraphExpanded) {
             this.#branchPageAnimation?.cancel();
             this.#branchPageAnimation = undefined;
         }
-        if (changed.has("type") || changed.has("orientation") || changed.has("pageAspectRatio") || changed.has("hidePagination") ||
+        if (viewChanged || changed.has("orientation") || changed.has("pageAspectRatio") ||
             this.#aspectEditing !== editing || this.#aspectFullscreen !== this.isFullscreen) this.#aspectResize.disconnect();
         this.#aspectEditing = editing;
         this.#aspectFullscreen = this.isFullscreen;
@@ -380,7 +383,7 @@ export class WebwriterPages extends LitElementWw {
      * Lifecycle method called whenever the component is updated.
      * Updates each page's `active` property based on the current activePageIndex.
      */
-    protected updated(changed: PropertyValues<this>) {
+    protected updated(changed: PropertyValues) {
         super.updated(changed);
         const readingBranches = this.type === "branches" && !this.#permissions.editing;
         if (readingBranches && !this.#readingBranches) {
@@ -420,7 +423,7 @@ export class WebwriterPages extends LitElementWw {
         const duplicateDisabled = !this.activePage;
         const removeDisabled = duplicateDisabled || this.pages.length <= 1;
         const resetDisabled = !this.hasAttribute("page-aspect-ratio");
-        if (changed.has("type") || this.#actionsDisabled.duplicateActivePage !== duplicateDisabled ||
+        if (changed.has("authoredType") || changed.has("legacyHidePagination") || this.#actionsDisabled.duplicateActivePage !== duplicateDisabled ||
             this.#actionsDisabled.removeActivePage !== removeDisabled || this.#resetAspectDisabled !== resetDisabled) {
             this.#actionsDisabled = { duplicateActivePage: duplicateDisabled, removeActivePage: removeDisabled };
             this.#resetAspectDisabled = resetDisabled;
@@ -992,17 +995,20 @@ export class WebwriterPages extends LitElementWw {
     }
 
     /**
-     * Renders the tab strip or the thumbnail strip with the page controls around the default slot.
+     * Renders the current view with its page controls around the default slot.
      * The controls adapt depending on whether the component is editable.
      */
     render() {
         const view = this.#view();
-        const branches = this.type === "branches";
-        const compactSlides = this.type === "pages" && this.hidePagination;
+        const layout = this.type;
+        const branches = layout === "branches";
+        const carousel = layout === "carousel";
         const ratio = this.aspectPreview ?? this.#pageRatio;
         return html`
-            <div class="pages-layout ${branches ? "branches-view" : this.type === "pages" ? "pages-view" : "tabs-view"}" style=${styleMap({ "--_page-ratio": String(ratio), "--_preview-ratio": String(this.orientation === "portrait" ? 9 / 16 : 16 / 9) })}>
-                ${this.type === "tabs" ? renderTabs(view) : html``}
+            <div class="pages-layout ${layout}-view" style=${styleMap({ "--_page-ratio": String(ratio), "--_preview-ratio": String(this.orientation === "portrait" ? 9 / 16 : 16 / 9) })}
+                role=${carousel ? "region" : nothing} aria-label=${carousel ? this.msg("Pages") : nothing}
+                aria-roledescription=${carousel ? this.msg("Carousel") : nothing}>
+                ${layout === "tabs" ? renderTabs(view) : nothing}
                 <div class="page-viewport">
                     <div class="page-surface">
                         <div class="page-stage" tabindex=${branches ? "-1" : nothing}><slot class=${branches && view.editing && this.branchGraphExpanded ? "graph-preview-pages" : ""} ?inert=${branches && view.editing && this.branchGraphExpanded}></slot>
@@ -1011,7 +1017,7 @@ export class WebwriterPages extends LitElementWw {
                                 .view=${view} .pageRatio=${ratio} .startKey=${this.startPage || pageKey(view.pages[0])}
                                 .setBranches=${this.#setBranches} .movePages=${this.#moveBranchPages} .setStart=${this.#setStartPage} .addPageAt=${this.#addBranchPage} .openPage=${this.#openBranchPage}
                             ></pages-branches>` : nothing}
-                            ${compactSlides ? html`<div class="controls-overlay slide-controls-overlay" contenteditable="false">
+                            ${carousel ? html`<div class="controls-overlay slide-controls-overlay" contenteditable="false">
                                 ${renderControls(view)}${renderAddPage(view, "icon")}
                             </div>` : nothing}
                             ${view.editing ? html`<div class="page-aspect-handle" role="separator" tabindex="0" contenteditable="false"
@@ -1025,7 +1031,7 @@ export class WebwriterPages extends LitElementWw {
                         </div>
                     </div>
                 </div>
-                ${this.type === "pages" && !compactSlides ? renderThumbs(view) : nothing}
+                ${layout === "pages" ? renderThumbs(view) : nothing}
                 ${branches ? renderBranchChoices(view, this.#setBranches, this.#followBranch, this.branchGraphExpanded, () => this.branchGraphExpanded = !this.branchGraphExpanded, this.#addPageChoice, this.localize.getLocale(), this.#watchPendingSignalTags, this.#setHighlightedWidgets) : nothing}
             </div>
         `;

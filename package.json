@@ -1,7 +1,7 @@
 {
   "name": "@webwriter/pages",
   "version": "3.0.0",
-  "description": "Present content as tabs, slides, or branching pages.",
+  "description": "Present content as tabs, slides, a carousel, or branching pages.",
   "repository": "github:webwriter-app/slides",
   "keywords": [
     "webwriter-widget",
@@ -201,6 +201,7 @@
       "default": "./dist/tests/branches.*"
     },
     "./snippets/slides.html": "./snippets/slides.html",
+    "./snippets/carousel.html": "./snippets/carousel.html",
     "./snippets/branching-scenario.html": "./snippets/branching-scenario.html",
     "./snippets/what-is-webwriter.html": "./snippets/what-is-webwriter.html",
     "./icon": "./icon.svg",

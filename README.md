@@ -1,7 +1,7 @@
 # Pages (`@webwriter/pages@3.0.0`)
 [License: MIT](LICENSE) | Version: 3.0.0
 
-Present content as tabs, slides, or branching pages.
+Present content as tabs, slides, a carousel, or branching pages.
 
 Pages currently bundles the Scene SDK and its Lit adapter so Branches always uses the new routing and endpoint interactions. The pinned build-time SDK snapshot is documented in [vendor/README.md](vendor/README.md).
 
@@ -11,18 +11,17 @@ Pages currently bundles the Scene SDK and its Lit adapter so Branches always use
 | Name | Import Path |
 | :--: | :---------: |
 | Slides | `@webwriter/pages/snippets/slides.html` |
+| Carousel | `@webwriter/pages/snippets/carousel.html` |
 | Branching Scenario | `@webwriter/pages/snippets/branching-scenario.html` |
 | What is WebWriter? | `@webwriter/pages/snippets/what-is-webwriter.html` |
 
-Slides inserts one empty page in the Slides layout. “What is WebWriter?” introduces authoring, exploration, collaboration, and widget development in four illustrated pages; its embedded images also work offline.
+Slides and Carousel each insert one empty page in their respective view. “What is WebWriter?” introduces authoring, exploration, collaboration, and widget development in four illustrated pages with images that also work offline.
 
 
 ## `WebwriterPages` (`<webwriter-pages>`)
-Display authored content in Tabs, Slides, or Branches, with Tabs by default.
+Display authored content in Tabs, Slides, Carousel, or Branches, with Tabs by default.
 
-Authors add `webwriter-page` children; the `type` attribute switches between the Slides view with preview cards ("pages")
-and the default tab strip ("tabs"). Thumbnails are drawn in the editor with a capture library that loads on first use.
-In Slides, the preview pane remains at the bottom in fullscreen. **Hide pagination** replaces it with an overlay for the current page count, navigation, and fullscreen. Authors can add a page from the overlay.
+Authors add `webwriter-page` children and choose a layout in **View**. Slides (`type="pages"`) shows preview cards and keeps its preview pane at the bottom in fullscreen. Carousel (`type="carousel"`) shows only the current page, with a compact overlay for the page count, navigation, fullscreen, and an add button for authors. Existing compact Slides open as Carousel. Tabs (`type="tabs"`) shows a tab strip. Thumbnails are drawn in the editor with a capture library that loads on first use.
 In use mode the arrow keys, the controls and swipes in fullscreen move between pages. The arrow keys leave
 text entry, Alt and Meta combinations alone. Every thumbnail and inactive tab has a button that selects its page;
 in edit mode Space or Enter on the thumbnail itself picks it up for reordering.
@@ -86,12 +85,11 @@ npm install @webwriter/pages
 | `WebwriterPages.scopedElements` | - | - | `{ "sl-icon-button": SlIconButton, }` | ✗ |
 | `WebwriterPages.convertFrom` | `object` | - | `{ section: "loadSections" }` | ✗ |
 | `WebwriterPages.convertTo` | `object` | - | `{ details: "toDetails" }` | ✗ |
-| `WebwriterPages.options` | - | - | `{ type: { type: "select", label: (widget: Labelled) => widget.msg("View"), options: [ { value: "tabs", label: (widget: Labelled) => widget.msg("Tabs") }, { value: "pages", label: (widget: Labelled) => widget.msg("Slides") }, { value: "branches", label: (widget: Labelled) => widget.msg("Branches") }, ], }, completionIndicators: { type: Boolean, label: (widget: Labelled) => widget.msg("Show completion indicators"), }, hidePagination: { type: Boolean, label: (widget: Labelled) => widget.msg("Hide pagination"), hidden: (widget: HTMLElement) => widget.getAttribute("type") !== "pages", }, } satisfies Record<string, Declared<OptionDeclaration>>` | ✗ |
+| `WebwriterPages.options` | - | View and completion indicator settings. | - | ✗ |
 | `WebwriterPages.actions` | - | - | `{ addPage: { label: (widget: Labelled) => widget.msg("Add"), buttonGroup: "pages", icon: "Plus", intent: "default" }, removeActivePage: { label: (widget: Labelled) => widget.msg("Remove"), buttonGroup: "pages", icon: "Delete", intent: "danger", disabled: true }, duplicateActivePage: { label: (widget: Labelled) => widget.msg("Duplicate"), buttonGroup: "pages", icon: "Copy", intent: "default", disabled: true }, } satisfies Record<string, Declared<ActionDeclaration>>` | ✗ |
 | `localize` | - | - | - | ✗ |
-| `type` (`type`) | `"tabs" \| "pages" \| "branches"` | Defines the type of view for the sequence of pages.<br>- "pages": Show the Slides view with preview cards.<br>- "tabs": Show content using tabs.<br>- "branches": Edit a page graph; read by following choices. | `"tabs"` | ✓ |
+| `type` (`type`) | `"tabs" \| "pages" \| "carousel" \| "branches"` | The current view. | `"tabs"` | ✓ |
 | `completionIndicators` (`completion-indicators`) | `boolean` | Mark pages read on leaving them after reaching their bottom. Reader-local; off by default. | `false` | ✓ |
-| `hidePagination` (`hide-pagination`) | `boolean` | Replace the Slides preview strip with controls over the current page. | `false` | ✓ |
 | `startPage` (`start-page`) | `string` | Stable key of the first page in Branches; an absent key starts at the first page. | `""` | ✓ |
 | `orientation` (`orientation`) | `"landscape" \| "portrait"` | Page orientation: 16:9 landscape or 9:16 portrait. The optional orientation attribute defaults to landscape when absent; the default is not added to existing markup. | `"landscape"` | ✓ |
 | `pageAspectRatio` (`page-aspect-ratio`) | `number \| undefined` | Optional width/height ratio, clamped to 0.5–3; absent uses the orientation default. | `undefined` | ✓ |

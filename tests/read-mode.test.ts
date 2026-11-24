@@ -493,11 +493,10 @@ describe("<webwriter-pages> in read mode", function () {
     }
   });
 
-  it("replaces the Slides preview pane with page navigation in normal and fullscreen view", async function () {
+  it("shows Carousel navigation in normal and fullscreen view", async function () {
     const widget = await mount(`<webwriter-pages type="pages">${pages(2)}</webwriter-pages>`);
-    assert.isFalse(widget.hidePagination);
     assert.isNotNull(widget.shadowRoot!.querySelector('[part="actions"]'));
-    widget.setAttribute("hide-pagination", "");
+    widget.setAttribute("type", "carousel");
     await widget.updateComplete;
     const overlay = widget.shadowRoot!.querySelector<HTMLElement>(".slide-controls-overlay")!;
     assert.isNull(widget.shadowRoot!.querySelector('[part="actions"]'));
@@ -533,7 +532,22 @@ describe("<webwriter-pages> in read mode", function () {
     widget.type = "tabs";
     await widget.updateComplete;
     assert.isNull(widget.shadowRoot!.querySelector(".slide-controls-overlay"));
-    assert.isTrue(widget.hasAttribute("hide-pagination"), "changing view preserves the saved preference");
+    assert.equal(widget.activePageIndex, 0);
+  });
+
+  it("opens existing compact Slides as Carousel until an author changes the view", async function () {
+    const widget = await mount(`<webwriter-pages hide-pagination type="pages">${pages(2)}</webwriter-pages>`);
+    assert.equal(widget.type, "carousel");
+    assert.isNotNull(widget.shadowRoot!.querySelector(".slide-controls-overlay"));
+    assert.equal(widget.getAttribute("type"), "pages", "loading keeps the authored markup");
+    assert.isTrue(widget.hasAttribute("hide-pagination"));
+
+    widget.type = "pages";
+    await widget.updateComplete;
+    assert.isFalse(widget.hasAttribute("hide-pagination"));
+    assert.equal(widget.type, "pages");
+    assert.isNotNull(widget.shadowRoot!.querySelector('[part="actions"]'));
+    assert.isNull(widget.shadowRoot!.querySelector(".slide-controls-overlay"));
   });
 
   it("keeps the regular Slides preview pane below the fitted page in fullscreen", async function () {

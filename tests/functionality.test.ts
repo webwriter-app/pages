@@ -8,11 +8,22 @@ import { frame, mount, unmountAll, until } from "./helpers"
 import type { WebwriterPages } from "../src/widgets/webwriter-pages";
 import "../src/widgets/webwriter-pages";
 import { captureThumbnail, nodePreviewResolution } from "../src/components/page-thumbnail";
+import carouselSnippet from "../snippets/carousel.html";
 import introductionSnippet from "../snippets/what-is-webwriter.html";
 
 mocha.setup(getMochaConfig())
 
 describe("<webwriter-pages>", function () {
+
+  it("inserts one empty page from the Carousel snippet", async function () {
+    try {
+      const widget = await mount(carouselSnippet);
+      assert.equal(widget.type, "carousel");
+      assert.lengthOf(widget.querySelectorAll("webwriter-page"), 1);
+      assert.isEmpty(widget.activePage.innerHTML);
+      assert.isNotNull(widget.shadowRoot!.querySelector(".slide-controls-overlay"));
+    } finally { unmountAll(); }
+  });
 
   it("uses three node preview resolutions for canvas zoom and display density", function () {
     assert.equal(nodePreviewResolution(200, 0.5), 160);
@@ -132,13 +143,13 @@ describe("<webwriter-pages>", function () {
     try {
       await waitForView(german, "Folien")
       assert.equal(view(english), "Slides")
-      assert.deepEqual(Object.keys(german.options!), ["type", "completionIndicators", "hidePagination"]);
+      assert.deepEqual(Object.keys(german.options!), ["type", "completionIndicators"]);
       assert.equal(german.options!.completionIndicators.label, "Abschlussanzeigen anzeigen");
-      assert.equal(german.options!.hidePagination.label, "Folienleiste ausblenden");
-      assert.isFalse(german.options!.hidePagination.hidden);
-      german.type = "tabs";
-      await german.updateComplete;
-      assert.isTrue(german.options!.hidePagination.hidden, "only Slides exposes the option");
+      const choices = (widget: WebwriterPages) => (widget.options!.type as SelectOptionDeclaration).options!;
+      assert.deepEqual(choices(english).map(({ value, label }) => [value, label]), [
+        ["tabs", "Tabs"], ["pages", "Slides"], ["carousel", "Carousel"], ["branches", "Branches"],
+      ]);
+      assert.equal(choices(german).find(({ value }) => value === "carousel")?.label, "Karussell");
       const pageActions = (widget: WebwriterPages) => Object.entries(widget.actions).filter(([name]) => ["addPage", "removeActivePage", "duplicateActivePage"].includes(name)).map(([, action]) => action)
       const labels = (widget: WebwriterPages) => pageActions(widget).map(action => action.label)
       assert.deepEqual(labels(english), ["Add", "Remove", "Duplicate"])
