@@ -274,6 +274,7 @@ export class WebwriterPages extends LitElementWw {
     #completionFrame?: number;
     #readingBranches = false;
     @state() private accessor branchGraphExpanded = false;
+    #branchPageAnimation?: Animation;
 
     /** The drawer declarations with the availability of the page actions, which follows the pages. */
     get actions() {
@@ -343,6 +344,8 @@ export class WebwriterPages extends LitElementWw {
         this.#tabResizeObserver?.disconnect();
         this.#tabScroller = null;
         this.#pageAttributesObserver.disconnect();
+        this.#branchPageAnimation?.cancel();
+        this.#branchPageAnimation = undefined;
         this.#stopCompletionTracking();
         this.#aspectResize.disconnect();
         this.#aspectObserver.disconnect();
@@ -355,6 +358,10 @@ export class WebwriterPages extends LitElementWw {
     protected willUpdate(changed: PropertyValues<this>) {
         super.willUpdate(changed);
         const editing = this.#permissions.editing;
+        if (changed.has("type") || changed.has("activePageIndex") || this.branchGraphExpanded) {
+            this.#branchPageAnimation?.cancel();
+            this.#branchPageAnimation = undefined;
+        }
         if (changed.has("type") || changed.has("orientation") || changed.has("pageAspectRatio") ||
             this.#aspectEditing !== editing || this.#aspectFullscreen !== this.isFullscreen) this.#aspectResize.disconnect();
         this.#aspectEditing = editing;
@@ -594,8 +601,9 @@ export class WebwriterPages extends LitElementWw {
         this.changePage(index);
         await this.updateComplete;
         const page = this.activePage;
-        if (!page || pageKey(page) !== target) return;
+        if (!this.isConnected || this.type !== "branches" || this.branchGraphExpanded || !page || pageKey(page) !== target) return;
         page.scrollTop = 0;
+        this.#fadeInBranchPage();
         // The chosen button disappears; keep keyboard reading at the new page.
         this.renderRoot.querySelector<HTMLElement>(".page-stage")?.focus({ preventScroll: true });
     };
@@ -606,8 +614,17 @@ export class WebwriterPages extends LitElementWw {
         this.branchGraphExpanded = false;
         this.changePage(index);
         await this.updateComplete;
-        if (this.isConnected && this.activePage === page && !this.branchGraphExpanded) this.#selectPageStart(page);
+        if (!this.isConnected || this.type !== "branches" || this.activePage !== page || this.branchGraphExpanded) return;
+        this.#fadeInBranchPage();
+        this.#selectPageStart(page);
     };
+
+    #fadeInBranchPage() {
+        this.#branchPageAnimation?.cancel();
+        if (!this.ownerDocument.defaultView?.matchMedia("screen and (prefers-reduced-motion: no-preference)").matches) return;
+        const slot = this.renderRoot.querySelector<HTMLSlotElement>(".page-stage > slot");
+        this.#branchPageAnimation = slot?.animate?.([{ opacity: 0.45 }, { opacity: 1 }], { duration: 180, easing: "ease-out" });
+    }
 
     /** Replaces the pages with the pages a `section` stands for; declines anything else. */
     loadSections(fragment: DocumentFragment): boolean {

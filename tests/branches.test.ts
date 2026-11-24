@@ -30,6 +30,7 @@ describe("Pages Branches view", function () {
         await element.updateComplete;
         await until(() => element.shadowRoot!.querySelector("ww-node")?.getBoundingClientRect().width, "nodes laid out");
         await (element.shadowRoot!.querySelector("ww-scene") as any).ready;
+        await Promise.allSettled(element.shadowRoot!.querySelector(".graph")!.getAnimations().map(animation => animation.finished));
         await frame(2);
         return element;
     };
@@ -58,6 +59,42 @@ describe("Pages Branches view", function () {
         await until(() => widget.activePageIndex === 0, "cycle returns to start");
         window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight" }));
         assert.equal(widget.activePageIndex, 0, "linear keyboard navigation cannot bypass choices");
+    });
+
+    it("reveals the graph and fades in pages reached by graph and decision buttons", async function () {
+        const motion = matchMedia("screen and (prefers-reduced-motion: no-preference)").matches;
+        const author = await mount(authorSnippet());
+        const graph = control<PagesBranches>(author, "pages-branches");
+        control(author, ".graph-toggle").click();
+        await author.updateComplete;
+        await graph.updateComplete;
+        const surface = control(graph, ".graph");
+        const entry = surface.getAnimations()[0];
+        assert.equal(Boolean(entry), motion);
+        if (entry) {
+            entry.pause();
+            entry.currentTime = 0;
+            assert.closeTo(surface.getBoundingClientRect().top, graph.getBoundingClientRect().bottom, 2, "graph starts below the frame");
+            entry.currentTime = 50;
+            assert.isAbove(surface.getBoundingClientRect().top, graph.getBoundingClientRect().top + 1, "graph rises inside its fixed frame");
+        }
+        control(graph, 'ww-node[data-ww-key="first-path"] .node-open').click();
+        await author.updateComplete;
+        assert.isTrue(graph.hidden);
+        assert.equal(author.activePageIndex, 1);
+        assert.equal(control(author, ".page-stage > slot").getAnimations().length, motion ? 1 : 0);
+        assert.equal(document.getSelection()!.anchorNode, author.activePage.querySelector("h2")!.firstChild, "caret is placed during the fade");
+
+        const reader = await mount(snippet);
+        choices(reader)[0].click();
+        await reader.updateComplete;
+        const slot = control(reader, ".page-stage > slot");
+        assert.equal(slot.getAnimations().length, motion ? 1 : 0);
+        assert.equal(reader.shadowRoot!.activeElement, control(reader, ".page-stage"), "reading focus moves during the fade");
+        choices(reader)[0].click();
+        await reader.updateComplete;
+        assert.equal(reader.activePageIndex, 0);
+        assert.equal(slot.getAnimations().length, motion ? 1 : 0, "the next decision replaces the previous fade");
     });
 
     it("starts readers at the saved start page without changing authored routing", async function () {

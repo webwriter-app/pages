@@ -67,6 +67,13 @@ export class PagesBranches extends LitElementWw {
         * { box-sizing: border-box; }
         :host([hidden]) { display: none; }
         .graph { position: relative; block-size: 100%; }
+        @media screen and (prefers-reduced-motion: no-preference) {
+            .graph { animation: branch-graph-rise 240ms ease-out; }
+            @keyframes branch-graph-rise {
+                from { transform: translateY(100%); }
+                to { transform: translateY(0); }
+            }
+        }
         .view-controls { position: absolute; inset-inline-end: 10px; inset-block-start: 10px; z-index: 10; display: flex; }
         .view-controls button { min-inline-size: 28px; min-block-size: 28px; padding: 0 4px; border: 0; background: transparent; }
         .icon-button { display: grid; place-items: center; min-inline-size: 32px; min-block-size: 32px; padding: 0; }

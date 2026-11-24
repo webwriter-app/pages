@@ -39,6 +39,7 @@ export const pages_styles = css`
         box-sizing: border-box;
         border: var(--sl-panel-border-width) solid var(--sl-panel-border-color);
         border-radius: var(--sl-border-radius-medium) var(--sl-border-radius-medium) 0 0;
+        background: var(--sl-panel-background-color, Canvas);
         overflow: clip;
         user-select: none;
     }
@@ -1122,6 +1123,7 @@ export const pages_styles = css`
             position: static;
             height: auto;
             min-height: 0;
+            opacity: 1 !important;
         }
 
         .pages-layout,
