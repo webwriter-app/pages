@@ -99,8 +99,24 @@ describe("<webwriter-pages> in edit mode", function () {
         return start;
       };
       let start = await resize();
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+      const recorder = steps(widget);
+      assert.isTrue(separator(widget).hasAttribute("data-resizing"));
+      const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, composed: true, cancelable: true });
+      let reachedEditor = false;
+      const seenByEditor = () => { reachedEditor = true; };
+      document.addEventListener("keydown", seenByEditor, { capture: true });
+      try {
+        document.body.dispatchEvent(escape);
+      } finally {
+        document.removeEventListener("keydown", seenByEditor, { capture: true });
+      }
+      assert.isTrue(escape.defaultPrevented);
+      assert.isFalse(reachedEditor, "Escape during a drag should not reach the editor");
+      pointer(window, "pointermove", start.x, start.y + 90);
+      pointer(window, "pointerup", start.x, start.y + 90);
       await frame(2);
+      assert.isFalse(separator(widget).hasAttribute("data-resizing"));
+      assert.isEmpty(recorder.stop(), "Escape and pointer release create no undo step");
       assert.isFalse(widget.hasAttribute("page-aspect-ratio"));
       assert.closeTo(stage(widget).getBoundingClientRect().width / stage(widget).getBoundingClientRect().height, 16 / 9, 0.001);
       start = await resize();

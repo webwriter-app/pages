@@ -328,6 +328,7 @@ export class WebwriterPages extends LitElementWw {
         this.#lifecycle = new AbortController();
         const { signal } = this.#lifecycle;
 
+        window.addEventListener("keydown", this.#aspectResize.cancelOnEscape, { capture: true, signal });
         window.addEventListener("keydown", (e) => this.#handleKeyDown(e), { signal });
         document.addEventListener("selectionchange", () => this.#handleSelectionChange(), { passive: true, signal });
         this.addEventListener("touchstart", (e) => this.#handleTouchStart(e), { passive: true, signal });

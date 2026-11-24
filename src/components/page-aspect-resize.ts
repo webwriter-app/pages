@@ -91,6 +91,14 @@ export class PageAspectResize {
         }
     };
 
+    /** Claim Escape while the pointer is down, even when focus is outside the separator. */
+    cancelOnEscape = (event: KeyboardEvent) => {
+        if (event.key !== "Escape" || !this.#gesture || this.#gesture.ended.aborted) return;
+        event.preventDefault();
+        event.stopPropagation();
+        this.disconnect();
+    };
+
     keydown = (event: KeyboardEvent) => {
         if (event.defaultPrevented || this.#gesture || event.ctrlKey || event.metaKey || event.altKey) return;
         const state = this.options.read();
