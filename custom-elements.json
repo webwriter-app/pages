@@ -4,19 +4,24 @@
   "modules": [
     {
       "kind": "javascript-module",
-      "path": "src/widgets/webwriter-slide.ts",
+      "path": "src/widgets/webwriter-page.ts",
       "declarations": [
         {
           "kind": "class",
-          "description": "Represents a single slide in the `webwriter-slides` widget.",
-          "name": "WebwriterSlide",
+          "description": "Represents a single page in the `webwriter-pages` widget.\nSingle-media pages remove padding and fit media without stretching or cropping.\nIn Branches view, `page-key`, `branches`, `node-x` and `node-y` keep routing and graph layout.",
+          "name": "WebwriterPage",
           "slots": [
             {
-              "description": "The content displayed within the slide.",
+              "description": "The content displayed within the page.",
               "name": "default"
             }
           ],
           "members": [
+            {
+              "kind": "field",
+              "name": "#internals",
+              "privacy": "private"
+            },
             {
               "kind": "field",
               "name": "active",
@@ -24,8 +29,62 @@
                 "text": "boolean"
               },
               "default": "false",
-              "description": "Indicates whether the slide is currently active/visible.",
-              "attribute": "active",
+              "description": "Indicates whether the page is currently active/visible.",
+              "attribute": "active"
+            },
+            {
+              "kind": "field",
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\"",
+              "description": "Plaintext tab label. An empty label shows the page-number placeholder.",
+              "attribute": "label",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "pageKey",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\"",
+              "description": "Stable local identifier for Branches links; independent of order and label.",
+              "attribute": "page-key",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "branches",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\"",
+              "description": "JSON choices: an array of objects with target page keys and plaintext labels.",
+              "attribute": "branches",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "nodeX",
+              "type": {
+                "text": "number | undefined"
+              },
+              "default": "undefined",
+              "description": "Saved node position in the Branches editor. Absent coordinates use a grid.",
+              "attribute": "node-x",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "nodeY",
+              "type": {
+                "text": "number | undefined"
+              },
+              "default": "undefined",
+              "description": "Saved vertical node position in the Branches editor.",
+              "attribute": "node-y",
               "reflects": true
             },
             {
@@ -35,7 +94,7 @@
                 "text": "string"
               },
               "default": "\"\"",
-              "description": "Data URI string for the slide thumbnail (e.g., \"data:image/png;base64,...\").\r\nUsed to display a preview image for the slide.",
+              "description": "Data URI string for the page thumbnail (e.g., \"data:image/png;base64,...\").\nUsed to display a preview image for the page.",
               "attribute": "thumbnail",
               "reflects": true
             }
@@ -47,8 +106,53 @@
                 "text": "boolean"
               },
               "default": "false",
-              "description": "Indicates whether the slide is currently active/visible.",
+              "description": "Indicates whether the page is currently active/visible.",
               "fieldName": "active"
+            },
+            {
+              "name": "label",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\"",
+              "description": "Plaintext tab label. An empty label shows the page-number placeholder.",
+              "fieldName": "label"
+            },
+            {
+              "name": "page-key",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\"",
+              "description": "Stable local identifier for Branches links; independent of order and label.",
+              "fieldName": "pageKey"
+            },
+            {
+              "name": "branches",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\"",
+              "description": "JSON choices: an array of objects with target page keys and plaintext labels.",
+              "fieldName": "branches"
+            },
+            {
+              "name": "node-x",
+              "type": {
+                "text": "number | undefined"
+              },
+              "default": "undefined",
+              "description": "Saved node position in the Branches editor. Absent coordinates use a grid.",
+              "fieldName": "nodeX"
+            },
+            {
+              "name": "node-y",
+              "type": {
+                "text": "number | undefined"
+              },
+              "default": "undefined",
+              "description": "Saved vertical node position in the Branches editor.",
+              "fieldName": "nodeY"
             },
             {
               "name": "thumbnail",
@@ -56,7 +160,7 @@
                 "text": "string"
               },
               "default": "\"\"",
-              "description": "Data URI string for the slide thumbnail (e.g., \"data:image/png;base64,...\").\r\nUsed to display a preview image for the slide.",
+              "description": "Data URI string for the page thumbnail (e.g., \"data:image/png;base64,...\").\nUsed to display a preview image for the page.",
               "fieldName": "thumbnail"
             }
           ],
@@ -64,79 +168,200 @@
             "name": "LitElementWw",
             "package": "@webwriter/lit"
           },
-          "tagName": "webwriter-slide",
-          "customElement": true,
-          "modulePath": "src/widgets/webwriter-slide.ts",
-          "definitionPath": "src/widgets/webwriter-slide.ts"
+          "tagName": "webwriter-page",
+          "customElement": true
         }
       ],
       "exports": [
         {
           "kind": "js",
-          "name": "WebwriterSlide",
+          "name": "WebwriterPage",
           "declaration": {
-            "name": "WebwriterSlide",
-            "module": "src/widgets/webwriter-slide.ts"
+            "name": "WebwriterPage",
+            "module": "src/widgets/webwriter-page.ts"
           }
         },
         {
           "kind": "custom-element-definition",
-          "name": "webwriter-slide",
+          "name": "webwriter-page",
           "declaration": {
-            "name": "WebwriterSlide",
-            "module": "src/widgets/webwriter-slide.ts"
+            "name": "WebwriterPage",
+            "module": "src/widgets/webwriter-page.ts"
           }
         }
       ]
     },
     {
       "kind": "javascript-module",
-      "path": "src/widgets/webwriter-slides.ts",
+      "path": "src/widgets/webwriter-pages.ts",
       "declarations": [
         {
           "kind": "class",
-          "description": "Container for displaying a slideshow of content sequentially.",
-          "name": "WebwriterSlides",
+          "description": "Display authored content in Tabs, Slides, Carousel, or Branches, with Tabs by default.\n\nAuthors add `webwriter-page` children. Slides (\"pages\") shows preview cards, Carousel (\"carousel\") shows\ncompact controls over the page, and Tabs (\"tabs\") shows a tab strip. Thumbnails are drawn in the editor\nwith a capture library that loads on first use.\nThe \"branches\" view adds an editing-only Scene graph. Node labels, start page, positions and choices\nare saved on the authored pages; the bottom pane edits choices and lets readers follow them.\nThe graph has no reading-mode controls, and Branches hides completion indicators.\nIn use mode the arrow keys, the controls and swipes in fullscreen move between pages. The arrow keys leave\ntext entry, Alt and Meta combinations alone. Every thumbnail and tab has a button that selects its page;\nin edit mode Space or Enter on the thumbnail itself picks it up for reordering.\n\nSet `orientation=\"portrait\"` for a 9:16 page, or use the default `landscape` for 16:9.\nThe orientation applies to all views, fullscreen, and preview cards.\n\nThe widget follows the page theme: `--ww-text-color`, `--ww-font-family`, and `--ww-theme-accent-1` (the\nselected thumbnail). On paper it prints all pages one after another and leaves out the controls.\n\nConversions: a `section` becomes pages (its nested `section` children become one page each, otherwise the\nsection is one page). Each page converts to a `details` element with its label as the summary.\nThe thumbnails are not carried over.\n\nSignals: `page` is the number of the current page, starting at 1; `count` is the number of pages.\nBoth change when readers or authors move to another page.\n\nEnable `completion-indicators` to mark pages read after switching away, once opened and scrolled to the bottom.\nA checkmark on each read tab/preview and an aggregate checkmark in the controls show progress.\nProgress is local to this widget instance, is not saved in authored HTML, and does not advance in edit mode.\n\nKnown limitation: in edit mode the drag module sets `touch-action: none` on the thumbnails, so on a touch\nscreen the thumbnail strip cannot be scrolled by dragging on a thumbnail; the select buttons still work.",
+          "name": "WebwriterPages",
+          "cssParts": [
+            {
+              "description": "The pane of thumbnails and controls below or beside the page.",
+              "name": "actions"
+            },
+            {
+              "description": "The strip of tabs and controls above the page.",
+              "name": "tabs"
+            },
+            {
+              "description": "One page thumbnail in the strip.",
+              "name": "thumbnail"
+            },
+            {
+              "description": "One tab in the tab strip.",
+              "name": "tab"
+            },
+            {
+              "description": "The editing-only Scene graph in Branches view.",
+              "name": "branch-editor"
+            },
+            {
+              "description": "The bottom pane of choices and continuation controls in Branches view.",
+              "name": "branch-controls"
+            }
+          ],
           "slots": [
             {
-              "description": "Slide elements to be displayed (should be `webwriter-slide` components only).",
+              "description": "Page elements to be displayed (should be `webwriter-page` components only).",
               "name": "default"
             }
           ],
           "members": [
             {
               "kind": "field",
-              "name": "localize",
-              "privacy": "protected",
-              "default": "LOCALIZE"
-            },
-            {
-              "kind": "field",
-              "name": "_boundKeyHandler",
+              "name": "scopedElements",
               "type": {
-                "text": "(e: KeyboardEvent) => void"
+                "text": "object"
               },
-              "privacy": "private"
+              "static": true,
+              "default": "{ \"sl-icon-button\": SlIconButton, \"sl-icon\": SlIcon, \"pages-branches\": PagesBranches, \"pages-choice-conditions\": PagesChoiceConditions, }"
             },
             {
               "kind": "field",
-              "name": "_boundTouchStartHandler",
+              "name": "convertFrom",
               "type": {
-                "text": "(e: TouchEvent) => void"
+                "text": "object"
               },
-              "privacy": "private"
+              "static": true,
+              "default": "{ section: \"loadSections\" }"
             },
             {
               "kind": "field",
-              "name": "_boundTouchEndHandler",
+              "name": "convertTo",
               "type": {
-                "text": "(e: TouchEvent) => void"
+                "text": "object"
               },
-              "privacy": "private"
+              "static": true,
+              "default": "{ details: \"toDetails\" }"
             },
             {
               "kind": "field",
-              "name": "_touchStartX",
+              "name": "options",
+              "static": true,
+              "default": "{ type: { type: \"select\", control: \"select\", attribute: false, label: (widget: Labelled) => widget.msg(\"View\"), options: [ { value: \"tabs\", label: (widget: Labelled) => widget.msg(\"Tabs\") }, { value: \"pages\", label: (widget: Labelled) => widget.msg(\"Slides\") }, { value: \"carousel\", label: (widget: Labelled) => widget.msg(\"Carousel\") }, { value: \"branches\", label: (widget: Labelled) => widget.msg(\"Branches\") }, ], }, completionIndicators: { type: Boolean, label: (widget: Labelled) => widget.msg(\"Show completion indicators\"), }, } satisfies Record<string, Declared<OptionDeclaration>>"
+            },
+            {
+              "kind": "field",
+              "name": "actions",
+              "static": true,
+              "default": "{ addPage: { label: (widget: Labelled) => widget.msg(\"Add\"), buttonGroup: \"pages\", icon: \"Plus\", intent: \"default\" }, removeActivePage: { label: (widget: Labelled) => widget.msg(\"Remove\"), buttonGroup: \"pages\", icon: \"Delete\", intent: \"danger\", disabled: true }, duplicateActivePage: { label: (widget: Labelled) => widget.msg(\"Duplicate\"), buttonGroup: \"pages\", icon: \"Copy\", intent: \"default\", disabled: true }, resetPageAspectRatio: { label: (widget: Labelled) => widget.msg(\"Reset aspect ratio\"), buttonGroup: \"pages\", icon: \"Restore\", intent: \"default\", disabled: true }, } satisfies Record<string, Declared<ActionDeclaration>>"
+            },
+            {
+              "kind": "field",
+              "name": "localize"
+            },
+            {
+              "kind": "field",
+              "name": "msg",
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "#permissions",
+              "privacy": "private",
+              "default": "new Permissions(this)"
+            },
+            {
+              "kind": "field",
+              "name": "authoredType",
+              "type": {
+                "text": "PagesLayout"
+              },
+              "privacy": "private",
+              "default": "\"tabs\"",
+              "attribute": "type"
+            },
+            {
+              "kind": "field",
+              "name": "legacyHidePagination",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false",
+              "attribute": "hide-pagination"
+            },
+            {
+              "kind": "field",
+              "name": "type",
+              "type": {
+                "text": "PagesLayout"
+              },
+              "description": "The current view, stored in the `type` attribute."
+            },
+            {
+              "kind": "field",
+              "name": "startPage",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\"",
+              "description": "Stable key of the first page in Branches; an absent key starts at the first page.",
+              "attribute": "start-page",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "completionIndicators",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Mark pages read on leaving them after reaching their bottom. Reader-local; off by default.",
+              "attribute": "completion-indicators",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "orientation",
+              "type": {
+                "text": "\"landscape\" | \"portrait\""
+              },
+              "default": "\"landscape\"",
+              "description": "Page orientation: 16:9 landscape or 9:16 portrait.",
+              "attribute": "orientation",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "pageAspectRatio",
+              "type": {
+                "text": "number | undefined"
+              },
+              "default": "undefined",
+              "description": "Optional page width/height ratio, clamped to 0.5–3. Without it, orientation supplies the ratio.",
+              "attribute": "page-aspect-ratio",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "aspectPreview",
               "type": {
                 "text": "number | null"
               },
@@ -145,16 +370,684 @@
             },
             {
               "kind": "field",
-              "name": "_touchTarget",
-              "type": {
-                "text": "Element | null"
-              },
+              "name": "#aspectEditing",
               "privacy": "private",
-              "default": "null"
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "#aspectFullscreen",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "#lastPageRatio",
+              "privacy": "private",
+              "type": {
+                "text": "number | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#aspectCaptureRevision",
+              "privacy": "private",
+              "type": {
+                "text": "number"
+              },
+              "default": "0"
+            },
+            {
+              "kind": "field",
+              "name": "#resetAspectDisabled",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "true"
+            },
+            {
+              "kind": "field",
+              "name": "#aspectResize",
+              "privacy": "private",
+              "default": "new PageAspectResize({ read: () => { const stage = this.renderRoot.querySelector(\".page-stage\"); if (!this.isConnected || !this.#permissions.editing || !stage) return null; const rect = stage.getBoundingClientRect(); return { ratio: this.#pageRatio, width: rect.width, height: rect.height }; }, preview: ratio => { if (ratio !== this.aspectPreview) this.#aspectCaptureRevision++; this.aspectPreview = ratio; }, commit: ratio => transaction(this, async () => { if (!this.isConnected || !this.#permissions.editing) return; this.pageAspectRatio = ratio; await this.updateComplete; await this.#waitForThumbnail(); }), })"
+            },
+            {
+              "kind": "field",
+              "name": "#pageRatio",
+              "privacy": "private",
+              "readonly": true
             },
             {
               "kind": "method",
-              "name": "_handleKeyDown",
+              "name": "#positionAspectLabel",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "PointerEvent"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#resizePagePointerDown",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "PointerEvent"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "resetPageAspectRatio",
+              "description": "Restore the exact orientation default by removing the authored override."
+            },
+            {
+              "kind": "field",
+              "name": "pages",
+              "type": {
+                "text": "WebwriterPage[]"
+              },
+              "privacy": "protected",
+              "description": "All `webwriter-page` elements.\nRepresents the individual pages in the sequence of pages."
+            },
+            {
+              "kind": "field",
+              "name": "activePageIndex",
+              "type": {
+                "text": "number"
+              },
+              "default": "0",
+              "description": "Index of the currently active page."
+            },
+            {
+              "kind": "field",
+              "name": "tabScroll",
+              "type": {
+                "text": "object"
+              },
+              "privacy": "private",
+              "default": "{ backward: false, forward: false }"
+            },
+            {
+              "kind": "field",
+              "name": "#tabScroller",
+              "privacy": "private",
+              "type": {
+                "text": "HTMLElement | null"
+              },
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "#tabResizeObserver",
+              "privacy": "private",
+              "type": {
+                "text": "ResizeObserver | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#pageAttributesObserver",
+              "privacy": "private",
+              "default": "new MutationObserver((records) => { if (records.some((record) => (record.target.parentNode === this && (record.target as Element).localName === \"webwriter-page\") || (this.type === \"branches\" && (record.attributeName === \"id\" || record.type === \"childList\")) )) { this.requestUpdate(); } })"
+            },
+            {
+              "kind": "field",
+              "name": "#documentSignalObserver",
+              "privacy": "private",
+              "default": "new MutationObserver((records) => { if (this.type !== \"branches\") return; const affectsSignalLookup = records.some((record) => { if (this.contains(record.target)) return false; if (record.type === \"attributes\") return record.attributeName === \"id\"; return [...record.addedNodes, ...record.removedNodes].some((node) => node instanceof Element && (node.localName.includes(\"-\") || node.hasAttribute(\"id\") || node.querySelector(\"[id]\")) ); }); if (affectsSignalLookup) this.requestUpdate(); })"
+            },
+            {
+              "kind": "field",
+              "name": "#pendingSignalTags",
+              "privacy": "private",
+              "default": "new Set<string>()"
+            },
+            {
+              "kind": "field",
+              "name": "#page",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#count",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "signals",
+              "type": {
+                "text": "object"
+              },
+              "readonly": true,
+              "default": "{ page: this.#page, count: this.#count }",
+              "description": "Public signals: the current page number (from 1) and the number of pages."
+            },
+            {
+              "kind": "field",
+              "name": "#actionsDisabled",
+              "privacy": "private",
+              "type": {
+                "text": "object"
+              },
+              "default": "{ duplicateActivePage: true, removeActivePage: true }"
+            },
+            {
+              "kind": "field",
+              "name": "#lifecycle",
+              "privacy": "private",
+              "type": {
+                "text": "AbortController | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#changeTimer",
+              "privacy": "private",
+              "type": {
+                "text": "ReturnType<typeof setTimeout> | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#changeFinished",
+              "privacy": "private",
+              "type": {
+                "text": "() => void | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#thumbnailTask",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#touchStartX",
+              "privacy": "private",
+              "type": {
+                "text": "number | null"
+              },
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "#touchStartY",
+              "privacy": "private",
+              "type": {
+                "text": "number"
+              },
+              "default": "0"
+            },
+            {
+              "kind": "field",
+              "name": "#touchTarget",
+              "privacy": "private",
+              "type": {
+                "text": "Element | null"
+              },
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "#completedPages",
+              "privacy": "private",
+              "default": "new Set<WebwriterPage>()"
+            },
+            {
+              "kind": "field",
+              "name": "#completionPage",
+              "privacy": "private",
+              "type": {
+                "text": "WebwriterPage | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#completionVisible",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "#completionReachedBottom",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "#completionIntersection",
+              "privacy": "private",
+              "type": {
+                "text": "IntersectionObserver | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#completionResize",
+              "privacy": "private",
+              "type": {
+                "text": "ResizeObserver | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#completionMutation",
+              "privacy": "private",
+              "type": {
+                "text": "MutationObserver | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#completionFrame",
+              "privacy": "private",
+              "type": {
+                "text": "number | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#readingBranches",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "branchGraphExpanded",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "#branchPageAnimation",
+              "privacy": "private",
+              "type": {
+                "text": "Animation | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#highlightedWidgets",
+              "privacy": "private",
+              "type": {
+                "text": "Element[]"
+              },
+              "default": "[]"
+            },
+            {
+              "kind": "field",
+              "name": "#highlightAbort",
+              "privacy": "private",
+              "type": {
+                "text": "AbortController | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#highlightResize",
+              "privacy": "private",
+              "type": {
+                "text": "ResizeObserver | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "highlightRects",
+              "type": {
+                "text": "Array<{ top: number; left: number; width: number; height: number }>"
+              },
+              "privacy": "private",
+              "default": "[]"
+            },
+            {
+              "kind": "field",
+              "name": "#conditionMonitorAbort",
+              "privacy": "private",
+              "type": {
+                "text": "AbortController | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#conditionMonitorTimer",
+              "privacy": "private",
+              "type": {
+                "text": "ReturnType<typeof setInterval> | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#conditionMonitorFrame",
+              "privacy": "private",
+              "type": {
+                "text": "number | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#conditionMonitorRoot",
+              "privacy": "private",
+              "type": {
+                "text": "ParentNode | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#branchAvailabilityKey",
+              "privacy": "private",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\""
+            },
+            {
+              "kind": "field",
+              "name": "actions",
+              "description": "The drawer declarations with the availability of the page actions, which follows the pages.",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "activePage",
+              "type": {
+                "text": "WebwriterPage"
+              },
+              "description": "The active page element based on the activePageIndex.",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "hasNextPage",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "False if Pages is on the last page.",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "hasPreviousPage",
+              "type": {
+                "text": "boolean"
+              },
+              "description": "False if Pages is on the first page.",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "isFullscreen",
+              "privacy": "protected",
+              "description": "Whether the sequence of pages is currently displayed in fullscreen mode.",
+              "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "#handleFullscreenChange",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#stopCompletionTracking",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#syncCompletionTracking",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#queueCompletionCheck",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#checkCompletion",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#updateTabScroll",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#scrollTabs",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#setPageLabel",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#setBranches",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#addPageChoice",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#addBranchPage",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#moveBranchPages",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#setStartPage",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#followBranch",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#openBranchPage",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#fadeInBranchPage",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "loadSections",
+              "return": {
+                "type": {
+                  "text": "boolean"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "fragment",
+                  "type": {
+                    "text": "DocumentFragment"
+                  }
+                }
+              ],
+              "description": "Replaces the pages with the pages a `section` stands for; declines anything else."
+            },
+            {
+              "kind": "method",
+              "name": "toDetails",
+              "return": {
+                "type": {
+                  "text": "DocumentFragment | null"
+                }
+              },
+              "description": "One `details` per page with its label as summary; `null` without pages."
+            },
+            {
+              "kind": "method",
+              "name": "duplicateActivePage"
+            },
+            {
+              "kind": "method",
+              "name": "addPage",
+              "parameters": [
+                {
+                  "name": "index",
+                  "optional": true,
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "Add a new empty page element. Optionally insert after given index."
+            },
+            {
+              "kind": "method",
+              "name": "#createPage",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "index",
+                  "optional": true,
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#addPage",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "index",
+                  "optional": true,
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "duplicatePage",
+              "parameters": [
+                {
+                  "name": "index",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "Duplicate an existing page at given index."
+            },
+            {
+              "kind": "method",
+              "name": "#duplicatePage",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "index",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "removeActivePage",
+              "description": "Remove the currently active page element."
+            },
+            {
+              "kind": "method",
+              "name": "removePage",
+              "parameters": [
+                {
+                  "name": "pageIndex",
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ],
+              "description": "Remove a page and return editor selection to the surviving active page's start."
+            },
+            {
+              "kind": "method",
+              "name": "#selectPageStart",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "page",
+                  "type": {
+                    "text": "WebwriterPage"
+                  }
+                },
+                {
+                  "name": "{ firstElementOnly = false }",
+                  "default": "{}"
+                }
+              ],
+              "description": "Return document editing to the first content of the page."
+            },
+            {
+              "kind": "method",
+              "name": "nextPage",
+              "parameters": [
+                {
+                  "name": "backwards",
+                  "default": "false"
+                },
+                {
+                  "name": "step",
+                  "default": "1"
+                }
+              ],
+              "description": "Activate the next page element."
+            },
+            {
+              "kind": "method",
+              "name": "#handleSelectionChange",
+              "privacy": "private",
+              "description": "Follows the selection to the page that contains it."
+            },
+            {
+              "kind": "method",
+              "name": "#handleKeyDown",
+              "privacy": "private",
               "parameters": [
                 {
                   "name": "e",
@@ -163,11 +1056,25 @@
                   }
                 }
               ],
-              "description": "Handles keyboard navigation for the slideshow.\r\nArrowRight advances to the next slide, ArrowLeft goes back.\r\nOnly possible in preview mode."
+              "description": "Handles keyboard navigation for the sequence of pages.\nArrowRight advances to the next page, ArrowLeft goes back.\nOnly possible in preview mode."
             },
             {
               "kind": "method",
-              "name": "_handleTouchStart",
+              "name": "#takesText",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "el",
+                  "type": {
+                    "text": "HTMLElement"
+                  }
+                }
+              ],
+              "description": "Whether the element is a place where arrow keys move a caret or a value."
+            },
+            {
+              "kind": "method",
+              "name": "#handleTouchStart",
               "privacy": "private",
               "parameters": [
                 {
@@ -177,11 +1084,11 @@
                   }
                 }
               ],
-              "description": "Handles the start of a touch event for swipe navigation.\r\nRecords the initial touch position and target element.\r\nOnly active in fullscreen mode."
+              "description": "Handles the start of a touch event for swipe navigation.\nRecords the initial touch position and target element.\nOnly active in fullscreen mode."
             },
             {
               "kind": "method",
-              "name": "_isInteractiveTarget",
+              "name": "#isInteractiveTarget",
               "privacy": "private",
               "return": {
                 "type": {
@@ -196,11 +1103,11 @@
                   }
                 }
               ],
-              "description": "Determines if the given element or any of its ancestors (up to the slideshow container) is an interactive element.\r\nUsed to prevent swipe navigation when interacting with widgets or interactive elements."
+              "description": "Determines if the given element or any of its ancestors (up to the sequence of pages container) is an interactive element.\nUsed to prevent swipe navigation when interacting with widgets or interactive elements."
             },
             {
               "kind": "method",
-              "name": "_handleTouchEnd",
+              "name": "#handleTouchEnd",
               "privacy": "private",
               "parameters": [
                 {
@@ -210,171 +1117,11 @@
                   }
                 }
               ],
-              "description": "Handles the end of a touch event for swipe navigation.\r\nDetermines the swipe direction and navigates to the next or previous slide accordingly.\r\nIgnores swipes on interactive elements or if the swipe distance is too small."
-            },
-            {
-              "kind": "field",
-              "name": "scopedElements",
-              "type": {
-                "text": "object"
-              },
-              "privacy": "protected",
-              "static": true,
-              "default": "{ \"sl-button\": SlButton, \"sl-icon-button\": SlIconButton, \"sl-tooltip\": SlTooltip, \"sl-select\": SlSelect, \"sl-option\": SlOption, }"
-            },
-            {
-              "kind": "field",
-              "name": "activeSlideIndex",
-              "type": {
-                "text": "number"
-              },
-              "default": "0",
-              "description": "Index of the currently active slide."
-            },
-            {
-              "kind": "field",
-              "name": "activeSlide",
-              "type": {
-                "text": "WebwriterSlide"
-              },
-              "description": "The active slide element based on the activeSlideIndex.",
-              "readonly": true
-            },
-            {
-              "kind": "field",
-              "name": "draggingIndex",
-              "type": {
-                "text": "number | null"
-              },
-              "privacy": "private",
-              "default": "null"
-            },
-            {
-              "kind": "field",
-              "name": "lastDraggedOver",
-              "type": {
-                "text": "number"
-              },
-              "privacy": "private",
-              "default": "-1",
-              "description": "Index of the slide currently being dragged over (for drag-and-drop functionality)."
-            },
-            {
-              "kind": "field",
-              "name": "isFullscreen",
-              "privacy": "protected",
-              "description": "Whether the slideshow is currently displayed in fullscreen mode.",
-              "readonly": true
-            },
-            {
-              "kind": "field",
-              "name": "iconSrc",
-              "privacy": "protected",
-              "description": "Icon source URL depending on fullscreen state (enter/exit).",
-              "readonly": true
-            },
-            {
-              "kind": "field",
-              "name": "slides",
-              "type": {
-                "text": "WebwriterSlide[]"
-              },
-              "privacy": "protected",
-              "description": "All `webwriter-slide` elements.\r\nRepresents the individual slides in the slideshow."
-            },
-            {
-              "kind": "field",
-              "name": "type",
-              "type": {
-                "text": "\"tabs\" | \"slides\""
-              },
-              "privacy": "public",
-              "default": "\"slides\"",
-              "description": "Defines the type of view for the slideshow.\r\n- \"slides\": Show content as sequential slides.\r\n- \"tabs\": Show content using tabs.",
-              "attribute": "type",
-              "reflects": true
+              "description": "Handles the end of a touch event for swipe navigation.\nDetermines the swipe direction and navigates to the next or previous page accordingly.\nIgnores swipes on interactive elements or if the swipe distance is too small."
             },
             {
               "kind": "method",
-              "name": "addSlide",
-              "parameters": [
-                {
-                  "name": "index",
-                  "optional": true,
-                  "type": {
-                    "text": "number"
-                  }
-                }
-              ],
-              "description": "Add a new empty slide element. Optionally insert after given index."
-            },
-            {
-              "kind": "method",
-              "name": "duplicateSlide",
-              "parameters": [
-                {
-                  "name": "index",
-                  "type": {
-                    "text": "number"
-                  }
-                }
-              ],
-              "description": "Duplicate an existing slide at given index."
-            },
-            {
-              "kind": "method",
-              "name": "removeActiveSlide",
-              "description": "Remove the currently active slide element."
-            },
-            {
-              "kind": "method",
-              "name": "removeSlide",
-              "parameters": [
-                {
-                  "name": "slideIndex",
-                  "type": {
-                    "text": "number"
-                  }
-                }
-              ],
-              "description": "Remove the currently active slide element."
-            },
-            {
-              "kind": "method",
-              "name": "nextSlide",
-              "parameters": [
-                {
-                  "name": "backwards",
-                  "default": "false"
-                },
-                {
-                  "name": "step",
-                  "default": "1"
-                }
-              ],
-              "description": "Activate the next slide element."
-            },
-            {
-              "kind": "field",
-              "name": "hasNextSlide",
-              "type": {
-                "text": "boolean"
-              },
-              "description": "False if slideshow is on the last slide.",
-              "readonly": true
-            },
-            {
-              "kind": "field",
-              "name": "hasPreviousSlide",
-              "type": {
-                "text": "boolean"
-              },
-              "description": "False if slideshow is on the first slide.",
-              "readonly": true
-            },
-            {
-              "kind": "method",
-              "name": "handleNextSlideClick",
+              "name": "handleNextPageClick",
               "privacy": "protected",
               "parameters": [
                 {
@@ -390,116 +1137,182 @@
                   "description": "Whether to navigate backward (default is false)."
                 }
               ],
-              "description": "Handles navigation to the next or previous slide based on user input.\r\n- Shift key: jump by the total number of slides.\r\n- Ctrl key: jump by 10 slides.\r\n- Otherwise: move by one slide."
+              "description": "Handles navigation to the next or previous page based on user input.\n- Shift key: jump by the total number of pages.\n- Ctrl key: jump by 10 pages.\n- Otherwise: move by one page."
             },
             {
               "kind": "field",
-              "name": "changeSlide",
+              "name": "changePage",
               "privacy": "protected",
-              "description": "Changes the active slide to the specified index.\r\nWaits for rendering to finish, scrolls the active slide into view,\r\nand generates a thumbnail preview using snapdom.",
+              "description": "Changes the active page to the specified index.\nWaits for rendering to finish, scrolls the active page into view,\nand generates a thumbnail preview.",
               "parameters": [
                 {
-                  "description": "The index of the slide to activate.",
+                  "description": "The index of the page to activate.",
                   "name": "index"
                 }
               ]
             },
             {
               "kind": "method",
-              "name": "onDragStart",
+              "name": "#waitForThumbnail",
               "privacy": "private",
-              "parameters": [
-                {
-                  "name": "e",
-                  "type": {
-                    "text": "DragEvent"
-                  },
-                  "description": "The dragstart event."
-                },
-                {
-                  "name": "index",
-                  "type": {
-                    "text": "number"
-                  },
-                  "description": "Index of the slide being dragged."
-                }
-              ],
-              "description": "Starts dragging a slide element.\r\nAdds the 'dragging' CSS class and sets drag data."
+              "description": "Keep ratio snapshots in the same undo step, including a debounce replaced by a newer capture."
             },
             {
               "kind": "method",
-              "name": "onDragEnd",
+              "name": "onDragCommit",
               "privacy": "private",
               "parameters": [
                 {
                   "name": "e",
                   "type": {
-                    "text": "DragEvent"
-                  },
-                  "description": "The dragend event."
+                    "text": "CustomEvent<DragCommitDetail>"
+                  }
                 }
               ],
-              "description": "Ends dragging a slide.\r\nMoves the dragged slide to its new position if it was moved,\r\nupdates the active slide index, and cleans up drag state."
+              "description": "Moves the dragged page to the place the drop resolved to.\nThe thumbnails and tabs stand for the authored `webwriter-page` children,\nso the commit moves the page itself and the lifted item settles at the new layout."
+            },
+            {
+              "kind": "field",
+              "name": "#watchPendingSignalTags",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#setHighlightedWidgets",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#updateHighlightRects",
+              "privacy": "private"
             },
             {
               "kind": "method",
-              "name": "onDragOver",
+              "name": "#branchAvailabilitySnapshot",
               "privacy": "private",
-              "parameters": [
-                {
-                  "name": "e",
-                  "type": {
-                    "text": "DragEvent"
-                  },
-                  "description": "The dragover event."
-                },
-                {
-                  "name": "index",
-                  "type": {
-                    "text": "number"
-                  },
-                  "description": "Index of the slide being dragged over."
+              "return": {
+                "type": {
+                  "text": "string"
                 }
-              ],
-              "description": "Handles dragging over a slide element.\r\nPrevents default to allow dropping and records the slide index being hovered."
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#checkBranchConditions",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#scheduleBranchConditionCheck",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#stopConditionMonitoring",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#syncConditionMonitoring",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#view",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "PagesView"
+                }
+              },
+              "description": "The sequence of pages as seen by the strip and control components."
+            }
+          ],
+          "events": [
+            {
+              "name": "optionschange",
+              "type": {
+                "text": "Event"
+              }
             }
           ],
           "attributes": [
             {
               "name": "type",
               "type": {
-                "text": "\"tabs\" | \"slides\""
+                "text": "PagesLayout"
               },
-              "default": "\"slides\"",
-              "description": "Defines the type of view for the slideshow.\r\n- \"slides\": Show content as sequential slides.\r\n- \"tabs\": Show content using tabs.",
-              "fieldName": "type"
+              "default": "\"tabs\"",
+              "fieldName": "authoredType"
+            },
+            {
+              "name": "hide-pagination",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "legacyHidePagination"
+            },
+            {
+              "name": "start-page",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\"",
+              "description": "Stable key of the first page in Branches; an absent key starts at the first page.",
+              "fieldName": "startPage"
+            },
+            {
+              "name": "completion-indicators",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "description": "Mark pages read on leaving them after reaching their bottom. Reader-local; off by default.",
+              "fieldName": "completionIndicators"
+            },
+            {
+              "name": "orientation",
+              "type": {
+                "text": "\"landscape\" | \"portrait\""
+              },
+              "default": "\"landscape\"",
+              "description": "Page orientation: 16:9 landscape or 9:16 portrait.",
+              "fieldName": "orientation"
+            },
+            {
+              "name": "page-aspect-ratio",
+              "type": {
+                "text": "number | undefined"
+              },
+              "default": "undefined",
+              "description": "Optional page width/height ratio, clamped to 0.5–3. Without it, orientation supplies the ratio.",
+              "fieldName": "pageAspectRatio"
             }
           ],
           "superclass": {
             "name": "LitElementWw",
             "package": "@webwriter/lit"
           },
-          "tagName": "webwriter-slides",
-          "customElement": true,
-          "modulePath": "src/widgets/webwriter-slides.ts",
-          "definitionPath": "src/widgets/webwriter-slides.ts"
+          "tagName": "webwriter-pages",
+          "customElement": true
         }
       ],
       "exports": [
         {
           "kind": "js",
-          "name": "WebwriterSlides",
+          "name": "WebwriterPages",
           "declaration": {
-            "name": "WebwriterSlides",
-            "module": "src/widgets/webwriter-slides.ts"
+            "name": "WebwriterPages",
+            "module": "src/widgets/webwriter-pages.ts"
           }
         },
         {
           "kind": "custom-element-definition",
-          "name": "webwriter-slides",
+          "name": "webwriter-pages",
           "declaration": {
-            "name": "WebwriterSlides",
-            "module": "src/widgets/webwriter-slides.ts"
+            "name": "WebwriterPages",
+            "module": "src/widgets/webwriter-pages.ts"
           }
         }
       ]

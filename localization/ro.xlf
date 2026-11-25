@@ -1,26 +1,10 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='UTF-8'?>
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 http://docs.oasis-open.org/xliff/v1.2/os/xliff-core-1.2-strict.xsd" version="1.2">
   <file original="lit-localize-inputs" datatype="plaintext" source-language="en" target-language="ro">
     <body>
-      <trans-unit id="se898a5a880c57718">
-        <source>Remove slide</source>
-        <target>Scoateți glisiera</target>
-      </trans-unit>
-      <trans-unit id="sa2322449a142ad50">
-        <source>Go to previous slide</source>
-        <target>Mergeți la diapozitivul anterior</target>
-      </trans-unit>
-      <trans-unit id="se8d0deb65adf4544">
-        <source>Go to next slide</source>
-        <target>Treceți la diapozitivul următor</target>
-      </trans-unit>
       <trans-unit id="see7c7a973a9b2d6c">
         <source>Show in fullscreen</source>
         <target>Afișare pe ecran complet</target>
-      </trans-unit>
-      <trans-unit id="s657514e10d2199ee">
-        <source>Add slide after current</source>
-        <target>Adăugați diapozitiv după curent</target>
       </trans-unit>
       <trans-unit id="s5334c0927cf25b86">
         <source>Exit fullscreen</source>
@@ -34,26 +18,238 @@
         <source>Tabs</source>
         <target>File</target>
       </trans-unit>
+      <trans-unit id="s4924ae578d75adec">
+        <source>Remove page</source>
+        <target>Elimină pagina</target>
+      </trans-unit>
+      <trans-unit id="s933b62519fffa7f7">
+        <source>Add page</source>
+        <target>Adaugă pagină</target>
+      </trans-unit>
+      <trans-unit id="s6a89bb10338369b4">
+        <source>Go to previous page</source>
+        <target>Mergi la pagina anterioară</target>
+      </trans-unit>
+      <trans-unit id="s7edad99c6b7bfe88">
+        <source>Go to next page</source>
+        <target>Mergi la pagina următoare</target>
+      </trans-unit>
+      <trans-unit id="s2e192b19ed15fcf6">
+        <source>Page</source>
+        <target>Pagină</target>
+      </trans-unit>
+      <trans-unit id="s6ac0c20ddc5c15ff">
+        <source>Pages</source>
+        <target>Pagini</target>
+      </trans-unit>
+      <trans-unit id="s4200371a855e0ae9">
+        <source>Scroll tabs backward</source>
+        <target>Derulează filele înapoi</target>
+      </trans-unit>
+      <trans-unit id="s2c6d6feada924c0d">
+        <source>Scroll tabs forward</source>
+        <target>Derulează filele înainte</target>
+      </trans-unit>
+      <trans-unit id="sf9aee319a006c9b4">
+        <source>Add</source>
+        <target>Adaugă</target>
+      </trans-unit>
+      <trans-unit id="sea4f08110bb8f15d">
+        <source>Remove</source>
+        <target>Eliminare</target>
+      </trans-unit>
+      <trans-unit id="sfac15b89e0668996">
+        <source>Duplicate</source>
+        <target>Duplică</target>
+      </trans-unit>
       <trans-unit id="s0043ccab8a7a7eaf">
         <source>Slides</source>
         <target>Diapozitive</target>
       </trans-unit>
-      <trans-unit id="s7309c4598fa52557">
-        <source>Duplicate slide</source>
-        <target>Diapozitiv duplicat</target>
+      <trans-unit id="sfbf60e7cedcc7bd6">
+        <source>Missing page</source>
+  <target>Pagină lipsă</target>
+</trans-unit>
+      <trans-unit id="s143cbd1b77c5d1f0">
+        <source>Edit choice</source>
+      <target>Editează opțiunea</target>
+</trans-unit>
+      <trans-unit id="s0f121560cc5ec2f7">
+        <source>Add choice</source>
+      <target>Adaugă opțiune</target>
+</trans-unit>
+      <trans-unit id="s5e8250fb85d64c23">
+        <source>Close</source>
+        <target>Închide</target>
       </trans-unit>
-    <trans-unit id="s5c1ecf88259b79f9">
-  <source>Presentation</source>
-<target>Prezentare</target></trans-unit>
-<trans-unit id="sac2eb5c63a7b6c71">
-  <source>Add slide</source>
-<target>Adaugă diapozitiv</target></trans-unit>
-<trans-unit id="sc67c075acd3a06ea">
-  <source>Duplicate current slide</source>
-<target>Duplică diapozitivul curent</target></trans-unit>
-<trans-unit id="sde173dce922c7a4d">
-  <source>Remove current slide</source>
-<target>Elimină diapozitivul curent</target></trans-unit>
-</body>
+      <trans-unit id="s354ae458a550da1f">
+        <source>Destination</source>
+      <target>Destinație</target>
+</trans-unit>
+      <trans-unit id="s309c270b33a470b8">
+        <source>New page</source>
+      <target>Pagină nouă</target>
+</trans-unit>
+      <trans-unit id="s5590dbf7e425789d">
+        <source>Label</source>
+        <target>Etichetă</target>
+      </trans-unit>
+      <trans-unit id="sbdf3e4d5b2373ae4">
+        <source>Remove choice</source>
+      <target>Elimină opțiunea</target>
+</trans-unit>
+      <trans-unit id="s33f85f24c0f5f008">
+        <source>Save</source>
+        <target>Salvează</target>
+      </trans-unit>
+      <trans-unit id="sb58a788e39e31092">
+        <source>Collapse graph</source>
+        <target>Restrângeți Grafic</target>
+      </trans-unit>
+      <trans-unit id="sa56acbd42caca821">
+        <source>Expand graph</source>
+        <target>Extindeți Grafic</target>
+      </trans-unit>
+      <trans-unit id="s415b9ffddb8c1de6">
+        <source>Page choices</source>
+        <target>Pagină Alternativă</target>
+      </trans-unit>
+      <trans-unit id="sb0ddb594a148d04a">
+        <source>Page branches</source>
+        <target>Pagină Ramură</target>
+      </trans-unit>
+      <trans-unit id="s09ee132b9020ff58">
+        <source>Page label</source>
+        <target>Pagină Etichetă</target>
+      </trans-unit>
+      <trans-unit id="s9f03b254f12f6c69">
+        <source>Connect to page</source>
+        <target>Legătură Pagină</target>
+      </trans-unit>
+      <trans-unit id="se682f076f6506f9b">
+        <source>Go to page</source>
+        <target>Deschis Pagină</target>
+      </trans-unit>
+      <trans-unit id="sdee6470f4b971f5e">
+        <source>Start page</source>
+        <target>Pornește Pagină</target>
+      </trans-unit>
+      <trans-unit id="s8f0fb3a1f7e4a801">
+        <source>Set as start</source>
+        <target>Pornește Pagină</target>
+      </trans-unit>
+      <trans-unit id="sb06ba136bba475e6">
+        <source>Connect from page</source>
+        <target>Pagină Legătură</target>
+      </trans-unit>
+      <trans-unit id="s38d8c0873539ac88">
+        <source>This page</source>
+        <target>Actual Pagină</target>
+      </trans-unit>
+      <trans-unit id="se8d7b08c014cf525">
+        <source>Other pages</source>
+        <target>Alternativă Pagini</target>
+      </trans-unit>
+      <trans-unit id="sa311a24c1471a974">
+        <source>Document</source>
+        <target>Document</target>
+      </trans-unit>
+      <trans-unit id="s8a56a8c8bd19c9c7">
+        <source>missing</source>
+      <target>lipsește</target>
+</trans-unit>
+      <trans-unit id="s41f7dca46d3f1b4a">
+        <source>Value</source>
+        <target>Valoare</target>
+      </trans-unit>
+      <trans-unit id="s5b5c98ef514dbfa5">
+        <source>true</source>
+      <target>adevărat</target>
+</trans-unit>
+      <trans-unit id="sb5fae2c14238b978">
+        <source>false</source>
+      <target>fals</target>
+</trans-unit>
+      <trans-unit id="s091d3407b5b2f824">
+        <source>OR</source>
+        <target>SAU</target>
+      </trans-unit>
+      <trans-unit id="sfa069719a050be66">
+        <source>AND</source>
+      <target>ȘI</target>
+</trans-unit>
+      <trans-unit id="s4c46cd53673cf099">
+        <source>Any condition can match (click to require all)</source>
+  <target>Se poate potrivi orice condiție (fă clic pentru a le impune pe toate)</target>
+</trans-unit>
+      <trans-unit id="s3133a0f3b013b03f">
+        <source>All conditions must match (click to match any)</source>
+  <target>Trebuie să se potrivească toate condițiile (fă clic pentru a se potrivi oricare)</target>
+</trans-unit>
+      <trans-unit id="s83b64afbf7b2a257">
+        <source>Conditions</source>
+        <target>Condiții</target>
+      </trans-unit>
+      <trans-unit id="s38cba0a354bb3929">
+        <source>Signal</source>
+        <target>Semnal</target>
+      </trans-unit>
+      <trans-unit id="sc4801f580ac4e73d">
+        <source>Operator</source>
+        <target>Operator</target>
+      </trans-unit>
+      <trans-unit id="s462d2e8b05655f00">
+        <source>Remove condition</source>
+        <target>Elimină condiția</target>
+      </trans-unit>
+      <trans-unit id="s17d052062271c729">
+        <source>Add condition</source>
+        <target>Adaugă o condiție</target>
+      </trans-unit>
+      <trans-unit id="s043fce46deaff2ff">
+        <source>No widget signals found in this document.</source>
+  <target>Nu s-a găsit niciun semnal de widget în acest document.</target>
+</trans-unit>
+      <trans-unit id="s199a3742a49413c2">
+        <source>When unmet</source>
+  <target>Când nu este îndeplinită</target>
+</trans-unit>
+      <trans-unit id="s861af4b54750e46a">
+        <source>Disable choice</source>
+  <target>Dezactivează opțiunea</target>
+</trans-unit>
+      <trans-unit id="scc83196c1e086a14">
+        <source>Hide choice</source>
+      <target>Ascunde opțiunea</target>
+</trans-unit>
+      <trans-unit id="s55bc1af31c3cc9d7">
+        <source>Page completed</source>
+  <target>Pagină finalizată</target>
+</trans-unit>
+      <trans-unit id="s4fe74cac2ffde0fa">
+        <source>Pages completed</source>
+  <target>Pagini finalizate</target>
+</trans-unit>
+      <trans-unit id="s8cdc08f7a30dc9d3">
+        <source>Carousel</source>
+      <target>Carusel</target>
+</trans-unit>
+      <trans-unit id="sad8f83df9312b389">
+        <source>Branches</source>
+        <target>Ramură</target>
+      </trans-unit>
+      <trans-unit id="s15244f583d260178">
+        <source>Show completion indicators</source>
+      <target>Afișează indicatorii de finalizare</target>
+</trans-unit>
+      <trans-unit id="sa606b4ffbc65c9c3">
+        <source>Reset aspect ratio</source>
+      <target>Resetează raportul de aspect</target>
+</trans-unit>
+      <trans-unit id="s1c1c9f64b0317e3b">
+        <source>Resize page aspect ratio</source>
+      <target>Modifică raportul de aspect al paginii</target>
+</trans-unit>
+    </body>
   </file>
 </xliff>

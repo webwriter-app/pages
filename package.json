@@ -1,21 +1,11 @@
 {
-  "name": "@webwriter/slides",
+  "name": "@webwriter/pages",
   "version": "3.0.0",
-  "description": "Present content as a sequence of slides or tabs.",
-  "repository": "github:webwriter-app/slides",
+  "description": "Present content as slides, tabs, carousels, or branching pages.",
+  "repository": "https://github.com/webwriter-app/pages",
   "keywords": [
     "webwriter-widget",
     "widget-presentational",
-    "iscedf2013-01",
-    "iscedf2013-02",
-    "iscedf2013-03",
-    "iscedf2013-04",
-    "iscedf2013-05",
-    "iscedf2013-06",
-    "iscedf2013-07",
-    "iscedf2013-08",
-    "iscedf2013-09",
-    "iscedf2013-10",
     "isced2011-1",
     "isced2011-2",
     "isced2011-3",
@@ -24,8 +14,25 @@
     "isced2011-6",
     "isced2011-7",
     "isced2011-8",
+    "iscedf2013-00",
+    "widget-editable",
+    "widget-has-content",
+    "widget-allows-pointer-input",
+    "widget-allows-keyboard-input",
+    "widget-allows-touch-input",
+    "widget-convertible-to-details",
+    "widget-convertible-from-section",
+    "widget-responsive",
+    "widget-themeable",
+    "widget-printable",
+    "widget-configurable",
+    "widget-reactive",
+    "widget-testable",
+    "widget-supports-shared-dependencies",
     "presentations",
-    "information",
+    "pagination",
+    "tabs",
+    "widget-stateful",
     "widget-lang-en",
     "widget-lang-en-US",
     "widget-lang-en-GB",
@@ -45,6 +52,8 @@
     "widget-lang-fi",
     "widget-lang-fr",
     "widget-lang-de",
+    "widget-lang-de-AT",
+    "widget-lang-de-CH",
     "widget-lang-el",
     "widget-lang-hu",
     "widget-lang-ga",
@@ -62,50 +71,46 @@
     "widget-lang-sl",
     "widget-lang-es",
     "widget-lang-sv",
-    "widget-lang-fa",
+    "widget-lang-sq",
+    "widget-lang-eu",
+    "widget-lang-bn",
+    "widget-lang-bs",
+    "widget-lang-cnr",
+    "widget-lang-ca",
+    "widget-lang-ca-valencia",
+    "widget-lang-ca-balear",
+    "widget-lang-gl",
+    "widget-lang-gu",
     "widget-lang-hi",
+    "widget-lang-is",
     "widget-lang-ja",
+    "widget-lang-kn",
     "widget-lang-ko",
+    "widget-lang-lb",
+    "widget-lang-mk",
+    "widget-lang-mr",
+    "widget-lang-ne",
     "widget-lang-no",
     "widget-lang-nb",
     "widget-lang-nn",
+    "widget-lang-or",
+    "widget-lang-fa",
+    "widget-lang-pa",
+    "widget-lang-sr",
+    "widget-lang-si",
+    "widget-lang-te",
     "widget-lang-tr",
     "widget-lang-uk",
-    "widget-lang-sr",
-    "widget-lang-sr-Cyrl",
-    "widget-lang-sr-Latn",
-    "widget-lang-sr-ijekavsk",
-    "widget-lang-cnr",
-    "widget-lang-sq",
-    "widget-lang-mk",
-    "widget-lang-is",
-    "widget-lang-bs",
-    "widget-lang-ca",
-    "widget-lang-ca-ES-valencia",
-    "widget-lang-eu",
-    "widget-lang-gl",
-    "widget-lang-cy",
-    "widget-lang-lb",
-    "widget-lang-bn",
-    "widget-lang-pa",
-    "widget-lang-gu",
-    "widget-lang-mr",
-    "widget-lang-te",
     "widget-lang-ur",
-    "widget-lang-kn",
-    "widget-lang-or",
-    "widget-lang-ne",
-    "widget-lang-si",
+    "widget-lang-cy",
     "widget-lang-ta",
     "widget-lang-ml",
-    "widget-lang-ps",
     "widget-lang-jv",
     "widget-lang-id",
     "widget-lang-ms",
     "widget-lang-tl",
     "widget-lang-my",
     "widget-lang-th",
-    "widget-lang-lo",
     "widget-lang-vi",
     "widget-lang-km",
     "widget-lang-kk",
@@ -117,79 +122,92 @@
     "widget-lang-hy",
     "widget-lang-he",
     "widget-lang-az",
-    "widget-lang-tk",
-    "widget-lang-dv",
     "widget-lang-be",
     "widget-lang-la",
-    "widget-lang-tpi",
     "widget-lang-am",
-    "widget-lang-om",
     "widget-lang-so",
-    "widget-lang-ti",
     "widget-lang-sw",
     "widget-lang-ha",
-    "widget-lang-yue-Hans",
-    "widget-lang-yue-Hant",
-    "widget-lang-kmr",
-    "widget-lang-kmr-Latn",
-    "widget-lang-kmr-Arab",
-    "widget-lang-ckb",
-    "widget-lang-ckb-Arab",
-    "widget-lang-af-ZA",
-    "widget-lang-af-NA"
+    "widget-lang-af"
   ],
   "license": "MIT",
   "author": "",
   "scripts": {
-    "prepublishOnly": "npx @webwriter/build && node scripts/build-tests.mjs"
+    "prepublishOnly": "npx @webwriter/build --shared-dependencies && node scripts/check-sdk-bundle.mjs"
   },
   "dependencies": {
-    "@lit/localize": "^0.12.2",
-    "@shoelace-style/shoelace": "^2.12.0",
-    "@webwriter/lit": "^3.0.0",
-    "@zumer/snapdom": "^3.7.5",
-    "bootstrap-icons": "^1.13.2",
-    "lit": "^3.2.0"
+    "@shoelace-style/shoelace": "^2.20.1",
+    "@tabler/icons": "^3.53.0",
+    "@webwriter/lit": "^3.4.0",
+    "@zumer/snapdom": "^3.8.3",
+    "lit": "^3.3.3"
   },
   "devDependencies": {
-    "@types/chai": "^5.2.2",
+    "@lit/localize": "^0.12.2",
+    "@types/chai": "^5.2.3",
     "@types/mocha": "^10.0.10",
-    "@webwriter/build": "^1.13.1",
-    "axe-core": "^4.14.0",
+    "@webwriter/build": "file:vendor/webwriter-build-f0a93df1.tgz",
+    "@webwriter/widget": "1.6.0",
     "chai": "^6.3.0",
     "mocha": "^12.0.3",
-    "web-vitals": "^6.2.3"
+    "typescript": "^7.0.2"
   },
   "exports": {
-    "./widgets/webwriter-slides.*": {
-      "source": "./src/widgets/webwriter-slides.ts",
-      "default": "./dist/widgets/webwriter-slides.*"
+    "./widgets/webwriter-pages.*": {
+      "source": "./src/widgets/webwriter-pages.ts",
+      "default": "./dist/widgets/webwriter-pages.*"
     },
-    "./widgets/webwriter-slide.*": {
-      "source": "./src/widgets/webwriter-slide.ts",
-      "default": "./dist/widgets/webwriter-slide.*"
+    "./widgets/webwriter-page.*": {
+      "source": "./src/widgets/webwriter-page.ts",
+      "default": "./dist/widgets/webwriter-page.*"
     },
     "./tests/functionality.*": {
       "source": "./tests/functionality.test.ts",
       "default": "./dist/tests/functionality.*"
     },
-    "./snippets/example.html": "./snippets/example.html",
+    "./tests/read-mode.*": {
+      "source": "./tests/read-mode.test.ts",
+      "default": "./dist/tests/read-mode.*"
+    },
+    "./tests/edit-mode.*": {
+      "source": "./tests/edit-mode.test.ts",
+      "default": "./dist/tests/edit-mode.*"
+    },
+    "./tests/branches.*": {
+      "source": "./tests/branches.test.ts",
+      "default": "./dist/tests/branches.*"
+    },
+    "./snippets/slides.html": "./snippets/slides.html",
+    "./snippets/carousel.html": "./snippets/carousel.html",
+    "./snippets/branching-scenario.html": "./snippets/branching-scenario.html",
+    "./snippets/what-is-webwriter.html": "./snippets/what-is-webwriter.html",
     "./icon": "./icon.svg",
+    "./widgets/webwriter-pages-slides.icon.svg": "./src/assets/slides.svg",
+    "./widgets/webwriter-pages-carousel.icon.svg": "./src/assets/carousel.svg",
+    "./widgets/webwriter-pages-branching-scenario.icon.svg": "./src/assets/branching-scenario.svg",
     "./editing-config.json": "./editing-config.json",
     "./custom-elements.json": "./custom-elements.json"
   },
   "editingConfig": {
-    "./widgets/webwriter-slides": {
+    "./widgets/webwriter-pages": {
+      "resize": "inline",
+      "propagateEvents": [
+        "keydown"
+      ],
       "definingAsContext": true,
       "definingForContent": true,
-      "content": "webwriter-slide+"
+      "content": "webwriter-page+"
     },
-    "./widgets/webwriter-slide": {
+    "./widgets/webwriter-page": {
+      "resize": "none",
       "definingAsContext": true,
       "definingForContent": true,
       "content": "p | flow*",
       "uninsertable": true
     }
   },
-  "customElements": "custom-elements.json"
+  "customElements": "custom-elements.json",
+  "prebuiltDependencies": [
+    "@webwriter/lit"
+  ]
 }
