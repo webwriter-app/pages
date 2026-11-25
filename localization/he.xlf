@@ -68,30 +68,36 @@
       </trans-unit>
       <trans-unit id="sfbf60e7cedcc7bd6">
         <source>Missing page</source>
-      </trans-unit>
+  <target>דף חסר</target>
+</trans-unit>
       <trans-unit id="s143cbd1b77c5d1f0">
         <source>Edit choice</source>
-      </trans-unit>
+      <target>עריכת אפשרות</target>
+</trans-unit>
       <trans-unit id="s0f121560cc5ec2f7">
         <source>Add choice</source>
-      </trans-unit>
+      <target>הוספת אפשרות</target>
+</trans-unit>
       <trans-unit id="s5e8250fb85d64c23">
         <source>Close</source>
         <target>סגירה</target>
       </trans-unit>
       <trans-unit id="s354ae458a550da1f">
         <source>Destination</source>
-      </trans-unit>
+      <target>יעד</target>
+</trans-unit>
       <trans-unit id="s309c270b33a470b8">
         <source>New page</source>
-      </trans-unit>
+      <target>דף חדש</target>
+</trans-unit>
       <trans-unit id="s5590dbf7e425789d">
         <source>Label</source>
         <target>תווית</target>
       </trans-unit>
       <trans-unit id="sbdf3e4d5b2373ae4">
         <source>Remove choice</source>
-      </trans-unit>
+      <target>הסרת אפשרות</target>
+</trans-unit>
       <trans-unit id="s33f85f24c0f5f008">
         <source>Save</source>
         <target>שמירה</target>
@@ -150,30 +156,36 @@
       </trans-unit>
       <trans-unit id="s8a56a8c8bd19c9c7">
         <source>missing</source>
-      </trans-unit>
+      <target>חסר</target>
+</trans-unit>
       <trans-unit id="s41f7dca46d3f1b4a">
         <source>Value</source>
         <target>ערך</target>
       </trans-unit>
       <trans-unit id="s5b5c98ef514dbfa5">
         <source>true</source>
-      </trans-unit>
+      <target>אמת</target>
+</trans-unit>
       <trans-unit id="sb5fae2c14238b978">
         <source>false</source>
-      </trans-unit>
+      <target>שקר</target>
+</trans-unit>
       <trans-unit id="s091d3407b5b2f824">
         <source>OR</source>
         <target>או</target>
       </trans-unit>
       <trans-unit id="sfa069719a050be66">
         <source>AND</source>
-      </trans-unit>
+      <target>וגם</target>
+</trans-unit>
       <trans-unit id="s4c46cd53673cf099">
         <source>Any condition can match (click to require all)</source>
-      </trans-unit>
+  <target>כל תנאי יכול להתאים (לחצו כדי לדרוש את כולם)</target>
+</trans-unit>
       <trans-unit id="s3133a0f3b013b03f">
         <source>All conditions must match (click to match any)</source>
-      </trans-unit>
+  <target>כל התנאים חייבים להתאים (לחצו כדי לאפשר התאמה של כל אחד מהם)</target>
+</trans-unit>
       <trans-unit id="s83b64afbf7b2a257">
         <source>Conditions</source>
         <target>תנאים</target>
@@ -196,38 +208,48 @@
       </trans-unit>
       <trans-unit id="s043fce46deaff2ff">
         <source>No widget signals found in this document.</source>
-      </trans-unit>
+  <target>לא נמצאו אותות של ווידג׳טים במסמך הזה.</target>
+</trans-unit>
       <trans-unit id="s199a3742a49413c2">
         <source>When unmet</source>
-      </trans-unit>
+  <target>אם לא מתקיים</target>
+</trans-unit>
       <trans-unit id="s861af4b54750e46a">
         <source>Disable choice</source>
-      </trans-unit>
+  <target>השבתת האפשרות</target>
+</trans-unit>
       <trans-unit id="scc83196c1e086a14">
         <source>Hide choice</source>
-      </trans-unit>
+      <target>הסתרת אפשרות</target>
+</trans-unit>
       <trans-unit id="s55bc1af31c3cc9d7">
         <source>Page completed</source>
-      </trans-unit>
+  <target>הדף הושלם</target>
+</trans-unit>
       <trans-unit id="s4fe74cac2ffde0fa">
         <source>Pages completed</source>
-      </trans-unit>
+  <target>דפים שהושלמו</target>
+</trans-unit>
       <trans-unit id="s8cdc08f7a30dc9d3">
         <source>Carousel</source>
-      </trans-unit>
+      <target>קרוסלה</target>
+</trans-unit>
       <trans-unit id="sad8f83df9312b389">
         <source>Branches</source>
         <target>הסתעפות</target>
       </trans-unit>
       <trans-unit id="s15244f583d260178">
         <source>Show completion indicators</source>
-      </trans-unit>
+      <target>הצגת מדדי השלמה</target>
+</trans-unit>
       <trans-unit id="sa606b4ffbc65c9c3">
         <source>Reset aspect ratio</source>
-      </trans-unit>
+      <target>איפוס יחס ממדים</target>
+</trans-unit>
       <trans-unit id="s1c1c9f64b0317e3b">
         <source>Resize page aspect ratio</source>
-      </trans-unit>
+      <target>שינוי יחס הממדים של הדף</target>
+</trans-unit>
     </body>
   </file>
 </xliff>

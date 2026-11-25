@@ -68,30 +68,36 @@
       </trans-unit>
       <trans-unit id="sfbf60e7cedcc7bd6">
         <source>Missing page</source>
-      </trans-unit>
+  <target>Σελίδα που λείπει</target>
+</trans-unit>
       <trans-unit id="s143cbd1b77c5d1f0">
         <source>Edit choice</source>
-      </trans-unit>
+      <target>Επεξεργασία επιλογής</target>
+</trans-unit>
       <trans-unit id="s0f121560cc5ec2f7">
         <source>Add choice</source>
-      </trans-unit>
+      <target>Προσθήκη επιλογής</target>
+</trans-unit>
       <trans-unit id="s5e8250fb85d64c23">
         <source>Close</source>
         <target>Κλείσιμο</target>
       </trans-unit>
       <trans-unit id="s354ae458a550da1f">
         <source>Destination</source>
-      </trans-unit>
+      <target>Προορισμός</target>
+</trans-unit>
       <trans-unit id="s309c270b33a470b8">
         <source>New page</source>
-      </trans-unit>
+      <target>Νέα σελίδα</target>
+</trans-unit>
       <trans-unit id="s5590dbf7e425789d">
         <source>Label</source>
         <target>Ετικέτα</target>
       </trans-unit>
       <trans-unit id="sbdf3e4d5b2373ae4">
         <source>Remove choice</source>
-      </trans-unit>
+      <target>Αφαίρεση επιλογής</target>
+</trans-unit>
       <trans-unit id="s33f85f24c0f5f008">
         <source>Save</source>
         <target>Αποθήκευση</target>
@@ -150,30 +156,36 @@
       </trans-unit>
       <trans-unit id="s8a56a8c8bd19c9c7">
         <source>missing</source>
-      </trans-unit>
+      <target>λείπει</target>
+</trans-unit>
       <trans-unit id="s41f7dca46d3f1b4a">
         <source>Value</source>
         <target>Τιμή</target>
       </trans-unit>
       <trans-unit id="s5b5c98ef514dbfa5">
         <source>true</source>
-      </trans-unit>
+      <target>αληθές</target>
+</trans-unit>
       <trans-unit id="sb5fae2c14238b978">
         <source>false</source>
-      </trans-unit>
+      <target>ψευδές</target>
+</trans-unit>
       <trans-unit id="s091d3407b5b2f824">
         <source>OR</source>
         <target>Ή</target>
       </trans-unit>
       <trans-unit id="sfa069719a050be66">
         <source>AND</source>
-      </trans-unit>
+      <target>ΚΑΙ</target>
+</trans-unit>
       <trans-unit id="s4c46cd53673cf099">
         <source>Any condition can match (click to require all)</source>
-      </trans-unit>
+  <target>Μπορεί να ταιριάζει οποιαδήποτε συνθήκη (κάντε κλικ για να απαιτούνται όλες)</target>
+</trans-unit>
       <trans-unit id="s3133a0f3b013b03f">
         <source>All conditions must match (click to match any)</source>
-      </trans-unit>
+  <target>Πρέπει να ταιριάζουν όλες οι συνθήκες (κάντε κλικ για να ταιριάζει οποιαδήποτε)</target>
+</trans-unit>
       <trans-unit id="s83b64afbf7b2a257">
         <source>Conditions</source>
         <target>Συνθήκες</target>
@@ -196,38 +208,48 @@
       </trans-unit>
       <trans-unit id="s043fce46deaff2ff">
         <source>No widget signals found in this document.</source>
-      </trans-unit>
+  <target>Δεν βρέθηκαν σήματα widget σε αυτό το έγγραφο.</target>
+</trans-unit>
       <trans-unit id="s199a3742a49413c2">
         <source>When unmet</source>
-      </trans-unit>
+  <target>Αν δεν πληρούται</target>
+</trans-unit>
       <trans-unit id="s861af4b54750e46a">
         <source>Disable choice</source>
-      </trans-unit>
+  <target>Απενεργοποίηση επιλογής</target>
+</trans-unit>
       <trans-unit id="scc83196c1e086a14">
         <source>Hide choice</source>
-      </trans-unit>
+      <target>Απόκρυψη επιλογής</target>
+</trans-unit>
       <trans-unit id="s55bc1af31c3cc9d7">
         <source>Page completed</source>
-      </trans-unit>
+  <target>Η σελίδα ολοκληρώθηκε</target>
+</trans-unit>
       <trans-unit id="s4fe74cac2ffde0fa">
         <source>Pages completed</source>
-      </trans-unit>
+  <target>Ολοκληρωμένες σελίδες</target>
+</trans-unit>
       <trans-unit id="s8cdc08f7a30dc9d3">
         <source>Carousel</source>
-      </trans-unit>
+      <target>Καρουζέλ</target>
+</trans-unit>
       <trans-unit id="sad8f83df9312b389">
         <source>Branches</source>
         <target>Κλάδος</target>
       </trans-unit>
       <trans-unit id="s15244f583d260178">
         <source>Show completion indicators</source>
-      </trans-unit>
+      <target>Εμφάνιση ενδείξεων ολοκλήρωσης</target>
+</trans-unit>
       <trans-unit id="sa606b4ffbc65c9c3">
         <source>Reset aspect ratio</source>
-      </trans-unit>
+      <target>Επαναφορά αναλογίας διαστάσεων</target>
+</trans-unit>
       <trans-unit id="s1c1c9f64b0317e3b">
         <source>Resize page aspect ratio</source>
-      </trans-unit>
+      <target>Αλλαγή αναλογίας διαστάσεων σελίδας</target>
+</trans-unit>
     </body>
   </file>
 </xliff>
