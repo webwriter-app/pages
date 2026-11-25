@@ -1,9 +1,7 @@
 # Pages (`@webwriter/pages@3.0.0`)
 [License: MIT](LICENSE) | Version: 3.0.0
 
-Present content as tabs, slides, a carousel, or branching pages.
-
-Pages currently bundles the Scene SDK and its Lit adapter so Branches always uses the new routing and endpoint interactions. The pinned build-time SDK snapshot is documented in [vendor/README.md](vendor/README.md).
+Present content as slides, tabs, carousels, or branching pages.
 
 ## Snippets
 [Snippets](https://webwriter.app/docs/snippets/snippets/) are examples and templates using the package's widgets.
@@ -13,40 +11,32 @@ Pages currently bundles the Scene SDK and its Lit adapter so Branches always use
 | Slides | `@webwriter/pages/snippets/slides.html` |
 | Carousel | `@webwriter/pages/snippets/carousel.html` |
 | Branching Scenario | `@webwriter/pages/snippets/branching-scenario.html` |
-| What is WebWriter? | `@webwriter/pages/snippets/what-is-webwriter.html` |
+| What Is Webwriter | `@webwriter/pages/snippets/what-is-webwriter.html` |
 
-Slides and Carousel each insert one empty page in their respective view. “What is WebWriter?” introduces authoring, exploration, collaboration, and widget development in four illustrated pages with images that also work offline.
 
 
 ## `WebwriterPages` (`<webwriter-pages>`)
 Display authored content in Tabs, Slides, Carousel, or Branches, with Tabs by default.
 
-Authors add `webwriter-page` children and choose a layout in **View**. Slides (`type="pages"`) shows preview cards and keeps its preview pane at the bottom in fullscreen. Carousel (`type="carousel"`) shows only the current page, with a compact overlay for the page count, navigation, fullscreen, and an add button for authors. Existing compact Slides open as Carousel. Tabs (`type="tabs"`) shows a tab strip. Thumbnails are drawn in the editor with a capture library that loads on first use.
+Authors add `webwriter-page` children. Slides ("pages") shows preview cards, Carousel ("carousel") shows
+compact controls over the page, and Tabs ("tabs") shows a tab strip. Thumbnails are drawn in the editor
+with a capture library that loads on first use.
+The "branches" view adds an editing-only Scene graph. Node labels, start page, positions and choices
+are saved on the authored pages; the bottom pane edits choices and lets readers follow them.
+The graph has no reading-mode controls, and Branches hides completion indicators.
 In use mode the arrow keys, the controls and swipes in fullscreen move between pages. The arrow keys leave
-text entry, Alt and Meta combinations alone. Every thumbnail and inactive tab has a button that selects its page;
+text entry, Alt and Meta combinations alone. Every thumbnail and tab has a button that selects its page;
 in edit mode Space or Enter on the thumbnail itself picks it up for reordering.
-The selected tab has an auto-sizing plaintext label input. Labels are saved in each page’s `label` attribute;
-an empty label displays a grey “Page n” placeholder. Tab-strip chevrons scroll the list without changing pages.
 
-In **Branches** view (`type="branches"`), a collapsed-by-default WebWriter Scene can cover the page with its editing graph. The chevron above fullscreen at the right end of the choices row opens or closes it without changing the widget’s height. Fullscreen stays available in both editing and reading modes. Nodes match the page aspect ratio and show content previews. Graph captures use 160, 320 or 640 pixels of width according to the canvas zoom and screen pixel density; crossing a breakpoint refreshes the capture. Their labels sit above the preview on translucent backgrounds; select a node to edit its label. The label is included in Scene’s routing bounds, so connectors avoid it automatically. The bottom-left flag bubble chooses the entry page. Previews are temporary UI state and do not change saved content or editor history. Graph positions adjust automatically as page proportions change, reserving space for labels and action bubbles, including hidden actions. Saved positions remain the preferred anchors; automatic spacing stays local to the graph, so undoing a ratio change restores its layout without extra document edits. Dragging a node saves its new preferred position. Each node’s top-right open bubble opens that page and closes the graph; double-clicking a node leaves the graph open. Add pages with the top-left **+**, or double-click / long-tap empty canvas. Zoom and fit controls float at the top right. Connect output/input ports by dragging, clicking, or keyboard; the trailing **+** in the bottom pane provides another way to add choices. Each choice is a button: click it to open a speech-bubble editor for its label, destination, or removal, or use its small arrow overlay to follow it. New choices default to **New page**, creating an empty destination on save. Leave **Label** blank to use the destination page’s name, shown as the input placeholder; a custom label overrides that name. Connections use Scene’s overlap-avoiding routing. Select a connection, then drag either blue endpoint or click it and move to another port; drop/click empty canvas to remove it, or press Escape to cancel. A circular trash button appears at the bottom right of the selected node. Undo and redo are forwarded to the editor while working in the graph and its labels.
-
-Readers see the active page and a bottom bar for choices and continuing, without the graph or completion indicator. Choice controls are shadow UI and do not become authored content. Arrow keys and fullscreen swipes do not bypass the authored routes. The basic **Branching Scenario** snippet inserts a start page with two alternative paths. This first version supports direct page choices and cycles; conditional quiz routing and popup nodes remain in the separate Branching Scenario package.
-
-Routing uses stable local `page-key` values, independent of page order or labels. Each page's `branches` attribute stores JSON choices such as `[{"target":"next","label":"Continue"}]`; `node-x` and `node-y` store optional graph coordinates. `start-page` on the sequence names the entry key, defaulting to its first page. Reading does not generate keys or rewrite routes. Duplicating a page gives it a new key, and removing one removes incoming choices. Switching views retains authored routing and content.
-
-Set `orientation="portrait"` for a 9:16 page, or use the default `landscape` for 16:9. The orientation applies to all views, fullscreen, and preview cards. The attribute is optional; an absent attribute keeps landscape without adding it to existing markup.
-
-In edit mode, drag the bottom edge of the page to change its aspect ratio. It snaps in steps of 0.05 between 1:2 and 3:1, with an extra step of attraction around exact 16:9, saved as `page-aspect-ratio` on the widget. A temporary fraction label, such as 16:9 or 4:3, follows the pointer while dragging. Up and Down adjust the focused handle; Home and End choose the limits. **Reset aspect ratio** in the options removes the override and restores the orientation default. A drag previews locally and becomes one undo step only when released; Escape cancels it.
+Set `orientation="portrait"` for a 9:16 page, or use the default `landscape` for 16:9.
+The orientation applies to all views, fullscreen, and preview cards.
 
 The widget follows the page theme: `--ww-text-color`, `--ww-font-family`, and `--ww-theme-accent-1` (the
 selected thumbnail). On paper it prints all pages one after another and leaves out the controls.
-In Tabs view, the active tab and its connecting edge match the page's background color. Its remove button overlays the end of the tab with a translucent round background. Duplicate remains available as an action in the options. Interacting with shadow controls capture-selects the widget while preserving native control focus and text editing. Background clicks retain the same capture behavior.
-
-After deletion in edit mode, selection moves to the start of the surviving active page: a text caret where possible, otherwise selection of its first element.
 
 Conversions: a `section` becomes pages (its nested `section` children become one page each, otherwise the
 section is one page). Each page converts to a `details` element with its label as the summary.
-Page labels become plaintext summaries; unlabeled pages use “Page n”. Page content is preserved; thumbnails and branching routes are not carried over.
+The thumbnails are not carried over.
 
 Signals: `page` is the number of the current page, starting at 1; `count` is the number of pages.
 Both change when readers or authors move to another page.
@@ -82,17 +72,17 @@ npm install @webwriter/pages
 ## Fields
 | Name (Attribute Name) | Type | Description | Default | Reflects |
 | :-------------------: | :--: | :---------: | :-----: | :------: |
-| `WebwriterPages.scopedElements` | - | - | `{ "sl-icon-button": SlIconButton, }` | ✗ |
+| `WebwriterPages.scopedElements` | `object` | - | `{ "sl-icon-button": SlIconButton, "sl-icon": SlIcon, "pages-branches": PagesBranches, "pages-choice-conditions": PagesChoiceConditions, }` | ✗ |
 | `WebwriterPages.convertFrom` | `object` | - | `{ section: "loadSections" }` | ✗ |
 | `WebwriterPages.convertTo` | `object` | - | `{ details: "toDetails" }` | ✗ |
-| `WebwriterPages.options` | - | View and completion indicator settings. | - | ✗ |
-| `WebwriterPages.actions` | - | - | `{ addPage: { label: (widget: Labelled) => widget.msg("Add"), buttonGroup: "pages", icon: "Plus", intent: "default" }, removeActivePage: { label: (widget: Labelled) => widget.msg("Remove"), buttonGroup: "pages", icon: "Delete", intent: "danger", disabled: true }, duplicateActivePage: { label: (widget: Labelled) => widget.msg("Duplicate"), buttonGroup: "pages", icon: "Copy", intent: "default", disabled: true }, } satisfies Record<string, Declared<ActionDeclaration>>` | ✗ |
+| `WebwriterPages.options` | - | - | `{ type: { type: "select", control: "select", attribute: false, label: (widget: Labelled) => widget.msg("View"), options: [ { value: "tabs", label: (widget: Labelled) => widget.msg("Tabs") }, { value: "pages", label: (widget: Labelled) => widget.msg("Slides") }, { value: "carousel", label: (widget: Labelled) => widget.msg("Carousel") }, { value: "branches", label: (widget: Labelled) => widget.msg("Branches") }, ], }, completionIndicators: { type: Boolean, label: (widget: Labelled) => widget.msg("Show completion indicators"), }, } satisfies Record<string, Declared<OptionDeclaration>>` | ✗ |
+| `WebwriterPages.actions` | - | - | `{ addPage: { label: (widget: Labelled) => widget.msg("Add"), buttonGroup: "pages", icon: "Plus", intent: "default" }, removeActivePage: { label: (widget: Labelled) => widget.msg("Remove"), buttonGroup: "pages", icon: "Delete", intent: "danger", disabled: true }, duplicateActivePage: { label: (widget: Labelled) => widget.msg("Duplicate"), buttonGroup: "pages", icon: "Copy", intent: "default", disabled: true }, resetPageAspectRatio: { label: (widget: Labelled) => widget.msg("Reset aspect ratio"), buttonGroup: "pages", icon: "Restore", intent: "default", disabled: true }, } satisfies Record<string, Declared<ActionDeclaration>>` | ✗ |
 | `localize` | - | - | - | ✗ |
-| `type` (`type`) | `"tabs" \| "pages" \| "carousel" \| "branches"` | The current view. | `"tabs"` | ✓ |
-| `completionIndicators` (`completion-indicators`) | `boolean` | Mark pages read on leaving them after reaching their bottom. Reader-local; off by default. | `false` | ✓ |
+| `type` | `PagesLayout` | The current view, stored in the `type` attribute. | - | ✗ |
 | `startPage` (`start-page`) | `string` | Stable key of the first page in Branches; an absent key starts at the first page. | `""` | ✓ |
-| `orientation` (`orientation`) | `"landscape" \| "portrait"` | Page orientation: 16:9 landscape or 9:16 portrait. The optional orientation attribute defaults to landscape when absent; the default is not added to existing markup. | `"landscape"` | ✓ |
-| `pageAspectRatio` (`page-aspect-ratio`) | `number \| undefined` | Optional width/height ratio, clamped to 0.5–3; absent uses the orientation default. | `undefined` | ✓ |
+| `completionIndicators` (`completion-indicators`) | `boolean` | Mark pages read on leaving them after reaching their bottom. Reader-local; off by default. | `false` | ✓ |
+| `orientation` (`orientation`) | `"landscape" \| "portrait"` | Page orientation: 16:9 landscape or 9:16 portrait. | `"landscape"` | ✓ |
+| `pageAspectRatio` (`page-aspect-ratio`) | `number \| undefined` | Optional page width/height ratio, clamped to 0.5–3. Without it, orientation supplies the ratio. | `undefined` | ✓ |
 | `activePageIndex` | `number` | Index of the currently active page. | `0` | ✗ |
 | `signals` | `object` | Public signals: the current page number (from 1) and the number of pages. | `{ page: this.#page, count: this.#count }` | ✗ |
 | `actions` | - | The drawer declarations with the availability of the page actions, which follows the pages. | - | ✗ |
@@ -105,9 +95,9 @@ npm install @webwriter/pages
 ## Methods
 | Name | Description | Parameters |
 | :--: | :---------: | :-------: |
+| `resetPageAspectRatio` | Restore the exact orientation default by removing the authored override. | -
 | `loadSections` | Replaces the pages with the pages a `section` stands for; declines anything else. | `fragment: DocumentFragment`
 | `toDetails` | One `details` per page with its label as summary; `null` without pages. | -
-| `resetPageAspectRatio` | Remove the custom ratio and restore the exact orientation default. | -
 | `duplicateActivePage` | - | -
 | `addPage` | Add a new empty page element. Optionally insert after given index. | `index: number`
 | `duplicatePage` | Duplicate an existing page at given index. | `index: number`
@@ -134,12 +124,12 @@ npm install @webwriter/pages
 ## CSS parts
 | Name | Description |
 | :--: | :---------: |
-| branch-editor | The editing-only Scene graph in Branches view. |
-| branch-controls | The bottom pane for choices, continuing, and choice editing. |
 | actions | The pane of thumbnails and controls below or beside the page. |
 | tabs | The strip of tabs and controls above the page. |
 | thumbnail | One page thumbnail in the strip. |
 | tab | One tab in the tab strip. |
+| branch-editor | The editing-only Scene graph in Branches view. |
+| branch-controls | The bottom pane of choices and continuation controls in Branches view. |
 
 *[CSS parts](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_shadow_parts) allow freely styling internals of the widget with CSS.*
 
@@ -147,7 +137,7 @@ npm install @webwriter/pages
 | Name | Value |
 | :--: | :---------: |
 | `resize` | `inline` |
-| `propagateEvents` | `["keydown"]` (including editor undo/redo) |
+| `propagateEvents` | `keydown` |
 | `definingAsContext` | `true` |
 | `definingForContent` | `true` |
 | `content` | `webwriter-page+` |
@@ -159,9 +149,8 @@ npm install @webwriter/pages
 
 ## `WebwriterPage` (`<webwriter-page>`)
 Represents a single page in the `webwriter-pages` widget.
-
-A page containing one media element has no content padding. Media fills the available page area with
-its original proportions preserved and the complete image or video visible. Mixed content keeps its usual padding.
+Single-media pages remove padding and fit media without stretching or cropping.
+In Branches view, `page-key`, `branches`, `node-x` and `node-y` keep routing and graph layout.
 
 ### Usage
 
@@ -187,8 +176,8 @@ npm install @webwriter/pages
 ## Fields
 | Name (Attribute Name) | Type | Description | Default | Reflects |
 | :-------------------: | :--: | :---------: | :-----: | :------: |
-| `active` (`active`) | `boolean` | Active/visible page. Navigation uses local custom state and does not write the attribute. | `false` | ✗ |
-| `label` (`label`) | `string` | Plaintext tab label; empty labels display the “Page n” placeholder. | `""` | ✓ |
+| `active` (`active`) | `boolean` | Indicates whether the page is currently active/visible. | `false` | ✗ |
+| `label` (`label`) | `string` | Plaintext tab label. An empty label shows the page-number placeholder. | `""` | ✓ |
 | `pageKey` (`page-key`) | `string` | Stable local identifier for Branches links; independent of order and label. | `""` | ✓ |
 | `branches` (`branches`) | `string` | JSON choices: an array of objects with target page keys and plaintext labels. | `""` | ✓ |
 | `nodeX` (`node-x`) | `number \| undefined` | Saved node position in the Branches editor. Absent coordinates use a grid. | `undefined` | ✓ |
@@ -207,10 +196,10 @@ npm install @webwriter/pages
 ## Editing config
 | Name | Value |
 | :--: | :---------: |
+| `resize` | `none` |
 | `definingAsContext` | `true` |
 | `definingForContent` | `true` |
 | `content` | `p \| flow*` |
-| `resize` | `none` |
 | `uninsertable` | `true` |
 
 *The [editing config](https://webwriter.app/docs/packages/configuring/#editingconfig) defines how explorable authoring tools such as [WebWriter](https://webwriter.app) treat the widget.*
@@ -219,4 +208,4 @@ npm install @webwriter/pages
 
 
 ---
-*Generated with @webwriter/build@1.14.0*
+*Generated with @webwriter/build@1.15.0*

@@ -19,14 +19,18 @@
           "members": [
             {
               "kind": "field",
+              "name": "#internals",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
               "name": "active",
               "type": {
                 "text": "boolean"
               },
               "default": "false",
-              "description": "Indicates whether the page is currently active/visible. Navigation is local custom state and does not write this attribute.",
-              "attribute": "active",
-              "reflects": false
+              "description": "Indicates whether the page is currently active/visible.",
+              "attribute": "active"
             },
             {
               "kind": "field",
@@ -37,17 +41,6 @@
               "default": "\"\"",
               "description": "Plaintext tab label. An empty label shows the page-number placeholder.",
               "attribute": "label",
-              "reflects": true
-            },
-            {
-              "kind": "field",
-              "name": "thumbnail",
-              "type": {
-                "text": "string"
-              },
-              "default": "\"\"",
-              "description": "Data URI string for the page thumbnail (e.g., \"data:image/png;base64,...\").\nUsed to display a preview image for the page.",
-              "attribute": "thumbnail",
               "reflects": true
             },
             {
@@ -93,6 +86,17 @@
               "description": "Saved vertical node position in the Branches editor.",
               "attribute": "node-y",
               "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "thumbnail",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\"",
+              "description": "Data URI string for the page thumbnail (e.g., \"data:image/png;base64,...\").\nUsed to display a preview image for the page.",
+              "attribute": "thumbnail",
+              "reflects": true
             }
           ],
           "attributes": [
@@ -102,7 +106,7 @@
                 "text": "boolean"
               },
               "default": "false",
-              "description": "Initial active/visible state. Page navigation is local custom state and does not write this attribute.",
+              "description": "Indicates whether the page is currently active/visible.",
               "fieldName": "active"
             },
             {
@@ -113,15 +117,6 @@
               "default": "\"\"",
               "description": "Plaintext tab label. An empty label shows the page-number placeholder.",
               "fieldName": "label"
-            },
-            {
-              "name": "thumbnail",
-              "type": {
-                "text": "string"
-              },
-              "default": "\"\"",
-              "description": "Data URI string for the page thumbnail (e.g., \"data:image/png;base64,...\").\nUsed to display a preview image for the page.",
-              "fieldName": "thumbnail"
             },
             {
               "name": "page-key",
@@ -158,6 +153,15 @@
               "default": "undefined",
               "description": "Saved vertical node position in the Branches editor.",
               "fieldName": "nodeY"
+            },
+            {
+              "name": "thumbnail",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\"",
+              "description": "Data URI string for the page thumbnail (e.g., \"data:image/png;base64,...\").\nUsed to display a preview image for the page.",
+              "fieldName": "thumbnail"
             }
           ],
           "superclass": {
@@ -165,9 +169,7 @@
             "package": "@webwriter/lit"
           },
           "tagName": "webwriter-page",
-          "customElement": true,
-          "modulePath": "src/widgets/webwriter-page.ts",
-          "definitionPath": "src/widgets/webwriter-page.ts"
+          "customElement": true
         }
       ],
       "exports": [
@@ -237,7 +239,7 @@
                 "text": "object"
               },
               "static": true,
-              "default": "{ \"sl-icon-button\": SlIconButton, }"
+              "default": "{ \"sl-icon-button\": SlIconButton, \"sl-icon\": SlIcon, \"pages-branches\": PagesBranches, \"pages-choice-conditions\": PagesChoiceConditions, }"
             },
             {
               "kind": "field",
@@ -287,14 +289,41 @@
             },
             {
               "kind": "field",
+              "name": "authoredType",
+              "type": {
+                "text": "PagesLayout"
+              },
+              "privacy": "private",
+              "default": "\"tabs\"",
+              "attribute": "type"
+            },
+            {
+              "kind": "field",
+              "name": "legacyHidePagination",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false",
+              "attribute": "hide-pagination"
+            },
+            {
+              "kind": "field",
               "name": "type",
               "type": {
-                "text": "\"tabs\" | \"pages\" | \"carousel\" | \"branches\""
+                "text": "PagesLayout"
               },
-              "privacy": "public",
-              "default": "\"tabs\"",
-              "description": "The current view, stored in the `type` attribute.",
-              "attribute": "type",
+              "description": "The current view, stored in the `type` attribute."
+            },
+            {
+              "kind": "field",
+              "name": "startPage",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\"",
+              "description": "Stable key of the first page in Branches; an absent key starts at the first page.",
+              "attribute": "start-page",
               "reflects": true
             },
             {
@@ -315,9 +344,116 @@
                 "text": "\"landscape\" | \"portrait\""
               },
               "default": "\"landscape\"",
-              "description": "Page orientation: 16:9 landscape or 9:16 portrait. The optional orientation attribute defaults to landscape when absent; the default is not added to existing markup.",
+              "description": "Page orientation: 16:9 landscape or 9:16 portrait.",
               "attribute": "orientation",
               "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "pageAspectRatio",
+              "type": {
+                "text": "number | undefined"
+              },
+              "default": "undefined",
+              "description": "Optional page width/height ratio, clamped to 0.5–3. Without it, orientation supplies the ratio.",
+              "attribute": "page-aspect-ratio",
+              "reflects": true
+            },
+            {
+              "kind": "field",
+              "name": "aspectPreview",
+              "type": {
+                "text": "number | null"
+              },
+              "privacy": "private",
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "#aspectEditing",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "#aspectFullscreen",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "#lastPageRatio",
+              "privacy": "private",
+              "type": {
+                "text": "number | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#aspectCaptureRevision",
+              "privacy": "private",
+              "type": {
+                "text": "number"
+              },
+              "default": "0"
+            },
+            {
+              "kind": "field",
+              "name": "#resetAspectDisabled",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "true"
+            },
+            {
+              "kind": "field",
+              "name": "#aspectResize",
+              "privacy": "private",
+              "default": "new PageAspectResize({ read: () => { const stage = this.renderRoot.querySelector(\".page-stage\"); if (!this.isConnected || !this.#permissions.editing || !stage) return null; const rect = stage.getBoundingClientRect(); return { ratio: this.#pageRatio, width: rect.width, height: rect.height }; }, preview: ratio => { if (ratio !== this.aspectPreview) this.#aspectCaptureRevision++; this.aspectPreview = ratio; }, commit: ratio => transaction(this, async () => { if (!this.isConnected || !this.#permissions.editing) return; this.pageAspectRatio = ratio; await this.updateComplete; await this.#waitForThumbnail(); }), })"
+            },
+            {
+              "kind": "field",
+              "name": "#pageRatio",
+              "privacy": "private",
+              "readonly": true
+            },
+            {
+              "kind": "method",
+              "name": "#positionAspectLabel",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "PointerEvent"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "#resizePagePointerDown",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "event",
+                  "type": {
+                    "text": "PointerEvent"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "resetPageAspectRatio",
+              "description": "Restore the exact orientation default by removing the authored override."
             },
             {
               "kind": "field",
@@ -336,6 +472,50 @@
               },
               "default": "0",
               "description": "Index of the currently active page."
+            },
+            {
+              "kind": "field",
+              "name": "tabScroll",
+              "type": {
+                "text": "object"
+              },
+              "privacy": "private",
+              "default": "{ backward: false, forward: false }"
+            },
+            {
+              "kind": "field",
+              "name": "#tabScroller",
+              "privacy": "private",
+              "type": {
+                "text": "HTMLElement | null"
+              },
+              "default": "null"
+            },
+            {
+              "kind": "field",
+              "name": "#tabResizeObserver",
+              "privacy": "private",
+              "type": {
+                "text": "ResizeObserver | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#pageAttributesObserver",
+              "privacy": "private",
+              "default": "new MutationObserver((records) => { if (records.some((record) => (record.target.parentNode === this && (record.target as Element).localName === \"webwriter-page\") || (this.type === \"branches\" && (record.attributeName === \"id\" || record.type === \"childList\")) )) { this.requestUpdate(); } })"
+            },
+            {
+              "kind": "field",
+              "name": "#documentSignalObserver",
+              "privacy": "private",
+              "default": "new MutationObserver((records) => { if (this.type !== \"branches\") return; const affectsSignalLookup = records.some((record) => { if (this.contains(record.target)) return false; if (record.type === \"attributes\") return record.attributeName === \"id\"; return [...record.addedNodes, ...record.removedNodes].some((node) => node instanceof Element && (node.localName.includes(\"-\") || node.hasAttribute(\"id\") || node.querySelector(\"[id]\")) ); }); if (affectsSignalLookup) this.requestUpdate(); })"
+            },
+            {
+              "kind": "field",
+              "name": "#pendingSignalTags",
+              "privacy": "private",
+              "default": "new Set<string>()"
             },
             {
               "kind": "field",
@@ -384,6 +564,19 @@
             },
             {
               "kind": "field",
+              "name": "#changeFinished",
+              "privacy": "private",
+              "type": {
+                "text": "() => void | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#thumbnailTask",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
               "name": "#touchStartX",
               "privacy": "private",
               "type": {
@@ -411,6 +604,171 @@
             },
             {
               "kind": "field",
+              "name": "#completedPages",
+              "privacy": "private",
+              "default": "new Set<WebwriterPage>()"
+            },
+            {
+              "kind": "field",
+              "name": "#completionPage",
+              "privacy": "private",
+              "type": {
+                "text": "WebwriterPage | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#completionVisible",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "#completionReachedBottom",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "#completionIntersection",
+              "privacy": "private",
+              "type": {
+                "text": "IntersectionObserver | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#completionResize",
+              "privacy": "private",
+              "type": {
+                "text": "ResizeObserver | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#completionMutation",
+              "privacy": "private",
+              "type": {
+                "text": "MutationObserver | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#completionFrame",
+              "privacy": "private",
+              "type": {
+                "text": "number | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#readingBranches",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "branchGraphExpanded",
+              "type": {
+                "text": "boolean"
+              },
+              "privacy": "private",
+              "default": "false"
+            },
+            {
+              "kind": "field",
+              "name": "#branchPageAnimation",
+              "privacy": "private",
+              "type": {
+                "text": "Animation | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#highlightedWidgets",
+              "privacy": "private",
+              "type": {
+                "text": "Element[]"
+              },
+              "default": "[]"
+            },
+            {
+              "kind": "field",
+              "name": "#highlightAbort",
+              "privacy": "private",
+              "type": {
+                "text": "AbortController | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#highlightResize",
+              "privacy": "private",
+              "type": {
+                "text": "ResizeObserver | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "highlightRects",
+              "type": {
+                "text": "Array<{ top: number; left: number; width: number; height: number }>"
+              },
+              "privacy": "private",
+              "default": "[]"
+            },
+            {
+              "kind": "field",
+              "name": "#conditionMonitorAbort",
+              "privacy": "private",
+              "type": {
+                "text": "AbortController | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#conditionMonitorTimer",
+              "privacy": "private",
+              "type": {
+                "text": "ReturnType<typeof setInterval> | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#conditionMonitorFrame",
+              "privacy": "private",
+              "type": {
+                "text": "number | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#conditionMonitorRoot",
+              "privacy": "private",
+              "type": {
+                "text": "ParentNode | undefined"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#branchAvailabilityKey",
+              "privacy": "private",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\""
+            },
+            {
+              "kind": "field",
               "name": "actions",
               "description": "The drawer declarations with the availability of the page actions, which follows the pages.",
               "readonly": true
@@ -430,7 +788,7 @@
               "type": {
                 "text": "boolean"
               },
-              "description": "False if sequence of pages is on the last page.",
+              "description": "False if Pages is on the last page.",
               "readonly": true
             },
             {
@@ -439,7 +797,7 @@
               "type": {
                 "text": "boolean"
               },
-              "description": "False if sequence of pages is on the first page.",
+              "description": "False if Pages is on the first page.",
               "readonly": true
             },
             {
@@ -448,6 +806,86 @@
               "privacy": "protected",
               "description": "Whether the sequence of pages is currently displayed in fullscreen mode.",
               "readonly": true
+            },
+            {
+              "kind": "field",
+              "name": "#handleFullscreenChange",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#stopCompletionTracking",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#syncCompletionTracking",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#queueCompletionCheck",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#checkCompletion",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#updateTabScroll",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#scrollTabs",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#setPageLabel",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#setBranches",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#addPageChoice",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#addBranchPage",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#moveBranchPages",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#setStartPage",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#followBranch",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#openBranchPage",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#fadeInBranchPage",
+              "privacy": "private"
             },
             {
               "kind": "method",
@@ -494,6 +932,20 @@
                 }
               ],
               "description": "Add a new empty page element. Optionally insert after given index."
+            },
+            {
+              "kind": "method",
+              "name": "#createPage",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "index",
+                  "optional": true,
+                  "type": {
+                    "text": "number"
+                  }
+                }
+              ]
             },
             {
               "kind": "method",
@@ -552,6 +1004,24 @@
                 }
               ],
               "description": "Remove a page and return editor selection to the surviving active page's start."
+            },
+            {
+              "kind": "method",
+              "name": "#selectPageStart",
+              "privacy": "private",
+              "parameters": [
+                {
+                  "name": "page",
+                  "type": {
+                    "text": "WebwriterPage"
+                  }
+                },
+                {
+                  "name": "{ firstElementOnly = false }",
+                  "default": "{}"
+                }
+              ],
+              "description": "Return document editing to the first content of the page."
             },
             {
               "kind": "method",
@@ -683,6 +1153,12 @@
             },
             {
               "kind": "method",
+              "name": "#waitForThumbnail",
+              "privacy": "private",
+              "description": "Keep ratio snapshots in the same undo step, including a debounce replaced by a newer capture."
+            },
+            {
+              "kind": "method",
               "name": "onDragCommit",
               "privacy": "private",
               "parameters": [
@@ -696,6 +1172,51 @@
               "description": "Moves the dragged page to the place the drop resolved to.\nThe thumbnails and tabs stand for the authored `webwriter-page` children,\nso the commit moves the page itself and the lifted item settles at the new layout."
             },
             {
+              "kind": "field",
+              "name": "#watchPendingSignalTags",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#setHighlightedWidgets",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#updateHighlightRects",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#branchAvailabilitySnapshot",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "string"
+                }
+              }
+            },
+            {
+              "kind": "field",
+              "name": "#checkBranchConditions",
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "#scheduleBranchConditionCheck",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#stopConditionMonitoring",
+              "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#syncConditionMonitoring",
+              "privacy": "private"
+            },
+            {
               "kind": "method",
               "name": "#view",
               "privacy": "private",
@@ -705,33 +1226,6 @@
                 }
               },
               "description": "The sequence of pages as seen by the strip and control components."
-            },
-            {
-              "kind": "field",
-              "name": "startPage",
-              "type": {
-                "text": "string"
-              },
-              "default": "\"\"",
-              "description": "Stable key of the first page in Branches; an absent key starts at the first page.",
-              "attribute": "start-page",
-              "reflects": true
-            },
-            {
-              "kind": "field",
-              "name": "pageAspectRatio",
-              "type": {
-                "text": "number | undefined"
-              },
-              "default": "undefined",
-              "description": "Optional page width/height ratio, clamped to 0.5–3. Without it, orientation supplies the ratio.",
-              "attribute": "page-aspect-ratio",
-              "reflects": true
-            },
-            {
-              "kind": "method",
-              "name": "resetPageAspectRatio",
-              "description": "Restore the exact orientation default by removing the authored override."
             }
           ],
           "events": [
@@ -746,11 +1240,27 @@
             {
               "name": "type",
               "type": {
-                "text": "\"tabs\" | \"pages\" | \"carousel\" | \"branches\""
+                "text": "PagesLayout"
               },
               "default": "\"tabs\"",
-              "description": "The current view, stored in the `type` attribute.",
-              "fieldName": "type"
+              "fieldName": "authoredType"
+            },
+            {
+              "name": "hide-pagination",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "false",
+              "fieldName": "legacyHidePagination"
+            },
+            {
+              "name": "start-page",
+              "type": {
+                "text": "string"
+              },
+              "default": "\"\"",
+              "description": "Stable key of the first page in Branches; an absent key starts at the first page.",
+              "fieldName": "startPage"
             },
             {
               "name": "completion-indicators",
@@ -767,17 +1277,8 @@
                 "text": "\"landscape\" | \"portrait\""
               },
               "default": "\"landscape\"",
-              "description": "Page orientation: 16:9 landscape or 9:16 portrait. The optional orientation attribute defaults to landscape when absent; the default is not added to existing markup.",
+              "description": "Page orientation: 16:9 landscape or 9:16 portrait.",
               "fieldName": "orientation"
-            },
-            {
-              "name": "start-page",
-              "type": {
-                "text": "string"
-              },
-              "default": "\"\"",
-              "description": "Stable key of the first page in Branches; an absent key starts at the first page.",
-              "fieldName": "startPage"
             },
             {
               "name": "page-aspect-ratio",
@@ -794,9 +1295,7 @@
             "package": "@webwriter/lit"
           },
           "tagName": "webwriter-pages",
-          "customElement": true,
-          "modulePath": "src/widgets/webwriter-pages.ts",
-          "definitionPath": "src/widgets/webwriter-pages.ts"
+          "customElement": true
         }
       ],
       "exports": [
