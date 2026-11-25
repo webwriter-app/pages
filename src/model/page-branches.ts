@@ -1,7 +1,20 @@
+export type BranchConditionOp = "==" | "!=" | ">=" | ">" | "<=" | "<";
+export type BranchConditionMatch = "and" | "or";
+export type BranchUnmetMode = "disable" | "hide";
+
+export interface BranchCondition {
+    source: string;
+    op: BranchConditionOp;
+    value: number | boolean | string;
+}
+
 /** A page choice; unfamiliar fields remain part of the authored branch. */
 export interface PageBranch {
     target: string;
     label: string;
+    when?: BranchCondition[];
+    whenMatch?: BranchConditionMatch;
+    whenUnmet?: BranchUnmetMode;
     [name: string]: unknown;
 }
 

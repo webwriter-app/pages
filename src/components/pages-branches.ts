@@ -9,6 +9,7 @@ import { sceneElements } from "@webwriter/widget/scene";
 import type { PagesView } from "../model/pages-view";
 import type { WebwriterPage } from "../widgets/webwriter-page";
 import { pageKey, readBranches, readNodePosition, type PageBranch } from "../model/page-branches";
+import { formatConditionSummary, readBranchConditions, signalRootFor } from "../model/branch-conditions";
 import SlIcon from "@shoelace-style/shoelace/dist/components/icon/icon.component.js";
 import plusIcon from "@tabler/icons/outline/plus.svg";
 import removeIcon from "@tabler/icons/outline/trash.svg";
@@ -124,6 +125,7 @@ export class PagesBranches extends LitElementWw {
         .output { inset-inline-end: -12px; }
         .port[data-ww-port-candidate], .port[data-ww-port-over] { outline: 2px solid var(--ww-theme-accent-1, #0284c7); }
         ww-path { stroke: var(--sl-color-neutral-500); stroke-width: 2px; }
+        ww-path[data-conditional] { stroke-dasharray: 6 4; }
         ww-path:state(rewiring) { opacity: 0.3; }
         ww-text { fill: var(--ww-text-color, #374151); font-size: 12px; }
         @media (hover: hover) {
@@ -464,11 +466,16 @@ export class PagesBranches extends LitElementWw {
                 @ww-connect=${this.#onConnect} @ww-reconnect=${this.#reconnect} @ww-disconnect=${this.#disconnect} @ww-background=${this.#background}
                 @ww-move=${(event: CustomEvent<MoveDetail>) => this.movePages(event.detail.items)}
                 @keydown=${this.#keydown}>
-                ${view.pages.flatMap((source) => readBranches(source).filter((branch) => this.#page(branch.target)).map((branch) => html`
-                    <ww-path data-ww-key=${`path:${pageKey(source)}:${branch.target}`} from=${`${pageKey(source)}:out`} to=${`${branch.target}:in`}
+                ${view.pages.flatMap((source) => readBranches(source).filter((branch) => this.#page(branch.target)).map((branch) => {
+                    const conditional = readBranchConditions(branch).length > 0;
+                    const baseLabel = branch.label || this.#label(this.#page(branch.target)!);
+                    const summary = conditional ? formatConditionSummary(branch, signalRootFor(source)) : "";
+                    return html`<ww-path data-ww-key=${`path:${pageKey(source)}:${branch.target}`} from=${`${pageKey(source)}:out`} to=${`${branch.target}:in`}
                         route="avoid" rewire=${this.selectedPath === `path:${pageKey(source)}:${branch.target}` ? "from to" : nothing}
-                        aria-label=${branch.label || this.#label(this.#page(branch.target)!)} selectable ?selected=${this.selectedPath === `path:${pageKey(source)}:${branch.target}`}>
-                    </ww-path>`))}
+                        ?data-conditional=${conditional}
+                        aria-label=${summary ? `${baseLabel} (${summary})` : baseLabel} selectable ?selected=${this.selectedPath === `path:${pageKey(source)}:${branch.target}`}>
+                    </ww-path>`;
+                }))}
                 ${repeat(view.pages, pageKey, (node, index) => {
                     const key = pageKey(node), position = this.nodePositions.get(key) ?? readNodePosition(node, index);
                     return html`<ww-node data-ww-key=${key} x=${position.x} y=${position.y} selectable movable ?selected=${!this.selectedPath && (this.selectedNode === undefined ? node === page : this.selectedNode === key)}

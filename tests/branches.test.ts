@@ -2,12 +2,15 @@
 import "mocha/mocha.js";
 import { assert } from "chai";
 import { getMochaConfig } from "@webwriter/build/test";
+import { computed, LitElementWw, signal } from "@webwriter/lit";
 import "../src/widgets/webwriter-pages";
 import "../src/widgets/webwriter-page";
 import { frame, items, mount, pages, steps, unmountAll, until } from "./helpers";
 import type { WebwriterPages } from "../src/widgets/webwriter-pages";
 import type { PagesBranches } from "../src/components/pages-branches";
+import type { PagesChoiceConditions } from "../src/components/pages-choice-conditions";
 import { pageKey, readBranches } from "../src/model/page-branches";
+import { readBranchConditions, readBranchMatch, readBranchUnmetMode } from "../src/model/branch-conditions";
 import snippet from "../snippets/branching-scenario.html";
 import { testBranchModel } from "./branches-model";
 import { testBranchNodeLayout } from "./branch-node-layout";
@@ -837,6 +840,292 @@ describe("Pages Branches view", function () {
         assert.equal(control<HTMLInputElement>(graph, ".node-label-input").getAttribute("aria-label"), "Seitenbeschriftung");
         await until(() => widget.shadowRoot!.querySelector(".branch-choices")?.getAttribute("aria-label") === "Seitenauswahl", "German choices navigation");
         assert.isFalse(widget.hasAttribute("lang"), "inherited language stays inherited");
+    });
+
+    it("gates branch choices reactively on widget signals with disable and hide modes", async function () {
+        if (!customElements.get("test-quiz-signal")) {
+            class TestQuizSignal extends LitElementWw {
+                static signals = {
+                    score: { shape: "number", label: { _: "Score" } },
+                    complete: { shape: "boolean", label: { _: "Submitted" } },
+                };
+                #score = signal(0);
+                #complete = signal(false);
+                signals = {
+                    score: computed(() => this.#score.get()),
+                    complete: computed(() => this.#complete.get()),
+                };
+                setResult(score: number, complete: boolean) {
+                    this.#score.set(score);
+                    this.#complete.set(complete);
+                }
+            }
+            customElements.define("test-quiz-signal", TestQuizSignal);
+        }
+
+        const widget = await mount(snippet);
+        const startPage = widget.children[0];
+        const quiz = document.createElement("test-quiz-signal") as HTMLElement & { setResult(score: number, complete: boolean): void };
+        quiz.id = "quiz-1";
+        startPage.append(quiz);
+        startPage.setAttribute("branches", JSON.stringify([
+            {
+                target: "first-path",
+                label: "Advance",
+                when: [
+                    { source: "#quiz-1[complete]", op: "==", value: true },
+                    { source: "#quiz-1[score]", op: ">=", value: 0.8 },
+                ],
+            },
+            {
+                target: "second-path",
+                label: "Review",
+                when: [
+                    { source: "#quiz-1[complete]", op: "==", value: true },
+                    { source: "#quiz-1[score]", op: "<", value: 0.8 },
+                ],
+                whenUnmet: "hide",
+            },
+        ]));
+        await until(() => choices(widget).length === 1 && choices(widget)[0].textContent!.trim() === "Advance", "conditional branches rendered");
+
+        // Before submitting: Advance is disabled by default; Review is hidden.
+        assert.deepEqual(choices(widget).map((b) => b.textContent!.trim()), ["Advance"]);
+        assert.isTrue(choices(widget)[0].disabled);
+        choices(widget)[0].click();
+        await frame(2);
+        assert.equal(widget.activePageIndex, 0, "disabled choice cannot navigate");
+
+        // Submitted with low score: Advance stays disabled; Review appears and is enabled.
+        quiz.setResult(0.5, true);
+        await until(() => choices(widget).length === 2, "hidden branch reveals when conditions hold");
+        assert.isTrue(choices(widget)[0].disabled);
+        assert.isFalse(choices(widget)[1].disabled);
+
+        // Submitted with high score: Advance enables; Review hides again.
+        quiz.setResult(0.9, true);
+        await until(() => choices(widget).length === 1 && !choices(widget)[0].disabled, "passing score unlocks Advance and hides Review");
+        choices(widget)[0].click();
+        await until(() => widget.activePageIndex === 1, "unlocked choice navigates");
+    });
+
+    it("edits, persists, and clears branch conditions in the choice popover and highlights conditional sources", async function () {
+        this.timeout(10000);
+        if (!customElements.get("test-quiz-signal")) {
+            class TestQuizSignal extends LitElementWw {
+                static signals = {
+                    score: { shape: "number", label: { _: "Score" } },
+                    complete: { shape: "boolean", label: { _: "Submitted" } },
+                };
+                #score = signal(0);
+                #complete = signal(false);
+                signals = {
+                    score: computed(() => this.#score.get()),
+                    complete: computed(() => this.#complete.get()),
+                };
+                setResult(score: number, complete: boolean) {
+                    this.#score.set(score);
+                    this.#complete.set(complete);
+                }
+            }
+            customElements.define("test-quiz-signal", TestQuizSignal);
+        }
+
+        const widget = await mount(authorSnippet());
+        const startPage = widget.children[0];
+        const quiz = document.createElement("test-quiz-signal") as HTMLElement & { setResult(score: number, complete: boolean): void };
+        quiz.style.display = "block";
+        quiz.style.height = "40px";
+        startPage.append(quiz);
+        await widget.updateComplete;
+
+        const firstButton = choices(widget)[0];
+        firstButton.click();
+        const dialog = widget.shadowRoot!.querySelector<HTMLDialogElement>(`#${firstButton.getAttribute("popovertarget")}`)!;
+        const condEditor = dialog.querySelector<PagesChoiceConditions>("pages-choice-conditions")!;
+        await condEditor.updateComplete;
+
+        // Destination and label sit on the same row; remove-choice is a trashbin icon button.
+        const destBox = dialog.querySelector(".choice-destination")!.getBoundingClientRect();
+        const labelBox = dialog.querySelector(".choice-label-input")!.getBoundingClientRect();
+        assert.closeTo(destBox.top, labelBox.top, 4, "destination and label sit in the same row");
+        const removeBtn = dialog.querySelector<HTMLButtonElement>(".remove-choice")!;
+        assert.equal(removeBtn.getAttribute("aria-label"), "Remove choice");
+        assert.include(decodeURIComponent(removeBtn.querySelector("sl-icon")!.getAttribute("src")!), "trash");
+
+        // Add two conditions, type a decimal value, cycle AND -> OR, and set whenUnmet = "hide".
+        condEditor.shadowRoot!.querySelector<HTMLButtonElement>(".add-condition")!.click();
+        await condEditor.updateComplete;
+        await until(() => widget.shadowRoot!.querySelectorAll(".condition-highlight-box").length === 1, "referenced widget highlighted while choice is open");
+
+        condEditor.shadowRoot!.querySelector<HTMLButtonElement>(".add-condition")!.click();
+        await condEditor.updateComplete;
+
+        const rows = condEditor.shadowRoot!.querySelectorAll(".condition-row");
+        assert.equal(rows.length, 2);
+
+        // Single-row condition controls fit on one row.
+        const sourceRect = rows[0].querySelector(".condition-source")!.getBoundingClientRect();
+        const removeRowRect = rows[0].querySelector(".condition-remove")!.getBoundingClientRect();
+        assert.closeTo(sourceRect.top, removeRowRect.top, 6, "condition controls fit on a single row");
+
+        // Type a decimal value in the number input.
+        const numInput = rows[0].querySelector<HTMLInputElement>(".condition-value")!;
+        numInput.value = "0.75";
+        numInput.dispatchEvent(new Event("input"));
+
+        const secondSource = rows[1].querySelector<HTMLSelectElement>(".condition-source")!;
+        const completeOption = [...secondSource.options].find((o) => o.textContent?.includes("Submitted"));
+        assert.isDefined(completeOption);
+        secondSource.value = completeOption!.value;
+        secondSource.dispatchEvent(new Event("change"));
+        await condEditor.updateComplete;
+
+        const combinator = condEditor.shadowRoot!.querySelector<HTMLButtonElement>(".condition-combinator")!;
+        assert.equal(combinator.textContent!.trim(), "AND", "defaults to AND");
+        combinator.click();
+        await condEditor.updateComplete;
+        assert.equal(condEditor.shadowRoot!.querySelector<HTMLButtonElement>(".condition-combinator")!.textContent!.trim(), "OR");
+
+        const unmetSelect = condEditor.shadowRoot!.querySelector<HTMLSelectElement>(".condition-unmet")!;
+        unmetSelect.value = "hide";
+        unmetSelect.dispatchEvent(new Event("change"));
+        await condEditor.updateComplete;
+
+        // Save via clicking the Save button directly.
+        dialog.querySelector<HTMLButtonElement>(".choice-save")!.click();
+        await until(() => readBranchConditions(readBranches(startPage)[0]).length === 2, "both conditions saved on click");
+        await until(() => widget.shadowRoot!.querySelectorAll(".condition-highlight-box").length === 0, "highlight clears when popover closes");
+
+        assert.isNotEmpty(quiz.id, "saving assigns an ID to an ID-less nested signal source");
+        const savedBranch = readBranches(startPage)[0];
+        assert.equal(readBranchConditions(savedBranch)[0].value, 0.75);
+        assert.equal(readBranchMatch(savedBranch), "or");
+        assert.equal(readBranchUnmetMode(savedBranch), "hide");
+        assert.isTrue(choices(widget)[0].hasAttribute("data-conditional"));
+
+        // Reopen and confirm persisted state reloads and highlights again.
+        choices(widget)[0].click();
+        await condEditor.updateComplete;
+        assert.equal(condEditor.shadowRoot!.querySelector<HTMLButtonElement>(".condition-combinator")!.textContent!.trim(), "OR");
+        await until(() => widget.shadowRoot!.querySelectorAll(".condition-highlight-box").length === 1, "highlight reappears on reopen");
+        dialog.querySelector<HTMLButtonElement>(".choice-close")!.click();
+        await until(() => widget.shadowRoot!.querySelectorAll(".condition-highlight-box").length === 0);
+
+        // Saving via Enter in .condition-value inside a contenteditable host also persists changes.
+        const hostParent = widget.parentElement!;
+        const outerEditable = document.createElement("div");
+        outerEditable.setAttribute("contenteditable", "true");
+        hostParent.append(outerEditable);
+        outerEditable.append(widget);
+        await widget.updateComplete;
+        choices(widget)[0].click();
+        const editInHost = widget.shadowRoot!.querySelector<HTMLDialogElement>(`#${choices(widget)[0].getAttribute("popovertarget")}`)!;
+        const editorInHost = editInHost.querySelector<PagesChoiceConditions>("pages-choice-conditions")!;
+        await editorInHost.updateComplete;
+        const valInput = editorInHost.shadowRoot!.querySelector<HTMLInputElement>(".condition-value")!;
+        valInput.value = "0.6";
+        valInput.dispatchEvent(new Event("input"));
+        valInput.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+        await until(() => readBranchConditions(readBranches(startPage)[0])[0]?.value === 0.6, "Enter in condition value saves");
+        hostParent.insertBefore(widget, outerEditable);
+        outerEditable.remove();
+        await widget.updateComplete;
+
+        // Verify OR evaluation in read mode: score = 0.8 satisfies first condition even while complete = false.
+        widget.removeAttribute("contenteditable");
+        await until(() => !widget.shadowRoot!.querySelector("pages-branches"));
+        assert.equal(choices(widget).length, 1, "OR branch hidden when both conditions false (complete=false, score=0)");
+        quiz.setResult(0.8, false);
+        await until(() => choices(widget).length === 2, "OR branch shows when one condition becomes true");
+
+        // Switch back to edit mode, check graph path, then remove all conditions.
+        widget.setAttribute("contenteditable", "true");
+        const graph = await editor(widget);
+        const path = graph.shadowRoot!.querySelector(`ww-path[data-ww-key="path:start:${savedBranch.target}"]`)!;
+        assert.isTrue(path.hasAttribute("data-conditional"), "graph marks conditional paths");
+
+        choices(widget)[0].click();
+        const reopenedDialog = widget.shadowRoot!.querySelector<HTMLDialogElement>(`#${choices(widget)[0].getAttribute("popovertarget")}`)!;
+        const reopenedCondEditor = reopenedDialog.querySelector<PagesChoiceConditions>("pages-choice-conditions")!;
+        await reopenedCondEditor.updateComplete;
+        while (reopenedCondEditor.shadowRoot!.querySelector(".condition-remove")) {
+            reopenedCondEditor.shadowRoot!.querySelector<HTMLButtonElement>(".condition-remove")!.click();
+            await reopenedCondEditor.updateComplete;
+        }
+        reopenedDialog.querySelector<HTMLButtonElement>(".choice-save")!.click();
+        await until(() => readBranchConditions(readBranches(startPage)[0]).length === 0, "conditions cleared");
+        assert.isUndefined(readBranches(startPage)[0].when);
+        assert.isUndefined(readBranches(startPage)[0].whenMatch);
+        assert.isUndefined(readBranches(startPage)[0].whenUnmet);
+    });
+
+    it("re-evaluates conditions for separate-bundle / plain-getter signal sources on click and async updates", async function () {
+        if (!customElements.get("test-plain-signal")) {
+            class TestPlainSignal extends HTMLElement {
+                static signals = {
+                    score: { shape: "number", label: { _: "Score" } },
+                    complete: { shape: "boolean", label: { _: "Submitted" } },
+                };
+                #score = 0;
+                #complete = false;
+                signals = {
+                    score: { get: () => this.#score },
+                    complete: { get: () => this.#complete },
+                };
+                connectedCallback() {
+                    if (this.firstElementChild) return;
+                    const checkBtn = document.createElement("button");
+                    checkBtn.type = "button";
+                    checkBtn.className = "check-answer";
+                    checkBtn.textContent = "Check";
+                    checkBtn.addEventListener("click", () => {
+                        this.#score = 1;
+                        this.#complete = true;
+                    });
+                    const resetBtn = document.createElement("button");
+                    resetBtn.type = "button";
+                    resetBtn.className = "reset-answer";
+                    resetBtn.textContent = "Try again";
+                    resetBtn.addEventListener("click", () => {
+                        this.#score = 0;
+                        this.#complete = false;
+                    });
+                    this.append(checkBtn, resetBtn);
+                }
+                setAsyncResult(score: number, complete: boolean) {
+                    this.#score = score;
+                    this.#complete = complete;
+                }
+            }
+            customElements.define("test-plain-signal", TestPlainSignal);
+        }
+
+        const widget = await mount(snippet);
+        const startPage = widget.children[0];
+        const plainQuiz = document.createElement("test-plain-signal") as HTMLElement & { setAsyncResult(score: number, complete: boolean): void };
+        plainQuiz.id = "plain-quiz";
+        startPage.append(plainQuiz);
+        startPage.setAttribute("branches", JSON.stringify([
+            {
+                target: "first-path",
+                label: "Explore the first path",
+                when: [{ source: "#plain-quiz[score]", op: ">=", value: 0.5 }],
+            },
+        ]));
+        await until(() => choices(widget).length === 1 && choices(widget)[0].disabled, "starts disabled before answer");
+
+        // Clicking Check inside the separate-signal widget unlocks the button immediately.
+        plainQuiz.querySelector<HTMLButtonElement>(".check-answer")!.click();
+        await until(() => !choices(widget)[0].disabled, "unlocks on click even without shared Signal polyfill");
+
+        // Clicking Try again re-disables the button.
+        plainQuiz.querySelector<HTMLButtonElement>(".reset-answer")!.click();
+        await until(() => choices(widget)[0].disabled, "re-disables on reset");
+
+        // Async / non-click updates are also picked up by the fallback monitor.
+        plainQuiz.setAsyncResult(1, true);
+        await until(() => !choices(widget)[0].disabled, "unlocks on async update");
     });
 });
 

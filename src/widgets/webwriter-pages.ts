@@ -28,6 +28,8 @@ import { captureThumbnail } from "../components/page-thumbnail";
 import type { PagesView } from "../model/pages-view";
 import { PagesBranches } from "../components/pages-branches";
 import { renderBranchChoices } from "../components/pages-branch-choices";
+import { PagesChoiceConditions, resolveConditionsForSave, type ConditionsDraftResult } from "../components/pages-choice-conditions";
+import { evaluateBranch, readBranchConditions, signalRootFor } from "../model/branch-conditions";
 import { ensurePageKeys, pageKey, readBranches, writeBranches, type PageBranch } from "../model/page-branches";
 import type { MoveDetail } from "@webwriter/lit/scene";
 import { MAX_PAGE_ASPECT_RATIO, MIN_PAGE_ASPECT_RATIO, PageAspectResize, formatPageAspectRatio, normalizePageAspectRatio } from "../components/page-aspect-resize";
@@ -84,6 +86,7 @@ export class WebwriterPages extends LitElementWw {
         "sl-icon-button": SlIconButton,
         "sl-icon": SlIcon,
         "pages-branches": PagesBranches,
+        "pages-choice-conditions": PagesChoiceConditions,
     };
 
     static convertFrom = { section: "loadSections" };
@@ -238,10 +241,25 @@ export class WebwriterPages extends LitElementWw {
     #tabScroller: HTMLElement | null = null;
     #tabResizeObserver?: ResizeObserver;
     #pageAttributesObserver = new MutationObserver((records) => {
-        if (records.some(({ target }) => target.parentNode === this && (target as Element).localName === "webwriter-page")) {
+        if (records.some((record) =>
+            (record.target.parentNode === this && (record.target as Element).localName === "webwriter-page")
+            || (this.type === "branches" && (record.attributeName === "id" || record.type === "childList"))
+        )) {
             this.requestUpdate();
         }
     });
+    #documentSignalObserver = new MutationObserver((records) => {
+        if (this.type !== "branches") return;
+        const affectsSignalLookup = records.some((record) => {
+            if (this.contains(record.target)) return false;
+            if (record.type === "attributes") return record.attributeName === "id";
+            return [...record.addedNodes, ...record.removedNodes].some((node) =>
+                node instanceof Element && (node.localName.includes("-") || node.hasAttribute("id") || node.querySelector("[id]"))
+            );
+        });
+        if (affectsSignalLookup) this.requestUpdate();
+    });
+    #pendingSignalTags = new Set<string>();
 
     #page = signal(1);
     #count = signal(0);
@@ -268,6 +286,15 @@ export class WebwriterPages extends LitElementWw {
     #readingBranches = false;
     @state() private accessor branchGraphExpanded = false;
     #branchPageAnimation?: Animation;
+    #highlightedWidgets: Element[] = [];
+    #highlightAbort?: AbortController;
+    #highlightResize?: ResizeObserver;
+    @state() private accessor highlightRects: Array<{ top: number; left: number; width: number; height: number }> = [];
+    #conditionMonitorAbort?: AbortController;
+    #conditionMonitorTimer?: ReturnType<typeof setInterval>;
+    #conditionMonitorFrame?: number;
+    #conditionMonitorRoot?: ParentNode;
+    #branchAvailabilityKey = "";
 
     /** The drawer declarations with the availability of the page actions, which follows the pages. */
     get actions() {
@@ -335,7 +362,8 @@ export class WebwriterPages extends LitElementWw {
         this.addEventListener("load", this.#queueCompletionCheck, { capture: true, signal });
         this.addEventListener("error", this.#queueCompletionCheck, { capture: true, signal });
         document.addEventListener("visibilitychange", this.#queueCompletionCheck, { signal });
-        this.#pageAttributesObserver.observe(this, { attributes: true, attributeFilter: ["label", "style", "class", "page-key", "branches", "node-x", "node-y"], subtree: true });
+        this.#pageAttributesObserver.observe(this, { childList: true, attributes: true, attributeFilter: ["label", "style", "class", "page-key", "branches", "node-x", "node-y", "id"], subtree: true });
+        this.#documentSignalObserver.observe(signalRootFor(this), { childList: true, subtree: true, attributes: true, attributeFilter: ["id"] });
         this.requestUpdate();
     }
 
@@ -349,6 +377,10 @@ export class WebwriterPages extends LitElementWw {
         this.#tabResizeObserver?.disconnect();
         this.#tabScroller = null;
         this.#pageAttributesObserver.disconnect();
+        this.#documentSignalObserver.disconnect();
+        this.#pendingSignalTags.clear();
+        this.#setHighlightedWidgets([]);
+        this.#stopConditionMonitoring();
         this.#branchPageAnimation?.cancel();
         this.#branchPageAnimation = undefined;
         this.#stopCompletionTracking();
@@ -371,6 +403,9 @@ export class WebwriterPages extends LitElementWw {
             this.#aspectEditing !== editing || this.#aspectFullscreen !== this.isFullscreen) this.#aspectResize.disconnect();
         this.#aspectEditing = editing;
         this.#aspectFullscreen = this.isFullscreen;
+        if (this.#highlightedWidgets.length && (changed.has("activePageIndex") || this.type !== "branches" || !editing)) {
+            this.#setHighlightedWidgets([]);
+        }
         const pages = this.pages ?? [];
         if (this.type === "branches" && this.#permissions.editing && pages.length) {
             const keys = pages.map(pageKey);
@@ -419,6 +454,7 @@ export class WebwriterPages extends LitElementWw {
             (page, i) => (page.active = i === this.activePageIndex)
         );
         this.#syncCompletionTracking();
+        this.#syncConditionMonitoring();
         this.#page.set(this.activePageIndex + 1);
         this.#count.set(this.pages?.length ?? 0);
         const duplicateDisabled = !this.activePage;
@@ -547,20 +583,30 @@ export class WebwriterPages extends LitElementWw {
         });
     };
 
-    #setBranches = (page: WebwriterPage, branches: PageBranch[]) => {
+    #setBranches = (page: WebwriterPage, branches: PageBranch[], draft?: { target: string; result: ConditionsDraftResult }) => {
         if (!this.#permissions.editing || page.parentElement !== this) return;
         transaction(this, () => {
-            writeBranches(page, branches);
+            let next = branches;
+            if (draft) {
+                const resolved = resolveConditionsForSave(draft.result, signalRootFor(this));
+                next = branches.map((branch) => {
+                    if (branch.target !== draft.target) return branch;
+                    const { when: _when, whenUnmet: _unmet, whenMatch: _match, ...rest } = branch;
+                    return { ...rest, ...resolved };
+                });
+            }
+            writeBranches(page, next);
             this.requestUpdate();
         });
     };
 
-    #addPageChoice = (source: WebwriterPage, label: string) => {
+    #addPageChoice = (source: WebwriterPage, label: string, draft?: ConditionsDraftResult) => {
         if (!this.#permissions.editing || source.parentElement !== this) return;
         transaction(this, () => {
             const target = this.#createPage();
             ensurePageKeys(this.pages);
-            writeBranches(source, [...readBranches(source), { target: pageKey(target), label }]);
+            const resolved = draft ? resolveConditionsForSave(draft, signalRootFor(this)) : {};
+            writeBranches(source, [...readBranches(source), { target: pageKey(target), label, ...resolved }]);
             this.requestUpdate();
         });
     };
@@ -598,7 +644,9 @@ export class WebwriterPages extends LitElementWw {
 
     #followBranch = async (target: string) => {
         const source = this.activePage;
-        if (!source || !readBranches(source).some((branch) => branch.target === target)) return;
+        const branch = source && readBranches(source).find((entry) => entry.target === target);
+        if (!source || !branch) return;
+        if (!this.#permissions.editing && !evaluateBranch(branch, signalRootFor(this)).available) return;
         const index = this.pages.findIndex((page) => pageKey(page) === target);
         if (index < 0) return;
         this.branchGraphExpanded = false;
@@ -964,6 +1012,127 @@ export class WebwriterPages extends LitElementWw {
         this.requestUpdate();
     }
 
+    #watchPendingSignalTags = (tags: string[]) => {
+        const registry = this.ownerDocument.defaultView?.customElements;
+        if (!registry) return;
+        for (const tag of tags) {
+            if (this.#pendingSignalTags.has(tag)) continue;
+            this.#pendingSignalTags.add(tag);
+            void registry.whenDefined(tag).then(() => {
+                this.#pendingSignalTags.delete(tag);
+                if (this.isConnected) this.requestUpdate();
+            });
+        }
+    };
+
+    #setHighlightedWidgets = (elements: Element[]) => {
+        const next = this.isConnected && this.#permissions.editing && this.type === "branches"
+            ? elements.filter((el) => el.isConnected)
+            : [];
+        this.#highlightAbort?.abort();
+        this.#highlightAbort = undefined;
+        this.#highlightResize?.disconnect();
+        this.#highlightResize = undefined;
+        this.#highlightedWidgets = next;
+        if (!next.length) {
+            if (this.highlightRects.length) this.highlightRects = [];
+            return;
+        }
+        this.#highlightAbort = new AbortController();
+        const { signal } = this.#highlightAbort;
+        window.addEventListener("scroll", this.#updateHighlightRects, { capture: true, passive: true, signal });
+        window.addEventListener("resize", this.#updateHighlightRects, { passive: true, signal });
+        this.#highlightResize = new ResizeObserver(this.#updateHighlightRects);
+        this.#highlightResize.observe(this);
+        for (const el of next) this.#highlightResize.observe(el);
+        this.#updateHighlightRects();
+    };
+
+    #updateHighlightRects = () => {
+        if (!this.isConnected || !this.#highlightedWidgets.length) {
+            if (this.highlightRects.length) this.highlightRects = [];
+            return;
+        }
+        const hostRect = this.getBoundingClientRect();
+        const rects: Array<{ top: number; left: number; width: number; height: number }> = [];
+        for (const el of this.#highlightedWidgets) {
+            if (!el.isConnected) continue;
+            const rect = el.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0) continue;
+            rects.push({
+                top: rect.top - hostRect.top,
+                left: rect.left - hostRect.left,
+                width: rect.width,
+                height: rect.height,
+            });
+        }
+        this.highlightRects = rects;
+    };
+
+    #branchAvailabilitySnapshot(): string {
+        const page = this.activePage;
+        if (!page) return "";
+        const root = signalRootFor(this);
+        return readBranches(page)
+            .map((branch) => (evaluateBranch(branch, root).available ? "1" : "0"))
+            .join("");
+    }
+
+    #checkBranchConditions = () => {
+        if (!this.isConnected || this.type !== "branches" || this.#permissions.editing) return;
+        if (this.ownerDocument.visibilityState === "hidden") return;
+        const next = this.#branchAvailabilitySnapshot();
+        if (next !== this.#branchAvailabilityKey) {
+            this.#branchAvailabilityKey = next;
+            this.requestUpdate();
+        }
+    };
+
+    #scheduleBranchConditionCheck = () => {
+        queueMicrotask(this.#checkBranchConditions);
+        if (this.#conditionMonitorFrame !== undefined) cancelAnimationFrame(this.#conditionMonitorFrame);
+        this.#conditionMonitorFrame = requestAnimationFrame(() => {
+            this.#conditionMonitorFrame = undefined;
+            this.#checkBranchConditions();
+        });
+    };
+
+    #stopConditionMonitoring() {
+        this.#conditionMonitorAbort?.abort();
+        this.#conditionMonitorAbort = undefined;
+        if (this.#conditionMonitorTimer !== undefined) {
+            clearInterval(this.#conditionMonitorTimer);
+            this.#conditionMonitorTimer = undefined;
+        }
+        if (this.#conditionMonitorFrame !== undefined) {
+            cancelAnimationFrame(this.#conditionMonitorFrame);
+            this.#conditionMonitorFrame = undefined;
+        }
+        this.#conditionMonitorRoot = undefined;
+        this.#branchAvailabilityKey = "";
+    }
+
+    #syncConditionMonitoring() {
+        const page = this.activePage;
+        const hasConditions = Boolean(page && readBranches(page).some((branch) => readBranchConditions(branch).length > 0));
+        if (!this.isConnected || this.type !== "branches" || this.#permissions.editing || !hasConditions) {
+            this.#stopConditionMonitoring();
+            return;
+        }
+        const root = signalRootFor(this);
+        if (this.#conditionMonitorRoot !== root) {
+            this.#stopConditionMonitoring();
+            this.#conditionMonitorRoot = root;
+            this.#conditionMonitorAbort = new AbortController();
+            const { signal } = this.#conditionMonitorAbort;
+            for (const eventName of ["click", "change", "input", "keyup", "submit"] as const) {
+                root.addEventListener(eventName, this.#scheduleBranchConditionCheck, { capture: true, passive: true, signal });
+            }
+            this.#conditionMonitorTimer = setInterval(this.#checkBranchConditions, 250);
+        }
+        this.#branchAvailabilityKey = this.#branchAvailabilitySnapshot();
+    }
+
     /** The sequence of pages as seen by the strip and control components. */
     #view(): PagesView {
         return {
@@ -1035,6 +1204,16 @@ export class WebwriterPages extends LitElementWw {
                 ${layout === "pages" ? renderThumbs(view) : nothing}
                 ${branches ? renderBranchChoices(view, this.#setBranches, this.#followBranch, this.branchGraphExpanded, () => this.branchGraphExpanded = !this.branchGraphExpanded, this.#addPageChoice, this.localize.getLocale(), this.#watchPendingSignalTags, this.#setHighlightedWidgets) : nothing}
             </div>
+            ${branches && view.editing && this.highlightRects.length ? html`
+                <div class="condition-highlights" aria-hidden="true">
+                    ${this.highlightRects.map((rect) => html`<div class="condition-highlight-box" style=${styleMap({
+                        top: `${rect.top}px`,
+                        left: `${rect.left}px`,
+                        width: `${rect.width}px`,
+                        height: `${rect.height}px`,
+                    })}></div>`)}
+                </div>
+            ` : nothing}
         `;
     }
 }

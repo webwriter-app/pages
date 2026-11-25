@@ -1,6 +1,14 @@
 /// <reference types="mocha" />
 import { assert } from "chai";
 import { ensurePageKeys, pageKey, readBranches, readNodePosition, writeBranches } from "../src/model/page-branches";
+import {
+    evaluateBranch,
+    formatSignalReference,
+    parseSignalReference,
+    readBranchConditions,
+    readBranchMatch,
+    readBranchUnmetMode,
+} from "../src/model/branch-conditions";
 
 const page = () => document.createElement("div");
 
@@ -107,6 +115,76 @@ export function testBranchModel() {
             assert.isFalse(element.hasAttribute("branches"));
             assert.equal(element.getAttribute("page-key"), "keep");
             assert.equal(element.innerHTML, "<p>Keep</p><!--keep-->");
+        });
+
+        it("parses and formats signal references and validates branch conditions", function () {
+            assert.deepEqual(parseSignalReference("#quiz-1[score]"), { id: "quiz-1", name: "score" });
+            const escaped = formatSignalReference("1quiz:a", "my[score]");
+            assert.deepEqual(parseSignalReference(escaped), { id: "1quiz:a", name: "my[score]" });
+            for (const bad of ["", "quiz[score]", "#quiz", "#quiz[]", "#quiz [score]", "#quiz[a=b]"]) {
+                assert.isNull(parseSignalReference(bad), bad);
+            }
+            assert.equal(readBranchUnmetMode({ target: "a", label: "Go" }), "disable");
+            assert.equal(readBranchUnmetMode({ target: "a", label: "Go", whenUnmet: "hide" }), "hide");
+            assert.equal(readBranchMatch({ target: "a", label: "Go" }), "and");
+            assert.equal(readBranchMatch({ target: "a", label: "Go", whenMatch: "or" }), "or");
+            const valid = readBranchConditions({
+                target: "a",
+                label: "Go",
+                when: [
+                    { source: "#q[score]", op: ">=", value: 0.7 },
+                    { source: "invalid", op: "==", value: true },
+                    { source: "#q[score]", op: "invalid" as any, value: 1 },
+                    { source: "#q[score]", op: "==", value: Infinity },
+                    { source: "#q[complete]", op: "==", value: true },
+                ],
+            });
+            assert.deepEqual(valid, [
+                { source: "#q[score]", op: ">=", value: 0.7 },
+                { source: "#q[complete]", op: "==", value: true },
+            ]);
+        });
+
+        it("evaluates compound AND conditions and fails safely on missing or duplicate IDs", function () {
+            const container = document.createElement("div");
+            let score = 0;
+            let complete = false;
+            const source = document.createElement("div") as HTMLDivElement & { signals: Record<string, { get(): unknown }> };
+            source.id = "quiz-a";
+            source.signals = {
+                score: { get: () => score },
+                complete: { get: () => complete },
+            };
+            container.append(source);
+
+            const branch = {
+                target: "next",
+                label: "Advance",
+                when: [
+                    { source: "#quiz-a[complete]", op: "==" as const, value: true },
+                    { source: "#quiz-a[score]", op: ">=" as const, value: 0.8 },
+                ],
+            };
+            assert.isFalse(evaluateBranch(branch, container).available);
+            complete = true;
+            score = 0.5;
+            assert.isFalse(evaluateBranch(branch, container).available);
+            score = 0.8;
+            assert.isTrue(evaluateBranch(branch, container).available);
+
+            const orBranch = { ...branch, whenMatch: "or" as const };
+            score = 0.5;
+            complete = true;
+            assert.isTrue(evaluateBranch(orBranch, container).available, "OR branch passes when either condition holds");
+            complete = false;
+            assert.isFalse(evaluateBranch(orBranch, container).available, "OR branch fails when no condition holds");
+
+            const duplicate = document.createElement("span");
+            duplicate.id = "quiz-a";
+            container.append(duplicate);
+            const dupEval = evaluateBranch(branch, container);
+            assert.isFalse(dupEval.available);
+            assert.isTrue(dupEval.unresolved);
         });
     });
 }

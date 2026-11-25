@@ -114,6 +114,7 @@ export const pages_styles = css`
 
     .branch-controls button { cursor: pointer; overflow-wrap: anywhere; }
     .branch-controls button:disabled { opacity: 0.45; cursor: default; }
+    .branch-controls .branch-choice[data-conditional] { border-style: dashed; }
     .branch-controls sl-icon { font-size: 16px; pointer-events: none; }
     .branch-controls .choice-goto, .branch-controls .choice-close {
         display: inline-flex;
@@ -133,8 +134,7 @@ export const pages_styles = css`
     }
     .branch-controls .add-choice { display: inline-flex; align-items: center; justify-content: center; inline-size: 36px; padding: 0; }
     .choice-popover {
-        inline-size: 20rem;
-        max-inline-size: calc(100vw - 24px);
+        inline-size: min(30rem, calc(100vw - 24px));
         padding: 0;
         border: 0;
         background: transparent;
@@ -151,15 +151,23 @@ export const pages_styles = css`
     }
     .choice-popover-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-block-end: 12px; font-weight: 600; }
     .choice-form { display: grid; gap: 12px; max-block-size: calc(100dvh - 110px); overflow: auto; }
+    .choice-basics { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
     .choice-form label { display: grid; gap: 4px; font-size: 0.9em; }
     .choice-form :is(input, select) { inline-size: 100%; }
     .choice-popover-actions { display: flex; flex-wrap: wrap; justify-content: end; gap: 8px; }
-    .choice-popover-actions .remove-choice { margin-inline-end: auto; }
-    @supports (position-area: block-start) {
+    .choice-popover-actions .remove-choice {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        inline-size: 36px;
+        padding: 0;
+        margin-inline-end: auto;
+    }
+    @supports (position-area: block-end) {
         .choice-popover:popover-open {
             inset: auto;
             margin: 12px 0;
-            position-area: block-start span-inline-end;
+            position-area: block-end span-inline-end;
             justify-self: start;
             position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
         }
@@ -172,18 +180,33 @@ export const pages_styles = css`
             inline-size: 10px;
             block-size: 10px;
             inset-inline-start: 12px;
-            inset-block-end: -6px;
+            inset-block-start: -6px;
+            inset-block-end: auto;
             background: inherit;
             border-inline-end: inherit;
             border-block-end: inherit;
-            transform: rotate(45deg);
+            transform: rotate(225deg);
         }
         @container anchored(fallback: flip-block) or anchored(fallback: flip-block flip-inline) {
-            .choice-bubble::after { inset-block-start: -6px; inset-block-end: auto; transform: rotate(225deg); }
+            .choice-bubble::after { inset-block-start: auto; inset-block-end: -6px; transform: rotate(45deg); }
         }
         @container anchored(fallback: flip-inline) or anchored(fallback: flip-block flip-inline) {
             .choice-bubble::after { inset-inline-start: auto; inset-inline-end: 12px; }
         }
+    }
+    .condition-highlights {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 4;
+        overflow: visible;
+    }
+    .condition-highlight-box {
+        position: absolute;
+        box-sizing: border-box;
+        border: 2px solid var(--_accent);
+        border-radius: var(--sl-border-radius-medium, 6px);
+        background: color-mix(in srgb, var(--_accent) 12%, transparent);
     }
     .branch-controls :is(button, input, select):focus-visible {
         outline: var(--sl-focus-ring-width) solid var(--_accent);
