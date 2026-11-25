@@ -1,6 +1,6 @@
 {
   "name": "@webwriter/pages",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Present content as slides, tabs, carousels, or branching pages.",
   "repository": "https://github.com/webwriter-app/pages",
   "keywords": [
