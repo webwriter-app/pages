@@ -1,5 +1,5 @@
-# Pages (`@webwriter/pages@3.1.2`)
-[License: MIT](LICENSE) | Version: 3.1.2
+# Pages (`@webwriter/pages@3.1.3`)
+[License: MIT](LICENSE) | Version: 3.1.3
 
 Present content as slides, tabs, carousels, or branching pages.
 
